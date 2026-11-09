@@ -19,7 +19,9 @@
     "swiss"
   ],
   "type": "module",
-  "sideEffects": false,
+  "sideEffects": [
+    "./src/**"
+  ],
   "files": [
     "dist"
   ],
@@ -40,7 +42,7 @@
     "./package.json": "./package.json"
   },
   "scripts": {
-    "build": "NODE_ENV=production bunup",
+    "build": "NODE_ENV=production bunup && bun ../../scripts/assert-build.ts dist",
     "dev": "bunup --watch",
     "test": "bun test",
     "typecheck": "tsc --noEmit",
