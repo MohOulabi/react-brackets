@@ -1,6 +1,7 @@
 {
   "pages": [
     "results",
+    "loading",
     "click-events",
     "small-screens",
     "layouts",

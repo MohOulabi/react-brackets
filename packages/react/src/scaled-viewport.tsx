@@ -58,7 +58,10 @@ export function ScaledViewport({
     return () => observer.disconnect();
   }, []);
 
-  const fitScale = frame.contentWidth > 0 ? Math.min(1, frame.width / frame.contentWidth) : 1;
+  // Until it is measured, as in server-rendered HTML, the tree stays in the flow at its natural size, so the
+  // viewport has a real height on first paint instead of collapsing and then jumping open.
+  const measured = frame.contentWidth > 0;
+  const fitScale = measured ? Math.min(1, frame.width / frame.contentWidth) : 1;
   const fittedHeight = frame.contentHeight * fitScale;
   const fitted = clampTransform(
     { x: 0, y: 0, scale: fitScale },
@@ -102,15 +105,19 @@ export function ScaledViewport({
     >
       <GridContent
         contentRef={content}
-        style={{
-          position: 'absolute',
-          insetBlockStart: 0,
-          left: 0,
-          transformOrigin: '0 0',
-          transform: `translate(${current.x}px, ${current.y}px) scale(${current.scale})`,
-          transition:
-            smooth && motion ? `transform ${motion.duration}ms ${motion.easing}` : undefined,
-        }}
+        style={
+          measured
+            ? {
+                position: 'absolute',
+                insetBlockStart: 0,
+                left: 0,
+                transformOrigin: '0 0',
+                transform: `translate(${current.x}px, ${current.y}px) scale(${current.scale})`,
+                transition:
+                  smooth && motion ? `transform ${motion.duration}ms ${motion.easing}` : undefined,
+              }
+            : undefined
+        }
       >
         {children}
       </GridContent>

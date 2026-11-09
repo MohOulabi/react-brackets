@@ -178,6 +178,7 @@ Run them all locally with `bun install && bun run build && bun run examples`. Th
 - [groups to playoffs](examples/groups-to-playoffs)
 - [full bracket on every screen](examples/full-bracket)
 - [live scores](examples/live-scores)
+- [loading skeleton](examples/loading)
 - [Next.js App Router](examples/nextjs)
 
 ## Contributing
