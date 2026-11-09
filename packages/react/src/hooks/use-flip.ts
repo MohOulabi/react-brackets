@@ -26,6 +26,9 @@ export interface Flight {
 
 export const flights: WeakMap<Element, Flight> = new WeakMap();
 
+/** A flight that has landed: where the layout puts it, fully visible. */
+export const still: Flight = { x: 0, y: 0, opacity: 1 };
+
 interface Move {
   element: HTMLElement;
   dx: number;
@@ -93,8 +96,6 @@ export function useFlip(
 
   useEffect(() => () => running.current?.(), []);
 }
-
-const still: Flight = { x: 0, y: 0, opacity: 1 };
 
 /** Runs the moves on one clock; returns a function that stops them and puts every element back at rest. */
 function play(moves: Move[], motion: Motion, connectors: Element | null): () => void {
