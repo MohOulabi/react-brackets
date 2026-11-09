@@ -1,0 +1,84 @@
+---
+title: Loading and first paint
+description: Show a skeleton while the draw loads, and keep the page from jumping when it arrives.
+---
+
+## A skeleton in the bracket's own shape
+
+While the participants load, draw the bracket you're waiting for with blank cards. Build a stage from placeholders, the same size as the one coming, and render a skeleton card for every match. The rounds, lines and spacing are the real ones, so nothing moves when the data lands:
+
+<Preview>
+  <SkeletonDemo />
+</Preview>
+
+```tsx
+const placeholders = Array.from({ length: 8 }, (_, index) => ({
+  id: `placeholder-${index}`,
+  name: '',
+}));
+const skeleton = singleElimination(placeholders);
+
+function SkeletonMatch() {
+  return (
+    <Bracket.Match aria-hidden>
+      <Bracket.Participant slot={0}>
+        <span className="animate-pulse rounded-full bg-muted text-transparent">Placeholder</span>
+      </Bracket.Participant>
+      <Bracket.Participant slot={1}>
+        <span className="animate-pulse rounded-full bg-muted text-transparent">Team</span>
+      </Bracket.Participant>
+    </Bracket.Match>
+  );
+}
+
+export function Draw() {
+  const { data: teams } = useTeams();
+
+  return (
+    <div aria-busy={!teams}>
+      {teams ? (
+        <Bracket stage={singleElimination(teams)} />
+      ) : (
+        <Bracket stage={skeleton} highlightOnHover={false} renderMatch={SkeletonMatch} />
+      )}
+    </div>
+  );
+}
+```
+
+- Keep `Bracket.Participant` in the skeleton card, and fill it with a transparent word rather than a fixed-height bar. The word takes exactly one line of text, so each row keeps the real card's height and the swap doesn't shift anything.
+- Use the same format and options as the real stage, like `thirdPlace` or `doubleElimination`, so the skeleton has the same rounds.
+- Don't know the size yet? Use the most likely count. A skeleton a round too big is still better than an empty box.
+- `aria-busy` tells screen readers the content is on its way, and `aria-hidden` keeps the blank cards out of their way.
+
+The same works with `Suspense`: render the skeleton bracket as the fallback.
+
+```tsx
+<Suspense fallback={<Bracket stage={skeleton} renderMatch={SkeletonMatch} />}>
+  <Draw />
+</Suspense>
+```
+
+## Server rendering and the first paint
+
+The bracket renders on the server, so the page arrives with the bracket already in it. Two things only settle once it runs in the browser, because they depend on the container's width:
+
+- **`mode="fit"` and `mode="pan-zoom"`** first paint the tree at its natural size, then scale it to fit. When the tree already fits, nothing changes.
+- **The paged view on narrow screens.** The server can't know the container's width, so it renders the whole tree. Narrow containers switch to one round at a time as soon as the page hydrates.
+
+To keep a phone layout from switching, render the skeleton until the component has mounted, then the bracket:
+
+```tsx
+function useMounted() {
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+  return mounted;
+}
+
+const mounted = useMounted();
+return mounted ? <Bracket stage={stage} /> : <Bracket stage={skeleton} renderMatch={SkeletonMatch} />;
+```
+
+## Before there's a draw
+
+With no participants yet, there's no bracket to draw. Show your own empty state, like "The draw opens on 12 June", and render the bracket once you have a stage.

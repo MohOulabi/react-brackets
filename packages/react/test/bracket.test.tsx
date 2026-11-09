@@ -324,13 +324,32 @@ describe('scaled viewports', () => {
     expect(screen.getByRole('button', { name: 'Fit to view' })).toBeDefined();
   });
 
-  test('fit scales without controls', () => {
-    const { container } = render(
+  test('fit scales without controls once measured', () => {
+    const width = Object.getOwnPropertyDescriptor(HTMLElement.prototype, 'offsetWidth');
+    Object.defineProperty(HTMLElement.prototype, 'offsetWidth', {
+      configurable: true,
+      get: () => 800,
+    });
+    try {
+      const { container } = render(
+        <Bracket stage={singleElimination(players(8))} compactBelow={0} mode="fit" />,
+      );
+
+      expect(parts(container, 'zoom-controls')).toHaveLength(0);
+      expect((parts(container, 'content')[0] as HTMLElement).style.transform).toContain('scale(');
+    } finally {
+      if (width) Object.defineProperty(HTMLElement.prototype, 'offsetWidth', width);
+    }
+  });
+
+  test('keeps the tree in the flow on the server, so the first paint has its height', () => {
+    const html = renderToString(
       <Bracket stage={singleElimination(players(8))} compactBelow={0} mode="fit" />,
     );
+    const content = html.match(/data-part="content"[^>]*style="([^"]*)"/)?.[1] ?? '';
 
-    expect(parts(container, 'zoom-controls')).toHaveLength(0);
-    expect((parts(container, 'content')[0] as HTMLElement).style.transform).toContain('scale(');
+    expect(content).not.toContain('absolute');
+    expect(content).not.toContain('scale(');
   });
 });
 
