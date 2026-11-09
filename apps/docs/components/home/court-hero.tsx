@@ -11,8 +11,8 @@ import {
   participantMap,
   type Stage,
 } from 'react-brackets';
-import { teams } from '@/components/demos/data';
 import { useLiveStage } from '@/components/demos/motion';
+import { CourtPlan, LiveDot, TeamChip } from '@/components/home/court';
 import { cn } from '@/lib/utils';
 
 /** Whoever won most recently, and the round they reached. Their path is lit up on the court. */
@@ -39,13 +39,21 @@ function leader(stage: Stage): { id: string; name: string; next: string | null }
 export function CourtHero() {
   const stage = useLiveStage(16, 800);
   const current = leader(stage);
+  const round = stage.groups[0]?.rounds.find((item) =>
+    item.matches.some((match) => match.status !== 'completed'),
+  );
 
   return (
-    <section className="relative isolate overflow-hidden bg-court text-white">
-      <CourtMarkings />
-      <div className="mx-auto flex max-w-6xl flex-col gap-10 px-4 pt-16 pb-10 sm:px-6 md:pt-24">
+    <section className="court-surface relative isolate bg-court-deep text-white">
+      <div aria-hidden className="absolute inset-0 -z-10 overflow-hidden">
+        <CourtPlan />
+        <div className="court-floodlight absolute inset-0" />
+        <div className="court-grain absolute inset-0" />
+      </div>
+
+      <div className="mx-auto flex max-w-6xl flex-col px-4 pt-16 sm:px-6 md:pt-24">
         <div className="flex max-w-3xl flex-col gap-6">
-          <h1 className="font-display text-balance text-[clamp(3rem,8vw,5.5rem)]">
+          <h1 className="font-display text-balance text-[clamp(3.25rem,8.5vw,6rem)]">
             Brackets that keep up with the tournament.
           </h1>
           <p className="max-w-xl text-pretty text-lg leading-relaxed text-white/75">
@@ -55,13 +63,13 @@ export function CourtHero() {
           <div className="flex flex-wrap items-center gap-x-6 gap-y-4">
             <Link
               href="/docs"
-              className="inline-flex h-11 items-center rounded-full bg-optic px-6 font-semibold text-[#10213f] transition-colors hover:bg-[#e4fb7a]"
+              className="inline-flex h-11 items-center rounded-full bg-optic px-6 font-semibold text-[#10213f] transition-colors hover:bg-[#e4fb7a] focus-visible:outline-white"
             >
               Read the docs
             </Link>
             <a
               href="#playground"
-              className="font-medium text-white underline-offset-4 hover:underline"
+              className="font-medium text-white underline-offset-4 hover:underline focus-visible:outline-white"
             >
               Try the playground
             </a>
@@ -69,62 +77,68 @@ export function CourtHero() {
           </div>
         </div>
 
-        <div className="-mx-2">
-          <Bracket
-            className="court-bracket"
-            stage={stage}
-            mode="fit"
-            connectorRadius={4}
-            highlighted={current?.id ?? null}
-            highlightOnHover={false}
-            renderMatch={(match) => <CourtCard match={match} />}
-            renderConnector={(line) => <CourtLine line={line} />}
-          />
-        </div>
-        <p aria-live="polite" className="min-h-6 text-sm text-white/70 tabular-nums">
-          {current ? (
-            <>
-              <span className="font-semibold text-optic">{current.name}</span>{' '}
-              {current.next ? `are through to the ${current.next}.` : 'win the title.'}
-            </>
-          ) : (
-            'The draw is set. First matches are under way.'
-          )}
-        </p>
+        <figure className="relative z-10 mt-14 -mb-28 overflow-hidden rounded-[1.25rem] bg-[#0c1f4d] shadow-[0_40px_80px_-40px_rgb(5_12_30/0.9),inset_0_1px_0_rgb(255_255_255/0.08)] ring-1 ring-white/10 md:mt-20">
+          <figcaption className="flex flex-col gap-1 border-b border-white/10 px-4 py-3.5 sm:flex-row sm:items-center sm:justify-between sm:gap-6 sm:px-6">
+            <span className="flex items-baseline gap-3">
+              <span className="font-display text-[1.6rem]">Spring Open</span>
+              <span className="text-sm text-white/55">
+                {round ? `${round.name}, 16 teams` : 'Final, 16 teams'}
+              </span>
+            </span>
+            <span
+              aria-live="polite"
+              className="flex min-h-6 min-w-0 items-center gap-2.5 text-sm text-white/75 tabular-nums"
+            >
+              <LiveDot className="shrink-0" />
+              <span className="truncate">
+                {current ? (
+                  <>
+                    <span className="font-semibold text-optic">{current.name}</span>{' '}
+                    {current.next ? `are through to the ${current.next}.` : 'win the title.'}
+                  </>
+                ) : (
+                  'The draw is set. First matches are under way.'
+                )}
+              </span>
+            </span>
+          </figcaption>
+          <div className="px-3 pt-5 pb-3 sm:px-6 sm:pt-6 sm:pb-5">
+            <Bracket
+              className="court-bracket"
+              stage={stage}
+              mode="fit"
+              connectorRadius={4}
+              highlighted={current?.id ?? null}
+              highlightOnHover={false}
+              renderMatch={(match) => <CourtCard match={match} />}
+              renderConnector={(line) => <CourtLine line={line} />}
+            />
+          </div>
+        </figure>
       </div>
     </section>
   );
 }
 
-/** Each team keeps one colour, so you can follow it round to round. */
-const colours = [
-  '#7dd3fc',
-  '#fda4af',
-  '#fcd34d',
-  '#86efac',
-  '#c4b5fd',
-  '#fdba74',
-  '#5eead4',
-  '#f9a8d4',
-];
-const colourOf = new Map(
-  teams(16).map((team, index) => [team.id, colours[index % colours.length]]),
-);
-
-function CourtCard({ match }: { match: Match }) {
+/**
+ * A match card painted for the court. The highlighted path always wins over the live state, so the leader's
+ * card stays optic while a live match is shown by its pulsing dot alone.
+ */
+export function CourtCard({ match }: { match: Match }) {
   const live = match.status === 'live';
   return (
     <Bracket.Match
       className={({ highlighted }) =>
         cn(
-          'relative w-56 rounded-lg bg-white/[0.06] ring-1 ring-white/12 transition-[box-shadow,background-color] duration-300',
-          live && 'bg-white/[0.09] ring-[#ffb4a2]',
-          highlighted && 'ring-optic/80',
+          'relative w-56 rounded-lg bg-white/[0.06] ring-1 transition-[box-shadow,background-color] duration-300',
+          highlighted ? 'ring-optic/80' : live ? 'bg-white/[0.1] ring-white/45' : 'ring-white/12',
         )
       }
     >
       {live && (
-        <span className="absolute -top-1 -right-1 size-2.5 rounded-full bg-[#ffb4a2] ring-2 ring-court motion-safe:animate-pulse" />
+        <span className="absolute top-1.5 right-1.5 flex">
+          <LiveDot className="size-1.5" />
+        </span>
       )}
       {([0, 1] as const).map((slot) => (
         <Bracket.Participant
@@ -134,17 +148,7 @@ function CourtCard({ match }: { match: Match }) {
         >
           {({ participant, winner, slot: { score } }) => (
             <>
-              <span
-                aria-hidden
-                className="grid size-5 shrink-0 place-items-center rounded-[5px] text-[11px] font-bold text-court-deep"
-                style={{
-                  background: participant
-                    ? colourOf.get(participant.id)
-                    : 'rgb(255 255 255 / 0.12)',
-                }}
-              >
-                {participant?.name[0]}
-              </span>
+              <TeamChip id={participant?.id} name={participant?.name} />
               <span
                 className={cn(
                   'flex-1 truncate',
@@ -155,7 +159,11 @@ function CourtCard({ match }: { match: Match }) {
                 {participant?.name ?? 'To be decided'}
               </span>
               <span
-                className={cn('w-4 text-end tabular-nums', winner ? 'text-optic' : 'text-white/70')}
+                className={cn(
+                  'w-4 text-end tabular-nums',
+                  winner ? 'font-semibold text-optic' : 'text-white/70',
+                  live && 'me-2',
+                )}
               >
                 {score ?? ''}
               </span>
@@ -168,7 +176,7 @@ function CourtCard({ match }: { match: Match }) {
 }
 
 /** A soft curve between cards; the leader's path flows in optic. */
-function CourtLine({ line }: { line: ConnectorState }) {
+export function CourtLine({ line }: { line: ConnectorState }) {
   const { start, end } = line;
   const mid = (start.x + end.x) / 2;
   return (
@@ -195,7 +203,7 @@ function InstallCommand() {
         setCopied(true);
         setTimeout(() => setCopied(false), 1500);
       }}
-      className="group inline-flex h-11 max-w-full items-center gap-3 rounded-full bg-white/8 px-5 font-mono text-[13px] text-white/85 transition-colors hover:bg-white/14 sm:text-sm"
+      className="group inline-flex h-11 max-w-full items-center gap-3 rounded-full bg-white/8 px-5 font-mono text-[13px] text-white/85 ring-1 ring-white/10 transition-colors hover:bg-white/14 focus-visible:outline-white sm:text-sm"
       aria-label={copied ? 'Copied' : `Copy ${command}`}
     >
       <span className="truncate">{command}</span>
@@ -205,33 +213,5 @@ function InstallCommand() {
         <Copy className="size-4 shrink-0 opacity-60 group-hover:opacity-100" />
       )}
     </button>
-  );
-}
-
-/**
- * Faint service lines, so the band reads as a court rather than a coloured box. Drawn at a fixed size from the
- * top and never stretched, so they stay put while the bracket in front changes height.
- */
-function CourtMarkings() {
-  return (
-    <svg
-      aria-hidden
-      className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[1400px] w-full text-white/[0.07]"
-      preserveAspectRatio="xMidYMin slice"
-      viewBox="0 0 1200 1400"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-    >
-      <g vectorEffect="non-scaling-stroke">
-        <rect x="60" y="40" width="1080" height="1320" vectorEffect="non-scaling-stroke" />
-        <line x1="60" y1="160" x2="1140" y2="160" vectorEffect="non-scaling-stroke" />
-        <line x1="60" y1="1240" x2="1140" y2="1240" vectorEffect="non-scaling-stroke" />
-        <line x1="600" y1="40" x2="600" y2="1360" vectorEffect="non-scaling-stroke" />
-        <line x1="330" y1="160" x2="330" y2="1240" vectorEffect="non-scaling-stroke" />
-        <line x1="870" y1="160" x2="870" y2="1240" vectorEffect="non-scaling-stroke" />
-        <line x1="330" y1="700" x2="870" y2="700" vectorEffect="non-scaling-stroke" />
-      </g>
-    </svg>
   );
 }
