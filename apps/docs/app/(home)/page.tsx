@@ -5,6 +5,7 @@ import { FormatShowcase, PhoneShowcase, StylingShowcase } from '@/components/hom
 import { Playground } from '@/components/playground';
 import { repository } from '@/lib/layout.shared';
 import { site } from '@/lib/site';
+import { cn } from '@/lib/utils';
 
 const structuredData = {
   '@context': 'https://schema.org',
@@ -29,8 +30,8 @@ export default function HomePage() {
       />
       <CourtHero />
 
-      <Section>
-        <div className="grid items-center gap-14 lg:grid-cols-[minmax(0,1fr)_minmax(0,0.8fr)]">
+      <section className="mx-auto w-full max-w-6xl px-4 pt-44 pb-20 sm:px-6 md:pt-52 md:pb-28">
+        <div className="grid items-center gap-14 lg:grid-cols-[minmax(0,1fr)_auto] lg:gap-24">
           <div className="flex max-w-xl flex-col gap-6">
             <Heading>Still a bracket on a phone.</Heading>
             <p className="text-lg leading-relaxed text-muted-foreground">
@@ -38,30 +39,27 @@ export default function HomePage() {
               neatly, the next one waits at the edge with its lines, and a swipe glides every match
               into place.
             </p>
-            <ul className="flex flex-col gap-4 text-[15px] leading-relaxed">
-              <li>
-                <strong className="font-semibold">Measured from its container,</strong> not the
-                window, so it adapts inside a sidebar, a modal or a dashboard card.
-              </li>
-              <li>
-                <strong className="font-semibold">Prefer the whole tree?</strong> Let it scroll,
-                scale it to fit, or let people pan and pinch to zoom.
-              </li>
-              <li>
-                <strong className="font-semibold">Built in, not bolted on.</strong> The swipe, zoom
-                and animation are part of the library, with no gesture dependencies.
-              </li>
-            </ul>
+            <dl className="mt-2 flex flex-col text-[15px] leading-relaxed">
+              {points.map(([title, body]) => (
+                <div
+                  key={title}
+                  className="grid gap-1 border-t py-4 sm:grid-cols-[11rem_minmax(0,1fr)] sm:gap-6"
+                >
+                  <dt className="font-semibold">{title}</dt>
+                  <dd className="text-muted-foreground">{body}</dd>
+                </div>
+              ))}
+            </dl>
           </div>
           <PhoneShowcase />
         </div>
-      </Section>
+      </section>
 
-      <Section className="bg-card/60">
-        <div className="flex flex-col gap-10">
-          <div className="flex max-w-2xl flex-col gap-4">
+      <Section>
+        <div className="flex flex-col gap-10 md:gap-14">
+          <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(0,0.9fr)] lg:items-end lg:gap-16">
             <Heading>Every format, one component.</Heading>
-            <p className="text-lg leading-relaxed text-muted-foreground">
+            <p className="max-w-xl text-lg leading-relaxed text-muted-foreground">
               Build a stage with one function call, report results as they come in, and pass it to{' '}
               <code className="text-foreground">{'<Bracket>'}</code>. Winners move on, byes resolve,
               and overturned results clear what came after them.
@@ -71,22 +69,23 @@ export default function HomePage() {
         </div>
       </Section>
 
-      <Section>
+      <Section className="pt-0 md:pt-0">
         <div className="flex flex-col gap-10">
           <div className="flex max-w-2xl flex-col gap-4">
             <Heading>Styled with what you already use.</Heading>
             <p className="text-lg leading-relaxed text-muted-foreground">
-              Every element carries a <code className="text-foreground">data-part</code> and its
-              state, like <code className="text-foreground">data-winner</code> or{' '}
-              <code className="text-foreground">data-status="live"</code>. Use the optional theme,
-              Tailwind classes, or your own match card. Connector lines follow whatever you draw.
+              The same bracket, before and after. Every element carries a{' '}
+              <code className="text-foreground">data-part</code> and its state, like{' '}
+              <code className="text-foreground">data-winner</code> or{' '}
+              <code className="text-foreground">data-status="live"</code>, so the theme, Tailwind or
+              your own card can take it anywhere. Drag the divider.
             </p>
           </div>
           <StylingShowcase />
         </div>
       </Section>
 
-      <Section id="playground" className="bg-card/60">
+      <Section id="playground" band="bg-card/60 border-t">
         <div className="flex flex-col gap-10">
           <div className="flex max-w-2xl flex-col gap-4">
             <Heading>Every prop, live.</Heading>
@@ -128,18 +127,37 @@ export default function HomePage() {
   );
 }
 
+const points = [
+  [
+    'Sized by its container',
+    'Not the window, so it adapts inside a sidebar, a modal or a dashboard card.',
+  ],
+  [
+    'Or keep the whole tree',
+    'Let it scroll, scale it to fit, or let people pan and pinch to zoom.',
+  ],
+  [
+    'Built in, not bolted on',
+    'The swipe, zoom and animation are part of the library, with no gesture dependencies.',
+  ],
+] as const;
+
 function Section({
   children,
   className,
+  band,
   id,
 }: {
   children: ReactNode;
   className?: string;
+  band?: string;
   id?: string;
 }) {
   return (
-    <section id={id} className={className}>
-      <div className="mx-auto max-w-6xl px-4 py-20 sm:px-6 md:py-28">{children}</div>
+    <section id={id} className={band}>
+      <div className={cn('mx-auto max-w-6xl px-4 py-20 sm:px-6 md:py-28', className)}>
+        {children}
+      </div>
     </section>
   );
 }
