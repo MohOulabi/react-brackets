@@ -9,7 +9,7 @@
     "url": "git+https://github.com/MohOulabi/react-brackets.git",
     "directory": "packages/react"
   },
-  "homepage": "https://github.com/MohOulabi/react-brackets#readme",
+  "homepage": "https://react-brackets.oulabi.dev",
   "keywords": [
     "react",
     "bracket",

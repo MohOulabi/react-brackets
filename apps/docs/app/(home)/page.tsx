@@ -4,10 +4,29 @@ import { CourtHero } from '@/components/home/court-hero';
 import { FormatShowcase, PhoneShowcase, StylingShowcase } from '@/components/home/showcases';
 import { Playground } from '@/components/playground';
 import { repository } from '@/lib/layout.shared';
+import { site } from '@/lib/site';
+
+const structuredData = {
+  '@context': 'https://schema.org',
+  '@type': 'SoftwareSourceCode',
+  name: site.name,
+  description: site.description,
+  url: site.url,
+  codeRepository: site.repository,
+  programmingLanguage: ['TypeScript', 'React'],
+  license: 'https://opensource.org/licenses/MIT',
+  author: { '@type': 'Person', name: site.author.name, url: site.author.url },
+  sameAs: [site.npm],
+};
 
 export default function HomePage() {
   return (
     <main className="flex flex-col">
+      <script
+        type="application/ld+json"
+        // biome-ignore lint/security/noDangerouslySetInnerHtml: static JSON-LD built from constants
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
+      />
       <CourtHero />
 
       <Section>

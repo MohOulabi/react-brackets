@@ -86,7 +86,7 @@ export function CourtHero() {
 }
 
 function InstallCommand() {
-  const command = 'npm i react-brackets';
+  const command = 'npm i react-brackets @react-brackets/theme';
   const [copied, setCopied] = useState(false);
 
   return (
@@ -97,14 +97,14 @@ function InstallCommand() {
         setCopied(true);
         setTimeout(() => setCopied(false), 1500);
       }}
-      className="group inline-flex h-11 items-center gap-3 rounded-full bg-white/8 px-5 font-mono text-sm text-white/85 transition-colors hover:bg-white/14"
+      className="group inline-flex h-11 max-w-full items-center gap-3 rounded-full bg-white/8 px-5 font-mono text-[13px] text-white/85 transition-colors hover:bg-white/14 sm:text-sm"
       aria-label={copied ? 'Copied' : `Copy ${command}`}
     >
-      {command}
+      <span className="truncate">{command}</span>
       {copied ? (
-        <Check className="size-4 text-optic" />
+        <Check className="size-4 shrink-0 text-optic" />
       ) : (
-        <Copy className="size-4 opacity-60 group-hover:opacity-100" />
+        <Copy className="size-4 shrink-0 opacity-60 group-hover:opacity-100" />
       )}
     </button>
   );
