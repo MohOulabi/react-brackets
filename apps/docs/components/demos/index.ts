@@ -1,5 +1,15 @@
 export { QuickStartDemo, ResultsDemo } from './basics';
 export {
+  ArrowsDemo,
+  CustomPaginationDemo,
+  DashedDemo,
+  FlowDemo,
+  GradientDemo,
+  LineShapesDemo,
+  MetaCardDemo,
+  RoundTitlesDemo,
+} from './customize';
+export {
   DoubleEliminationDemo,
   GroupsToPlayoffsDemo,
   MirroredDemo,

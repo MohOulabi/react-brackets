@@ -1,0 +1,206 @@
+---
+title: Connector lines
+description: Dashed, curved, coloured, animated or arrowed lines, or any SVG you like.
+---
+
+The lines between matches are one SVG, measured from the real match cards. However you style or replace a line, it still follows the cards when they resize, animate or page.
+
+There are three levels of control:
+
+1. **CSS** for colour, width and dashes on every line.
+2. **`Bracket.Connector` with your attributes** for markers, dashes per state, your own path, or a `className` function.
+3. **Any SVG element** in place of the line, when you want to draw it from scratch.
+
+## Styling every line
+
+Each line is a `path` with `data-part="connector"` and the state of the match it comes from. With the theme, three variables cover most needs:
+
+```css
+.my-bracket {
+  --rb-line: #94a3b8;
+  --rb-line-width: 2px;
+  --rb-accent: #ea580c; /* the highlighted path */
+}
+```
+
+Without the theme, or on top of it, use `classNames`:
+
+```tsx
+<Bracket
+  stage={stage}
+  classNames={{
+    connector: 'stroke-slate-300 [stroke-width:2] data-highlighted:stroke-orange-500',
+  }}
+/>
+```
+
+Rounded corners come from `connectorRadius` on `<Bracket>`, or `radius` on `Bracket.Connectors`.
+
+<Callout title="Attributes or CSS?">
+  SVG attributes like `stroke="red"` lose to any CSS, including the theme. Set colour and width with `className` or `style`. Attributes the theme doesn't set, like `strokeDasharray` and `markerEnd`, work as attributes.
+</Callout>
+
+## Line shapes
+
+`renderConnector` draws each line. Return a `Bracket.Connector` to keep the line's attributes and styling, and pass your own `d` to change its shape. Every line knows where it starts and ends, in the bracket's own pixels:
+
+<Preview>
+  <LineShapesDemo />
+</Preview>
+
+```tsx
+function curve({ start, end }: ConnectorState) {
+  const mid = (start.x + end.x) / 2;
+  return `M${start.x},${start.y} C${mid},${start.y} ${mid},${end.y} ${end.x},${end.y}`;
+}
+
+<Bracket stage={stage} renderConnector={(line) => <Bracket.Connector d={curve(line)} />} />;
+```
+
+A straight line is `` `M${start.x},${start.y} L${end.x},${end.y}` ``. Both work in mirrored layouts, where lines run right to left.
+
+## Dashed lines
+
+Any SVG attribute goes straight through. Here, lines are dashed until their match is decided:
+
+<Preview>
+  <DashedDemo />
+</Preview>
+
+```tsx
+<Bracket
+  stage={stage}
+  renderConnector={({ status }) => (
+    <Bracket.Connector strokeDasharray={status === 'completed' ? undefined : '3 5'} />
+  )}
+/>
+```
+
+To dash every line, CSS is enough: `connector: '[stroke-dasharray:4_4]'`.
+
+## Arrows
+
+Put markers in `connectorDefs` and point to them with `markerEnd`. A marker doesn't inherit the colour of the line using it, so make one per colour you need:
+
+<Preview>
+  <ArrowsDemo />
+</Preview>
+
+```tsx
+const id = useId();
+
+<Bracket
+  stage={stage}
+  connectorDefs={
+    <>
+      <marker id={`${id}-line`} viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7"
+        markerHeight="7" markerUnits="userSpaceOnUse" orient="auto">
+        <path d="M0,0 L10,5 L0,10 z" fill="var(--rb-line)" />
+      </marker>
+      <marker id={`${id}-accent`} {/* same, filled with var(--rb-accent) */} />
+    </>
+  }
+  renderConnector={({ highlighted }) => (
+    <Bracket.Connector markerEnd={`url(#${id}-${highlighted ? 'accent' : 'line'})`} />
+  )}
+/>
+```
+
+Marker ids are global to the page. Build them from `useId()` so two brackets never share one.
+
+## Gradients
+
+`renderConnector` can return several elements. Give each line its own gradient, drawn along the line with `userSpaceOnUse` so straight lines get one too:
+
+<Preview>
+  <GradientDemo />
+</Preview>
+
+```tsx
+<Bracket
+  stage={stage}
+  renderConnector={(line) => {
+    const gradient = `${id}-${line.from.id}`;
+    return (
+      <>
+        <linearGradient id={gradient} gradientUnits="userSpaceOnUse"
+          x1={line.start.x} y1={line.start.y} x2={line.end.x} y2={line.end.y}>
+          <stop offset="0" stopColor="var(--rb-line)" stopOpacity="0.2" />
+          <stop offset="1" stopColor={line.status === 'completed' ? 'var(--rb-accent)' : 'var(--rb-line)'} />
+        </linearGradient>
+        <Bracket.Connector style={{ stroke: `url(#${gradient})` }} />
+      </>
+    );
+  }}
+/>
+```
+
+## Animated lines
+
+Lines are plain SVG, so CSS animations work. This one flows along the highlighted path:
+
+<Preview>
+  <FlowDemo />
+</Preview>
+
+```css
+@keyframes line-flow {
+  to { stroke-dashoffset: -16; }
+}
+
+[data-part="connector"][data-highlighted] {
+  stroke-dasharray: 8 8;
+  animation: line-flow 0.6s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-part="connector"] { animation: none; }
+}
+```
+
+## Styling by state
+
+`Bracket.Connector` takes `className` as a function of the line's state, so you can style from data directly. Everything about the line and both matches is there:
+
+```tsx
+<Bracket.Connector
+  className={({ from, to, highlighted }) =>
+    cn(
+      'transition-colors',
+      from.status === 'live' && 'stroke-red-500',
+      to.meta?.final && '[stroke-width:3]',
+      highlighted && 'stroke-orange-500',
+    )
+  }
+/>
+```
+
+The same state is on the element as `data-status`, `data-bye` and `data-highlighted` for plain CSS.
+
+## Drawing lines from scratch
+
+Return any SVG element instead of `Bracket.Connector`. You lose the line's `data-*` attributes and theme styling, and keep the measuring:
+
+```tsx
+<Bracket.Connectors>
+  {({ start, end, highlighted }) => (
+    <line
+      x1={start.x} y1={start.y} x2={end.x} y2={end.y}
+      stroke={highlighted ? 'orange' : 'gray'}
+      strokeLinecap="round"
+    />
+  )}
+</Bracket.Connectors>
+```
+
+Inside your own component, `useConnector()` returns the same state, so a line component can live in its own file.
+
+## Hiding lines
+
+Return `null` from `renderConnector` to hide some lines, like the ones leaving a bye. To hide them all, leave `Bracket.Connectors` out when you [compose the parts](/docs/customize/building-from-parts), or add `connectors: 'hidden'` to `classNames`.
+
+## Reference
+
+<ApiTable from="react" name="ConnectorState" />
+
+See [`Bracket.Connectors`](/docs/api/parts#bracketconnectors) and [`Bracket.Connector`](/docs/api/parts#bracketconnector) for their props.

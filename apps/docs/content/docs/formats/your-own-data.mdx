@@ -24,7 +24,7 @@ const stage = fromRounds([
 
 - Rounds that halve in size are linked as a knockout tree, and equal-sized rounds one to one (like a losers bracket). The connector lines follow.
 - Participants are matched by `id`, or by `name` when there's no id.
-- Anything extra goes in `meta`, on participants and matches, and you can read it in a [custom match](/docs/guides/custom-match).
+- Anything extra goes in `meta`, on participants and matches, and you can read it in a [custom match](/docs/customize/match-cards).
 - The result is a normal stage, so [`reportResult`](/docs/guides/results) works on it too.
 
 Every option, with its type and default, is in the [API reference](/docs/api/formats#fromrounds).

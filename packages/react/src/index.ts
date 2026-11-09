@@ -1,7 +1,13 @@
 export * from '@react-brackets/core';
 export type { BracketOwnProps, BracketProps } from './bracket';
 export { Bracket } from './bracket';
-export type { ConnectorsOwnProps, ConnectorsProps } from './connectors';
+export type {
+  ConnectorProps,
+  ConnectorState,
+  ConnectorsOwnProps,
+  ConnectorsProps,
+} from './connectors';
+export { useConnector } from './connectors';
 export type {
   BracketContextValue,
   ClassNameProp,
@@ -23,6 +29,7 @@ export type {
   ParticipantState,
 } from './match';
 export type { PaginationProps } from './pagination';
+export type { Point } from './paths';
 export type { BracketLayout, RootOwnProps, RootProps, RootState } from './root';
 export type {
   GroupTitleProps,

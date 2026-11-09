@@ -1,0 +1,125 @@
+---
+title: Match cards
+description: Draw your own match card with logos, seeds, a live badge or anything else.
+---
+
+`renderMatch` swaps the match card and keeps everything else, including lines, paging, highlighting and clicks:
+
+<Preview>
+  <CustomMatchDemo />
+</Preview>
+
+```tsx
+<Bracket
+  stage={stage}
+  renderMatch={(match) => (
+    <Bracket.Match className="w-60 rounded-xl border bg-card">
+      <header className="border-b px-3 py-1.5 text-xs">{match.status}</header>
+      {([0, 1] as const).map((slot) => (
+        <Bracket.Participant key={slot} slot={slot} className="flex gap-2 px-3 py-2">
+          {({ participant, winner, slot: { score } }) => (
+            <>
+              <Avatar name={participant?.name} />
+              <span className={winner ? 'font-semibold' : ''}>{participant?.name ?? 'TBD'}</span>
+              <span className="ms-auto tabular-nums">{score ?? '–'}</span>
+            </>
+          )}
+        </Bracket.Participant>
+      ))}
+    </Bracket.Match>
+  )}
+/>
+```
+
+Keep `<Bracket.Match>` as the outer element. Connector lines attach to it, and it carries the data attributes and click handling. Cards can be any size, and different sizes in one bracket are fine: the lines are measured from the cards you draw.
+
+## The two building blocks
+
+**`Bracket.Match`** is the card. It takes any prop of a `div`, and `className` as a function of [`MatchState`](/docs/api/hooks-and-types#matchstate): the match, and whether it's on the highlighted path. It becomes a button when the root has `onMatchClick`.
+
+**`Bracket.Participant`** is one side of the match. Its children can be a function of [`ParticipantState`](/docs/api/hooks-and-types#participantstate):
+
+| Field | What it is |
+| --- | --- |
+| `participant` | The participant, or `undefined` while the slot is still to be decided |
+| `slot` | The slot itself, with `score` and `bye` |
+| `winner` / `loser` | Whether this side won or lost a finished match |
+| `bye` | Whether this side has no opponent |
+| `highlighted` | Whether this participant's path is highlighted |
+| `entered` | Briefly `true` after someone moves in, like a winner advancing |
+
+Hovering a participant highlights their path. Without `Bracket.Participant`, you keep the card but lose that.
+
+## Logos, seeds and colours
+
+Put anything in `meta` when you build the stage, and read it back in the card:
+
+<Preview>
+  <MetaCardDemo />
+</Preview>
+
+```tsx
+const stage = singleElimination([
+  { id: 'falcons', name: 'Falcons', meta: { seed: 1, logo: '/falcons.svg' } },
+  { id: 'cobras', name: 'Cobras', meta: { seed: 2, logo: '/cobras.svg' } },
+  // …
+]);
+
+type Team = { seed: number; logo: string };
+
+<Bracket.Participant slot={0} className="flex items-center gap-2 data-loser:opacity-60">
+  {({ participant, winner, slot: { score } }) => {
+    const team = participant?.meta as Team | undefined;
+    return (
+      <>
+        {team && <img src={team.logo} alt="" className="size-6" />}
+        <span className={winner ? 'font-semibold' : ''}>{participant?.name ?? 'TBD'}</span>
+        {team && <span className="text-xs">#{team.seed}</span>}
+        <span>{score}</span>
+      </>
+    );
+  }}
+</Bracket.Participant>
+```
+
+`meta` is typed as `Record<string, unknown>`, so cast it to your own shape where you read it.
+
+Matches have `meta` too, for a venue, a kick-off time or a stream link: `match.meta?.venue`.
+
+## A live badge
+
+Every match has a `status`: `waiting`, `ready`, `live`, `completed` or `skipped`. It's on the card as `data-status`, so CSS alone can mark live matches:
+
+```tsx
+<Bracket.Match className="rounded-lg border data-[status=live]:border-red-500">
+  {match.status === 'live' && <span className="text-red-500">Live</span>}
+  …
+</Bracket.Match>
+```
+
+## Several scores
+
+Report the deciding score, like sets won, so the library knows who won. Keep the detail, like the games in each set, in your own data by match id, and draw it in the card:
+
+```tsx
+const games = { 'main.r1.m1': [[6, 4], [3, 6], [7, 5]] };
+
+reportResult(stage, 'main.r1.m1', { scores: [2, 1] });
+
+<Bracket.Participant slot={side}>
+  {({ participant }) => (
+    <>
+      <span>{participant?.name}</span>
+      {games[match.id]?.map((set, index) => <span key={index}>{set[side]}</span>)}
+    </>
+  )}
+</Bracket.Participant>
+```
+
+## Without a participant slot
+
+For a card with no per-side rows, like a single line that says "Falcons 3 – 1 Cobras", render anything inside `Bracket.Match`. You keep lines, clicks and paging; only hover highlighting needs `Bracket.Participant`.
+
+## Animating cards
+
+Cards are your components, so any animation library works. See [animations](/docs/guides/animations#using-an-animation-library).

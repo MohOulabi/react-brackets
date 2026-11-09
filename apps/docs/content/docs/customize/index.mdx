@@ -1,0 +1,51 @@
+---
+title: Overview
+description: What you can change, and the lightest way to change it.
+---
+
+Everything the bracket draws can be restyled or replaced, one piece at a time. Start with the lightest tool that does the job; each step down the list gives you more control and asks for a little more code.
+
+| You want to | Use | Where |
+| --- | --- | --- |
+| Change colours, sizes, gaps, radius or line width | `--rb-*` CSS variables | [Theme](/docs/styling/theme) |
+| Style parts with your own classes, like Tailwind | `classNames` and `unstyled` | [Tailwind](/docs/styling/tailwind) |
+| Style by state: winners, live matches, the highlighted path | `data-*` attributes, or `className` as a function | [Data attributes](/docs/styling/data-attributes) |
+| Draw your own match card, with logos, seeds or a live badge | `renderMatch` | [Match cards](/docs/customize/match-cards) |
+| Dash, curve, colour, animate or add arrows to the lines | `renderConnector` and `connectorDefs` | [Connector lines](/docs/customize/connectors) |
+| Add dates to round titles, or build your own round navigation | `Bracket.RoundTitle`, `useBracket()` | [Titles and navigation](/docs/customize/titles-and-navigation) |
+| Control every element and where it goes | The `Bracket.*` parts | [Building from parts](/docs/customize/building-from-parts) |
+
+## How customising works
+
+`<Bracket>` is a shortcut that renders a set of parts for you: a root, a viewport, the rounds, their matches, the lines and the round navigation. Every part:
+
+- renders a real element with `data-scope="bracket"` and a `data-part`, so any CSS can find it,
+- carries its state as attributes, like `data-winner`, `data-status="live"` or `data-highlighted`,
+- passes any other prop through to its element, like `style`, `onClick` or `aria-*`,
+- takes `className` as a string, or as a function of its state.
+
+When a shortcut prop isn't enough, swap the one part you need and keep the rest. `renderMatch` replaces the card but keeps the lines, paging, highlighting and clicks. `renderConnector` replaces the lines but keeps their measuring. Compose the parts yourself only when you need to change the structure, like adding a header between the round title and its matches.
+
+## A className for every state
+
+Each part's `className` can be a function. It receives the part's state, so you can style from data without writing selectors:
+
+```tsx
+<Bracket.Match
+  className={({ match, highlighted }) =>
+    cn('rounded-lg border', match.status === 'live' && 'border-red-500', highlighted && 'ring-2')
+  }
+/>
+```
+
+| Part | `className` receives |
+| --- | --- |
+| `Bracket.Root` | [`RootState`](/docs/api/hooks-and-types#rootstate) |
+| `Bracket.Round` | [`RoundState`](/docs/api/hooks-and-types#roundstate) |
+| `Bracket.Match` | [`MatchState`](/docs/api/hooks-and-types#matchstate) |
+| `Bracket.Participant` | [`ParticipantState`](/docs/api/hooks-and-types#participantstate) |
+| `Bracket.Connector` | [`ConnectorState`](/docs/api/hooks-and-types#connectorstate) |
+
+## Your own data
+
+Anything you put in `meta` on a participant, a match or a group comes back to you wherever you render it: a logo URL, a country, a seed, a venue or a stream link. See [your own data](/docs/formats/your-own-data).
