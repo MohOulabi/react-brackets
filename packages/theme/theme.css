@@ -1,0 +1,282 @@
+/*
+ * The react-brackets default theme.
+ *
+ * Every rule sits inside :where() in the `components` cascade layer, so any
+ * class of yours wins: plain CSS because it is unlayered, and Tailwind
+ * utilities because their layer comes later. Override the --rb-* variables for
+ * quick changes, or add `unstyled` to a <Bracket> to opt it out entirely.
+ */
+
+@layer components {
+  :where([data-scope="bracket"][data-part="root"]:not([data-unstyled])) {
+    --rb-font: inherit;
+    --rb-text: light-dark(#18181b, #fafafa);
+    --rb-text-muted: light-dark(#71717a, #a1a1aa);
+    --rb-surface: light-dark(#ffffff, #18181b);
+    --rb-surface-hover: light-dark(#f4f4f5, #27272a);
+    --rb-border: light-dark(#e4e4e7, #3f3f46);
+    --rb-accent: light-dark(#2563eb, #60a5fa);
+    --rb-accent-soft: color-mix(in srgb, var(--rb-accent) 14%, transparent);
+    --rb-live: light-dark(#dc2626, #f87171);
+    --rb-line: light-dark(#d4d4d8, #52525b);
+    --rb-line-width: 1.5px;
+    --rb-radius: 10px;
+    --rb-shadow: 0 1px 2px rgb(0 0 0 / 0.06);
+    --rb-match-width: 13.5rem;
+    --rb-match-gap: 0.75rem;
+    --rb-column-gap: 3rem;
+    --rb-duration: 160ms;
+
+    color: var(--rb-text);
+    font-family: var(--rb-font);
+    font-size: 0.875rem;
+
+    &,
+    & :where([data-scope="bracket"]) {
+      box-sizing: border-box;
+    }
+
+    & + :where([data-part="root"]) {
+      margin-top: 2rem;
+    }
+
+    &:where([data-view="paged"]) {
+      --rb-column-gap: 1.5rem;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      --rb-duration: 0ms;
+    }
+
+    /* Layout */
+
+    & :where([data-part="group-title"]) {
+      margin: 0 0 1rem;
+      font-size: 1rem;
+      font-weight: 600;
+    }
+
+    & :where([data-part="viewport"]) {
+      padding-bottom: 0.5rem;
+    }
+
+    & :where([data-part="viewport"][data-mode="pan-zoom"]) {
+      border: 1px solid var(--rb-border);
+      border-radius: var(--rb-radius);
+
+      &:active {
+        cursor: grabbing;
+      }
+    }
+
+    & :where([data-part="content"][data-grid]) {
+      column-gap: var(--rb-column-gap);
+    }
+
+    & :where([data-part="round-title"]) {
+      padding-bottom: 0.75rem;
+      color: var(--rb-text-muted);
+      font-size: 0.75rem;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+      text-align: center;
+      text-transform: uppercase;
+    }
+
+    & :where([data-part="cell"]) {
+      padding-block: calc(var(--rb-match-gap) / 2);
+    }
+
+    & :where([data-part="cell"][data-status="skipped"]),
+    & :where([data-part="connector"][data-status="skipped"]) {
+      visibility: hidden;
+    }
+
+    &:where([data-compact="list"]) :where([data-part="round"]) {
+      padding-inline: 0.25rem;
+    }
+
+    &:where([data-compact="list"]) :where([data-part="matches"]) {
+      display: flex;
+      flex-direction: column;
+      gap: var(--rb-match-gap);
+    }
+
+    /* Matches */
+
+    & :where([data-part="match"]) {
+      width: var(--rb-match-width);
+      overflow: hidden;
+      border: 1px solid var(--rb-border);
+      border-radius: var(--rb-radius);
+      background: var(--rb-surface);
+      box-shadow: var(--rb-shadow);
+      transition: border-color var(--rb-duration);
+
+      &:where([role="button"]) {
+        cursor: pointer;
+      }
+
+      &:where([role="button"]:hover) {
+        background: var(--rb-surface-hover);
+      }
+
+      &:focus-visible {
+        outline: 2px solid var(--rb-accent);
+        outline-offset: 2px;
+      }
+
+      &:where([data-status="live"]) {
+        border-color: var(--rb-live);
+      }
+
+      &:where([data-highlighted]) {
+        border-color: var(--rb-accent);
+      }
+
+      &:where([data-updated]) {
+        animation: rb-updated calc(var(--rb-duration) * 4) ease-out;
+      }
+    }
+
+    &:where([data-view="paged"]) :where([data-part="match"]) {
+      width: 100%;
+    }
+
+    /* Participants */
+
+    & :where([data-part="participant"]) {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.75rem;
+      padding: 0.5rem 0.75rem;
+      transition: background-color var(--rb-duration);
+
+      & + :where([data-part="participant"]) {
+        border-top: 1px solid var(--rb-border);
+      }
+
+      &:where([data-winner]) {
+        font-weight: 600;
+      }
+
+      &:where([data-loser], [data-empty], [data-bye]) {
+        color: var(--rb-text-muted);
+      }
+
+      &:where([data-bye]) {
+        font-style: italic;
+      }
+
+      &:where([data-highlighted]) {
+        background: var(--rb-accent-soft);
+      }
+
+      &:where([data-entered]) {
+        animation: rb-entered calc(var(--rb-duration) * 6) ease-out;
+      }
+    }
+
+    & :where([data-part="participant-name"]) {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    & :where([data-part="participant-score"]) {
+      font-variant-numeric: tabular-nums;
+    }
+
+    & :where([data-part="participant"][data-winner] [data-part="participant-score"]) {
+      color: var(--rb-accent);
+    }
+
+    /* Connectors */
+
+    & :where([data-part="connector"]) {
+      stroke: var(--rb-line);
+      stroke-width: var(--rb-line-width);
+      transition: stroke var(--rb-duration);
+
+      &:where([data-highlighted]) {
+        stroke: var(--rb-accent);
+        stroke-width: calc(var(--rb-line-width) + 0.5px);
+      }
+    }
+
+    /* Controls */
+
+    & :where([data-part="pagination"]) {
+      display: flex;
+      align-items: center;
+      gap: 0.25rem;
+      margin-top: 0.75rem;
+      overflow-x: auto;
+      scrollbar-width: none;
+    }
+
+    & :where([data-part="zoom-controls"]) {
+      overflow: hidden;
+      border: 1px solid var(--rb-border);
+      border-radius: calc(var(--rb-radius) - 2px);
+      background: var(--rb-surface);
+      box-shadow: var(--rb-shadow);
+    }
+
+    & :where([data-part="pagination"], [data-part="zoom-controls"]) :where(button) {
+      border: 1px solid transparent;
+      background: transparent;
+      color: var(--rb-text-muted);
+      font: inherit;
+      cursor: pointer;
+
+      &:hover:not(:disabled) {
+        background: var(--rb-surface-hover);
+        color: var(--rb-text);
+      }
+
+      &:disabled {
+        opacity: 0.4;
+        cursor: default;
+      }
+    }
+
+    & :where([data-part="pagination"]) :where(button) {
+      flex: none;
+      padding: 0.375rem 0.75rem;
+      border-radius: 999px;
+      font-size: 0.75rem;
+    }
+
+    & :where([data-part="zoom-controls"]) :where(button) {
+      width: 2rem;
+      height: 2rem;
+      border: 0;
+      font-size: 1rem;
+    }
+
+    & :where([data-part="page"][data-active]) {
+      border-color: var(--rb-border);
+      background: var(--rb-surface);
+      color: var(--rb-text);
+      font-weight: 600;
+    }
+
+    & :where([data-part="page-previous"], [data-part="page-next"]):dir(rtl) {
+      transform: scaleX(-1);
+    }
+  }
+
+  @keyframes rb-updated {
+    from {
+      box-shadow: 0 0 0 4px var(--rb-accent-soft);
+    }
+  }
+
+  @keyframes rb-entered {
+    from {
+      background: var(--rb-accent-soft);
+    }
+  }
+}
