@@ -271,7 +271,7 @@
     },
     "packages/react": {
       "name": "react-brackets",
-      "version": "2.1.0",
+      "version": "2.1.1",
       "dependencies": {
         "@react-brackets/core": "workspace:*",
       },
