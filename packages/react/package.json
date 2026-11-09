@@ -1,0 +1,68 @@
+{
+  "name": "react-brackets",
+  "version": "2.0.0",
+  "description": "Headless, responsive tournament brackets for React.",
+  "license": "MIT",
+  "author": "Mohammed AlOulabi",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/MohOulabi/react-brackets.git",
+    "directory": "packages/react"
+  },
+  "homepage": "https://github.com/MohOulabi/react-brackets#readme",
+  "keywords": [
+    "react",
+    "bracket",
+    "tournament",
+    "headless",
+    "single-elimination",
+    "double-elimination"
+  ],
+  "type": "module",
+  "sideEffects": false,
+  "files": [
+    "dist"
+  ],
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      },
+      "require": {
+        "types": "./dist/index.d.cts",
+        "default": "./dist/index.cjs"
+      }
+    },
+    "./package.json": "./package.json"
+  },
+  "scripts": {
+    "build": "NODE_ENV=production bunup",
+    "dev": "bunup --watch",
+    "test": "bun test",
+    "typecheck": "tsc --noEmit",
+    "check:package": "publint && attw --pack . --profile node16 && bun ../../scripts/assert-production-jsx.ts dist"
+  },
+  "dependencies": {
+    "@react-brackets/core": "workspace:*"
+  },
+  "peerDependencies": {
+    "react": "^18.2.0 || ^19.0.0",
+    "react-dom": "^18.2.0 || ^19.0.0"
+  },
+  "devDependencies": {
+    "@arethetypeswrong/cli": "^0.18.5",
+    "@happy-dom/global-registrator": "^21.0.4",
+    "@testing-library/dom": "^10.4.2",
+    "@testing-library/react": "^16.3.3",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "bunup": "^0.16.32",
+    "publint": "^0.3.25",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1"
+  }
+}
