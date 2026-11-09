@@ -1,5 +1,11 @@
 # react-brackets
 
+## 2.1.1
+
+### Patch Changes
+
+- 8b75a6e: `mode="fit"` and `mode="pan-zoom"` no longer collapse before they measure. Server-rendered HTML keeps the tree at its natural size, so the page doesn't jump open on load.
+
 ## 2.1.0
 
 ### Minor Changes
