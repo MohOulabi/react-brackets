@@ -1,0 +1,37 @@
+{
+  "name": "@react-brackets/theme",
+  "version": "2.0.0",
+  "description": "Optional default theme for react-brackets, driven by CSS variables.",
+  "license": "MIT",
+  "author": "Mohammed AlOulabi",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/MohOulabi/react-brackets.git",
+    "directory": "packages/theme"
+  },
+  "homepage": "https://github.com/MohOulabi/react-brackets#readme",
+  "keywords": [
+    "react-brackets",
+    "theme",
+    "css"
+  ],
+  "files": [
+    "theme.css",
+    "README.md"
+  ],
+  "style": "./theme.css",
+  "sideEffects": [
+    "*.css"
+  ],
+  "exports": {
+    ".": "./theme.css",
+    "./theme.css": "./theme.css",
+    "./package.json": "./package.json"
+  },
+  "scripts": {
+    "check:package": "publint"
+  },
+  "devDependencies": {
+    "publint": "^0.3.25"
+  }
+}
