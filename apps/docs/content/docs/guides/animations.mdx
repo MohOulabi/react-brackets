@@ -1,0 +1,81 @@
+---
+title: Animations
+description: Tune or turn off the built-in motion, and animate individual matches and participants.
+---
+
+## The motion prop
+
+Paging, swiping and zooming are animated. Tune the timing, or turn it off, with one prop:
+
+<Preview>
+  <MotionDemo />
+</Preview>
+
+```tsx
+<Bracket stage={stage} motion={{ duration: 450, easing: 'cubic-bezier(0.34, 1.56, 0.64, 1)' }} />
+<Bracket stage={stage} motion={false} />
+```
+
+Motion turns itself off for anyone with **reduced motion** set in their system settings.
+
+## Animating single items
+
+Two attributes appear for a moment when something changes, so you can animate exactly that item:
+
+| Attribute | On | When |
+| --- | --- | --- |
+| `data-updated` | match | Its score, status or winner just changed. |
+| `data-entered` | participant | Someone just moved into this slot, like a winner advancing. |
+
+<Preview>
+  <PerItemDemo />
+</Preview>
+
+```css
+@keyframes pop {
+  40% { transform: scale(1.04); }
+}
+
+[data-part="match"][data-updated] {
+  animation: pop 600ms ease-out;
+}
+
+[data-part="participant"][data-entered] {
+  animation: slide-in 500ms ease-out;
+}
+```
+
+Or with Tailwind: `classNames={{ match: 'data-updated:animate-[pop_600ms_ease-out]' }}`.
+
+The theme already ships a soft highlight for both. The flags last 2.5 times the motion duration, and they're off when motion is off.
+
+## Using an animation library
+
+Inside a [custom match](/docs/guides/custom-match), any animation library works. With Motion (Framer Motion), for example:
+
+```tsx
+renderMatch={(match) => (
+  <Bracket.Match>
+    {([0, 1] as const).map((slot) => (
+      <Bracket.Participant key={slot} slot={slot}>
+        {({ participant, slot: { score } }) => (
+          <>
+            {participant?.name}
+            <motion.span key={score} initial={{ y: -6, opacity: 0 }} animate={{ y: 0, opacity: 1 }}>
+              {score}
+            </motion.span>
+          </>
+        )}
+      </Bracket.Participant>
+    ))}
+  </Bracket.Match>
+)}
+```
+
+## Theme transitions
+
+Hover and highlight transitions in the theme use `--rb-duration`:
+
+```css
+.my-bracket { --rb-duration: 250ms; }
+```

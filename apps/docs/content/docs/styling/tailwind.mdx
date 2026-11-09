@@ -1,0 +1,35 @@
+---
+title: Tailwind CSS
+description: Style every part with utility classes and data attribute variants.
+---
+
+<Preview>
+  <TailwindDemo />
+</Preview>
+
+Pass a class for any part with `classNames`, and use Tailwind's `data-*` variants for state:
+
+```tsx
+import { Bracket, type ClassNames } from 'react-brackets';
+
+const classNames: ClassNames = {
+  content: 'gap-x-14',
+  'round-title': 'pb-3 text-center text-xs font-semibold uppercase text-muted-foreground',
+  cell: 'py-2',
+  match: 'w-52 overflow-hidden rounded-2xl bg-card ring-1 ring-border data-highlighted:ring-brand',
+  participant:
+    'flex justify-between px-4 py-2.5 not-first:border-t data-winner:font-semibold data-loser:text-muted-foreground',
+  'participant-score': 'tabular-nums in-data-winner:text-brand',
+  connector: 'stroke-border data-highlighted:stroke-brand',
+};
+
+<Bracket stage={stage} classNames={classNames} unstyled />;
+```
+
+`unstyled` keeps the theme out of the way if you also load it elsewhere. Without the theme, connector lines use `currentColor`.
+
+Every part also takes `className` directly, as a string or a function of its state:
+
+```tsx
+<Bracket.Match className={({ status }) => (status === 'live' ? 'ring-red-500' : 'ring-border')} />
+```

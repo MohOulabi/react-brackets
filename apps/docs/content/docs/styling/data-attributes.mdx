@@ -1,0 +1,37 @@
+---
+title: Parts and data attributes
+description: Every element the bracket renders, and the attributes you can style.
+---
+
+Every element has `data-scope="bracket"` and a `data-part`. Target them from any CSS:
+
+```css
+[data-scope="bracket"][data-part="participant"][data-winner] {
+  font-weight: 600;
+}
+```
+
+## Parts
+
+| Part | Element | Attributes |
+| --- | --- | --- |
+| `root` | `div` | `data-view="tree \| paged"`, `data-compact`, `data-layout`, `data-unstyled` |
+| `group-title` | `h2` | |
+| `viewport` | `div` / `section` | `data-mode="scroll \| fit \| pan-zoom"` |
+| `content` | `div` | `data-grid` when it's a grid |
+| `round` | `section` | `data-side="start \| center \| end"`, `data-current` |
+| `round-title` | `h3` | `data-round` |
+| `matches` | `ol` | |
+| `cell` | `li` | `data-match`, `data-status` |
+| `match` | `div` | `data-status`, `data-highlighted`, `data-updated`, `role="button"` when clickable |
+| `participant` | `div` | `data-participant`, `data-winner`, `data-loser`, `data-bye`, `data-empty`, `data-highlighted`, `data-entered` |
+| `participant-name` / `participant-score` | `span` | |
+| `connectors` / `connector` | `svg` / `path` | `data-status`, `data-bye`, `data-highlighted` on each path |
+| `pagination`, `page`, `page-previous`, `page-next` | `nav` / `button` | `data-active` on the current page |
+| `zoom-controls`, `zoom-in`, `zoom-out`, `zoom-reset` | `div` / `button` | |
+
+`data-status` is one of `waiting`, `ready`, `live`, `completed` or `skipped`.
+
+## Inline styles
+
+The library only sets the inline styles that layout needs: grid placement, the paged view's transform, and the pan-zoom transform. Everything visual is yours.

@@ -1,0 +1,26 @@
+---
+title: Swiss
+description: Players with equal records meet each round, without rematches.
+---
+
+<Preview>
+  <SwissDemo />
+</Preview>
+
+```tsx
+import { nextSwissRound, swiss, swissRoundsLeft } from 'react-brackets';
+
+let stage = swiss(players, { rounds: 5 }); // round one is paired straight away
+
+// after every match of the round has a result:
+if (swissRoundsLeft(stage) > 0) stage = nextSwissRound(stage);
+```
+
+- Round one pairs the top half against the bottom half (1 v 5, 2 v 6…).
+- Later rounds pair players on the same record, highest first, and never repeat a pairing.
+- With an odd field, the lowest-ranked player without a bye sits out and gets a win.
+- `rounds` defaults to `⌈log₂(players)⌉`, enough to find one unbeaten player.
+
+`nextSwissRound` throws if the current round is unfinished or every round has been played, so your UI can't get out of step.
+
+Every option, with its type and default, is in the [API reference](/docs/api/formats#swiss).

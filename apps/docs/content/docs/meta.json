@@ -1,0 +1,17 @@
+{
+  "title": "Docs",
+  "pages": [
+    "---Getting started---",
+    "index",
+    "installation",
+    "---Formats---",
+    "...formats",
+    "---Guides---",
+    "...guides",
+    "---Styling---",
+    "...styling",
+    "---Reference---",
+    "...api",
+    "migration"
+  ]
+}

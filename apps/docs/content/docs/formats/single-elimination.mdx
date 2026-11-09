@@ -1,0 +1,37 @@
+---
+title: Single elimination
+description: A knockout bracket with seeding, byes and an optional third place match.
+---
+
+<Preview>
+  <QuickStartDemo />
+</Preview>
+
+```tsx
+import { Bracket, singleElimination } from 'react-brackets';
+
+const stage = singleElimination(teams, { thirdPlace: true });
+
+<Bracket stage={stage} />;
+```
+
+Pass participants **in seed order**: the first one is the top seed.
+
+## Seeding and byes
+
+Any number of participants works. When the field isn't a power of two, the top seeds get byes into round two, and those matches resolve on their own.
+
+| Option | Default | Description |
+| --- | --- | --- |
+| `seeding` | `'standard'` | `'standard'` keeps the top seeds apart until the late rounds (1 v 8, 4 v 5, 2 v 7, 3 v 6). `'sequential'` pairs entrants in the order given. |
+| `thirdPlace` | `false` | Adds a match between the two semifinal losers. |
+| `roundName` | `Round 1 … Final` | `(index, total) => string`, for your own round names or translations. |
+| `id` | `'main'` | Prefix for every match id, handy when one page shows several stages. |
+
+To hide the "vs Bye" matches, pass [`hideByes`](/docs/guides/layouts#hiding-byes) to `<Bracket>`.
+
+## Match ids
+
+Matches get readable, stable ids: `main.r1.m1` is the first match of round one, and `main.r3.m1` is the final of an eight-team bracket. Use them with [`reportResult`](/docs/guides/results).
+
+Every option, with its type and default, is in the [API reference](/docs/api/formats#singleelimination).

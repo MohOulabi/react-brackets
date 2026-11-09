@@ -1,0 +1,35 @@
+---
+title: Round robin
+description: Everyone plays everyone, in one or more groups, with a league table.
+---
+
+<Preview>
+  <RoundRobinDemo />
+</Preview>
+
+```tsx
+import { Bracket, roundRobin, standings } from 'react-brackets';
+
+const stage = roundRobin(teams, { groups: 2, legs: 2 });
+const table = standings(stage, stage.groups[0].id);
+```
+
+| Option | Default | Description |
+| --- | --- | --- |
+| `groups` | `1` | Splits participants into groups, snake seeded so the top seeds spread out. |
+| `legs` | `1` | `2` plays every pairing twice with sides swapped. |
+| `groupName` | `Group A, B…` | `(index) => string` |
+
+Every round is a column of matches. An odd group gets a rest round, so nobody plays twice in one round.
+
+## Standings
+
+`standings(stage, groupId?, options?)` ranks by points, then score difference, then score, then seed. Draws count, and the points are configurable:
+
+```ts
+standings(stage, undefined, { points: { win: 2, draw: 1, loss: 0 } });
+```
+
+Each row has `participantId`, `played`, `wins`, `draws`, `losses`, `scored`, `conceded` and `points`. The table is yours to render, with shadcn/ui, a data grid, or plain HTML.
+
+Every option, with its type and default, is in the [API reference](/docs/api/formats#roundrobin).

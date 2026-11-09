@@ -1,0 +1,12 @@
+{
+  "pages": [
+    "results",
+    "click-events",
+    "small-screens",
+    "layouts",
+    "custom-match",
+    "animations",
+    "rtl-and-languages",
+    "server-components"
+  ]
+}

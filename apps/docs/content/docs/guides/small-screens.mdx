@@ -1,0 +1,44 @@
+---
+title: Small screens
+description: A swipeable bracket on phones, or the whole tree with scroll, fit, or pan and zoom.
+---
+
+Below `compactBelow` (640px by default) the bracket pages through one round at a time. The width that counts is the **container's**, not the window's, so a bracket in a sidebar or a modal adapts too.
+
+## The paged bracket
+
+<Preview>
+  <PagedBracketDemo />
+</Preview>
+
+With `compact="bracket"` (the default), the round in focus stacks tightly and the next round peeks in with its connector lines. Swipe or tap a round and every match glides into place. Swiping past the first or last round meets a soft rubber-band resistance.
+
+`compact="list"` shows each round as a plain list of matches instead.
+
+```tsx
+<Bracket stage={stage} />                       // swipeable bracket
+<Bracket stage={stage} compact="list" />        // swipeable lists
+<Bracket stage={stage} compactBelow={480} />    // switch at a different width
+```
+
+## The whole tree, on any screen
+
+Set `compactBelow={0}` to always show the full tree, then choose how it fits with `mode`:
+
+<Preview className="grid gap-8 md:grid-cols-3">
+  <FullTreeDemo mode="scroll" />
+  <FullTreeDemo mode="fit" />
+  <FullTreeDemo mode="pan-zoom" />
+</Preview>
+
+| `mode` | Behaviour |
+| --- | --- |
+| `'scroll'` (default) | Native horizontal scrolling. |
+| `'fit'` | Scaled down to fit the width available. Best for previews and dashboards. |
+| `'pan-zoom'` | Drag, pinch, or Ctrl/⌘ + scroll to zoom, with zoom buttons. Panning stops at the edges. |
+
+```tsx
+<Bracket stage={stage} compactBelow={0} mode="pan-zoom" />
+```
+
+In `pan-zoom` mode, `minScale`, `maxScale` and `controls` are available on [`<Bracket.Viewport>`](/docs/api/parts#bracketviewport).

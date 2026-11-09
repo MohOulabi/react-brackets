@@ -1,0 +1,28 @@
+---
+title: Layouts
+description: Two-sided brackets, hiding byes, and how matches are placed.
+---
+
+## Two-sided
+
+`layout="mirrored"` splits the bracket into halves that meet at the final, like the ones on TV.
+
+<Preview>
+  <MirroredDemo />
+</Preview>
+
+```tsx
+<Bracket stage={stage} layout="mirrored" />
+```
+
+## Hiding byes
+
+With a field that isn't a power of two, the top seeds play a "Bye" in round one. `hideByes` hides those matches and their lines, and leaves everything else in place:
+
+```tsx
+<Bracket stage={singleElimination(sixTeams)} hideByes />
+```
+
+## How placement works
+
+The core places every match on a grid, centred between the matches that feed it. Matches with no feeder stack from the top of their column, which is how round robin and Swiss rounds become tidy columns. The React layer uses CSS grid with `subgrid`, so placement never needs measuring and any card height works. Only the connector lines are measured.

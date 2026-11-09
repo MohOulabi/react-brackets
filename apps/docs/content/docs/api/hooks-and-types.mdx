@@ -1,0 +1,73 @@
+---
+title: Hooks and types
+description: Hooks for custom parts, and the types you'll use with the components.
+---
+
+## useBracket
+
+```ts
+function useBracket(): BracketContextValue
+```
+
+Everything about the bracket being drawn. Call it in any component inside `Bracket.Root`, for example to build your own navigation:
+
+```tsx
+function RoundPicker() {
+  const { rounds, page, setPage } = useBracket();
+  return (
+    <select value={page} onChange={(event) => setPage(Number(event.target.value))}>
+      {rounds.map((round, index) => (
+        <option key={round.id} value={index}>{round.name}</option>
+      ))}
+    </select>
+  );
+}
+```
+
+<ApiTable from="react" name="BracketContextValue" />
+
+## useBracketCell
+
+```ts
+function useBracketCell(): LayoutCell
+```
+
+The match being rendered and where it sits, inside `Bracket.Matches`. Returns a [`LayoutCell`](/docs/api/utilities#layoutcell).
+
+## Labels
+
+<ApiTable from="react" name="Labels" />
+
+## Motion
+
+<ApiTable from="react" name="Motion" />
+
+## RootState
+
+<ApiTable from="react" name="RootState" />
+
+## RoundState
+
+<ApiTable from="react" name="RoundState" />
+
+## MatchState
+
+<ApiTable from="react" name="MatchState" />
+
+## ParticipantState
+
+<ApiTable from="react" name="ParticipantState" />
+
+## Column
+
+<ApiTable from="react" name="Column" />
+
+## ClassNames
+
+A class for any part, by name:
+
+```ts
+type ClassNames = Partial<Record<Part, string>>;
+```
+
+`Part` is one of `root`, `group-title`, `viewport`, `content`, `round`, `round-title`, `matches`, `cell`, `match`, `participant`, `participant-name`, `participant-score`, `connectors`, `connector`, `pagination`, `page`, `page-previous`, `page-next`, `zoom-controls`, `zoom-in`, `zoom-out` and `zoom-reset`. See [Parts and data attributes](/docs/styling/data-attributes) for what each one is.

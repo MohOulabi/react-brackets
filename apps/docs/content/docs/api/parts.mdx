@@ -1,0 +1,105 @@
+---
+title: Parts
+description: Every part you can compose, with its props and the state it passes to className.
+---
+
+Compose the parts yourself when `<Bracket>` isn't enough. Every part:
+
+- renders a real element with `data-scope="bracket"` and its `data-part`,
+- passes any other prop through to that element, like `onClick`, `style` or `aria-*`,
+- takes `className` as a string, or as a function of its state.
+
+```tsx
+<Bracket.Root stage={stage}>
+  <Bracket.GroupTitle />
+  <Bracket.Viewport>
+    <Bracket.Rounds>
+      {() => (
+        <Bracket.Round>
+          <Bracket.RoundTitle />
+          <Bracket.Matches>
+            {() => (
+              <Bracket.Match>
+                <Bracket.Participant slot={0} />
+                <Bracket.Participant slot={1} />
+              </Bracket.Match>
+            )}
+          </Bracket.Matches>
+        </Bracket.Round>
+      )}
+    </Bracket.Rounds>
+    <Bracket.Connectors />
+  </Bracket.Viewport>
+  <Bracket.Pagination />
+</Bracket.Root>
+```
+
+## Bracket.Root
+
+Draws one group, or several on one grid. Everything inside reads from it.
+
+<ApiTable from="react" name="RootOwnProps" />
+
+`className` receives [`RootState`](/docs/api/hooks-and-types#rootstate).
+
+## Bracket.Viewport
+
+The window the rounds are drawn in: scrolling, scaled, zoomable, or paged on narrow containers.
+
+<ApiTable from="react" name="ViewportOwnProps" />
+
+## Bracket.Rounds
+
+Calls its children once per column, left to right.
+
+<ApiTable from="react" name="RoundsProps" />
+
+## Bracket.Round
+
+One column. Takes any prop of a `section`. `className` receives [`RoundState`](/docs/api/hooks-and-types#roundstate).
+
+## Bracket.GroupTitle and Bracket.RoundTitle
+
+An `h2` with the group's name and an `h3` with the round's name. Children replace the name.
+
+## Bracket.Matches
+
+The list of matches in a column. Its `children` renders one match:
+
+```tsx
+<Bracket.Matches>{(match) => <MyCard match={match} />}</Bracket.Matches>
+```
+
+## Bracket.Match
+
+A match card. Connector lines attach to it, and it becomes a button when the root has `onMatchClick`.
+
+<ApiTable from="react" name="MatchOwnProps" />
+
+## Bracket.Participant
+
+One side of a match. By default it shows the name and score.
+
+<ApiTable from="react" name="ParticipantOwnProps" />
+
+```tsx
+<Bracket.Participant slot={0}>
+  {({ participant, winner, slot }) => (
+    <>
+      <Flag code={participant?.meta?.country} />
+      <span className={winner ? 'font-bold' : ''}>{participant?.name ?? 'TBD'}</span>
+      <span>{slot.score}</span>
+    </>
+  )}
+</Bracket.Participant>
+```
+
+## Bracket.Connectors
+
+The lines between matches, as one SVG. Place it inside `Bracket.Viewport`.
+
+<ApiTable from="react" name="ConnectorsOwnProps" />
+
+## Bracket.Pagination
+
+Round navigation for the paged view: previous, a button per round, next. It renders nothing while the whole tree is shown. Takes any prop of a `nav`.

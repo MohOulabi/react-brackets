@@ -1,0 +1,30 @@
+---
+title: Your own data
+description: Draw brackets from data you already have, like an API, a CMS or a spreadsheet.
+---
+
+If your tournament lives elsewhere, describe its rounds and `fromRounds` turns them into a stage:
+
+```tsx
+import { Bracket, fromRounds } from 'react-brackets';
+
+const stage = fromRounds([
+  {
+    name: 'Semifinals',
+    matches: [
+      { participants: [{ name: 'Falcons', score: 2 }, { name: 'Wolves', score: 1 }], winner: 0 },
+      { participants: [{ name: 'Herons' }, { name: 'Lynx' }], live: true },
+    ],
+  },
+  { name: 'Final', matches: [{ participants: [{ name: 'Falcons' }, null] }] },
+]);
+
+<Bracket stage={stage} />;
+```
+
+- Rounds that halve in size are linked as a knockout tree, and equal-sized rounds one to one (like a losers bracket). The connector lines follow.
+- Participants are matched by `id`, or by `name` when there's no id.
+- Anything extra goes in `meta`, on participants and matches, and you can read it in a [custom match](/docs/guides/custom-match).
+- The result is a normal stage, so [`reportResult`](/docs/guides/results) works on it too.
+
+Every option, with its type and default, is in the [API reference](/docs/api/formats#fromrounds).

@@ -1,0 +1,10 @@
+{
+  "pages": [
+    "single-elimination",
+    "double-elimination",
+    "round-robin",
+    "swiss",
+    "groups-to-playoffs",
+    "your-own-data"
+  ]
+}
