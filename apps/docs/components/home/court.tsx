@@ -59,7 +59,8 @@ const LENGTH = 23.77;
 const DOUBLES = 5.485;
 const SINGLES = 4.115;
 const SERVICE = 6.4;
-const VIEW = { width: 1440, height: 1600 };
+// Wide enough for any screen, so the court never stops short of the window's edges.
+const VIEW = { width: 3840, height: 2400 };
 
 function project(x: number, d: number, centre: number): [number, number] {
   const depth = d + 8;
@@ -75,10 +76,10 @@ function line(from: [number, number], to: [number, number], centre: number): str
 function courtPaths(centre: number) {
   const net = LENGTH / 2;
   const surface = [
-    project(-DOUBLES - 3, -2, centre),
+    project(-DOUBLES - 3, -3.5, centre),
     project(-DOUBLES - 3, LENGTH + 4, centre),
     project(DOUBLES + 3, LENGTH + 4, centre),
-    project(DOUBLES + 3, -2, centre),
+    project(DOUBLES + 3, -3.5, centre),
   ]
     .map(([x, y], index) => `${index ? 'L' : 'M'}${x.toFixed(1)},${y.toFixed(1)}`)
     .join('');
@@ -105,7 +106,8 @@ function courtPaths(centre: number) {
   };
 }
 
-const centred = courtPaths(1000);
+/** The court sits a little right of the page's centre, leaving the headline on the darker surround. */
+const centred = courtPaths(VIEW.width / 2 + 280);
 
 /**
  * The hard court the hero is played on, seen from behind the baseline. Drawn at a fixed size from the top and never
