@@ -1,0 +1,25 @@
+:root {
+  color-scheme: light dark;
+  font-family: system-ui, sans-serif;
+}
+
+body {
+  margin: 0;
+  padding: 2rem 1rem;
+}
+
+.stack {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 2.5rem;
+}
+
+h2 {
+  margin: 0 0 0.25rem;
+  font-size: 1.125rem;
+}
+
+p {
+  margin: 0 0 1rem;
+  color: GrayText;
+}
