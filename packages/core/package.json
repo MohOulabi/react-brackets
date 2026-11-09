@@ -1,0 +1,54 @@
+{
+  "name": "@react-brackets/core",
+  "version": "2.0.0",
+  "description": "Framework-agnostic tournament model: formats, results and layout.",
+  "license": "MIT",
+  "author": "Mohammed AlOulabi",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/MohOulabi/react-brackets.git",
+    "directory": "packages/core"
+  },
+  "homepage": "https://github.com/MohOulabi/react-brackets#readme",
+  "keywords": [
+    "tournament",
+    "bracket",
+    "single-elimination",
+    "double-elimination",
+    "round-robin",
+    "swiss"
+  ],
+  "type": "module",
+  "sideEffects": false,
+  "files": [
+    "dist"
+  ],
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      },
+      "require": {
+        "types": "./dist/index.d.cts",
+        "default": "./dist/index.cjs"
+      }
+    },
+    "./package.json": "./package.json"
+  },
+  "scripts": {
+    "build": "NODE_ENV=production bunup",
+    "dev": "bunup --watch",
+    "test": "bun test",
+    "typecheck": "tsc --noEmit",
+    "check:package": "publint && attw --pack . --profile node16"
+  },
+  "devDependencies": {
+    "@arethetypeswrong/cli": "^0.18.5",
+    "bunup": "^0.16.32",
+    "publint": "^0.3.25"
+  }
+}
