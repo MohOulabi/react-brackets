@@ -2,6 +2,8 @@
 
 Headless, responsive tournament brackets for React.
 
+**[Documentation and live examples](https://react-brackets.oulabi.dev)**
+
 - **Headless.** Semantic markup with `data-*` hooks and no styles. Bring Tailwind, CSS modules, or the optional theme.
 - **A bracket on every screen.** On phones, swipe through the bracket one round at a time while it still looks like a bracket. Or keep the full tree with scroll, fit, or pan and zoom.
 - **Accurate lines.** Connectors are measured from your real match cards, so any card size, mirrored layout or right-to-left page just works.
