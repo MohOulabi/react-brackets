@@ -1,0 +1,36 @@
+---
+title: Installation
+description: Add react-brackets to a React 18 or 19 project.
+---
+
+```bash tab="npm"
+npm install react-brackets @react-brackets/theme
+```
+
+```bash tab="pnpm"
+pnpm add react-brackets @react-brackets/theme
+```
+
+```bash tab="yarn"
+yarn add react-brackets @react-brackets/theme
+```
+
+```bash tab="bun"
+bun add react-brackets @react-brackets/theme
+```
+
+The theme is optional. Skip it if you style everything yourself, for example [with Tailwind](/docs/styling/tailwind).
+
+## Import the theme once
+
+```tsx title="main.tsx"
+import '@react-brackets/theme/theme.css';
+```
+
+It follows the page's `color-scheme`, so light and dark mode work without extra setup.
+
+## Requirements
+
+- React 18.2 or 19
+- Any modern browser. The layout uses CSS grid with `subgrid`, which every evergreen browser supports.
+- Works with Vite, Next.js (App and Pages Router), Remix and any other React setup. See [server components](/docs/guides/server-components) for Next.js specifics.

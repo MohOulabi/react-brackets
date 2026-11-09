@@ -1,0 +1,32 @@
+---
+title: Double elimination
+description: Everyone gets two lives. Losers drop into a losers bracket, and the champions meet in a grand final.
+---
+
+<Preview>
+  <DoubleEliminationDemo />
+</Preview>
+
+```tsx
+import { Bracket, doubleElimination } from 'react-brackets';
+
+<Bracket stage={doubleElimination(teams, { grandFinal: 'reset' })} />;
+```
+
+`<Bracket>` draws the winners bracket with the grand final continuing on the same row, and the losers bracket below it.
+
+## Grand final
+
+| `grandFinal` | Behaviour |
+| --- | --- |
+| `'reset'` (default) | If the losers bracket champion wins the final, a second final decides it. Otherwise the reset is skipped and hidden. |
+| `'single'` | One final, whatever happens. |
+| `'none'` | No grand final, for when you settle it elsewhere. |
+
+## How the losers bracket works
+
+Losers bracket rounds alternate. First the survivors play each other, then they meet the next round's winners bracket losers. Drop-ins are mirrored every other round to delay rematches. Byes resolve through both brackets automatically.
+
+Match ids use `main.wb.*` for the winners bracket, `main.lb.*` for the losers bracket and `main.gf.*` for the grand final.
+
+Every option, with its type and default, is in the [API reference](/docs/api/formats#doubleelimination).

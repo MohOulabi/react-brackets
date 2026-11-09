@@ -1,0 +1,83 @@
+---
+title: Data model
+description: Stages, groups, rounds, matches, slots and participants, field by field.
+---
+
+A **stage** is the whole competition phase. It holds **groups** (a bracket, a losers bracket, a round robin group), each group holds **rounds**, each round holds **matches**, and each match has two **slots** that participants fill. Everything is a plain, serialisable object.
+
+```text
+Stage
+├─ participants: Participant[]
+└─ groups: Group[]
+   └─ rounds: Round[]
+      └─ matches: Match[]
+         └─ slots: [Slot, Slot]
+```
+
+You rarely build these by hand. A [format function](/docs/api/formats) or [`fromRounds`](/docs/api/formats#fromrounds) creates them, and [`reportResult`](/docs/api/results-and-standings#reportresult) updates them. Read them to render custom matches, standings or anything else.
+
+## Stage
+
+<ApiTable from="core" name="Stage" />
+
+`format` is one of `single-elimination`, `double-elimination`, `round-robin`, `swiss` or `custom`.
+
+## Group
+
+<ApiTable from="core" name="Group" />
+
+| `kind` | Meaning |
+| --- | --- |
+| `bracket` | A knockout bracket. |
+| `winners` | The winners bracket of a double elimination stage. |
+| `losers` | Its losers bracket. |
+| `grand-final` | Its grand final, and the optional reset. |
+| `third-place` | The match between the semifinal losers. |
+| `pool` | A round robin group, or a Swiss table. |
+
+## Round
+
+<ApiTable from="core" name="Round" />
+
+## Match
+
+<ApiTable from="core" name="Match" />
+
+| `status` | Meaning |
+| --- | --- |
+| `waiting` | At least one side is still to be decided. |
+| `ready` | Both sides are known and the match can be played. |
+| `live` | In progress, reported with `live: true`. |
+| `completed` | Finished, or resolved by a bye. |
+| `skipped` | Will never be played, like an unused bracket reset. |
+
+### Match ids
+
+Generated ids read as `{stage}.{group}.r{round}.m{match}`, counting from 1:
+
+| Id | Match |
+| --- | --- |
+| `main.r1.m1` | Single elimination, first match of round 1 |
+| `main.wb.r2.m1` | Double elimination, winners bracket, round 2 |
+| `main.lb.r1.m2` | Double elimination, losers bracket, round 1, match 2 |
+| `main.gf.r1.m1` | Grand final |
+| `main.third.r1.m1` | Third place match |
+| `main.g2.r3.m1` | Round robin, group 2, round 3 |
+
+## Slot
+
+<ApiTable from="core" name="Slot" />
+
+## SlotOrigin
+
+<ApiTable from="core" name="SlotOrigin" />
+
+## MatchCondition
+
+<ApiTable from="core" name="MatchCondition" />
+
+## Participant
+
+<ApiTable from="core" name="Participant" />
+
+`Id` is a `string`, `SlotIndex` is `0 | 1`, and `Meta` is `Record<string, unknown>`.

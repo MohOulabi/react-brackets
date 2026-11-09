@@ -1,0 +1,165 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "fumadocs-ui/css/shadcn.css";
+@import "fumadocs-ui/css/preset.css";
+@import "@react-brackets/theme/theme.css";
+
+@source "../node_modules/fumadocs-ui/dist/**/*.js";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --font-sans: var(--font-archivo), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-brand: var(--brand);
+  --color-court: var(--court);
+  --color-court-deep: var(--court-deep);
+  --color-optic: var(--optic);
+  --color-chalk: var(--chalk);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+}
+
+:root {
+  --radius: 0.625rem;
+  --court: #1e3f8c;
+  --court-deep: #142b63;
+  --optic: #d7f25a;
+  --chalk: #f6f8fb;
+  --background: #f6f8fb;
+  --foreground: #10213f;
+  --card: #ffffff;
+  --card-foreground: #10213f;
+  --popover: #ffffff;
+  --popover-foreground: #10213f;
+  --primary: #10213f;
+  --primary-foreground: #f6f8fb;
+  --secondary: #edf1f7;
+  --secondary-foreground: #10213f;
+  --muted: #edf1f7;
+  --muted-foreground: #5a6a86;
+  --accent: #e8edf6;
+  --accent-foreground: #10213f;
+  --destructive: #c2410c;
+  --border: #dde3ec;
+  --input: #d3dae6;
+  --ring: #1e3f8c;
+  --brand: #1e3f8c;
+  --sidebar: #f1f4f9;
+  --sidebar-foreground: #10213f;
+  --sidebar-accent: #e5ebf5;
+  --sidebar-accent-foreground: #10213f;
+  --sidebar-border: #dde3ec;
+  --sidebar-ring: #1e3f8c;
+  --sidebar-primary-foreground: #f6f8fb;
+}
+
+.dark {
+  --court: #183574;
+  --court-deep: #0f2350;
+  --background: #0c1730;
+  --foreground: #e8eef8;
+  --card: #111f3d;
+  --card-foreground: #e8eef8;
+  --popover: #13234a;
+  --popover-foreground: #e8eef8;
+  --primary: #e8eef8;
+  --primary-foreground: #0c1730;
+  --secondary: #182a52;
+  --secondary-foreground: #e8eef8;
+  --muted: #16264a;
+  --muted-foreground: #93a3c0;
+  --accent: #182a52;
+  --accent-foreground: #e8eef8;
+  --destructive: oklch(0.704 0.191 22.216);
+  --border: rgb(147 163 192 / 0.16);
+  --input: rgb(147 163 192 / 0.22);
+  --ring: #8fb0ff;
+  --brand: #8fb0ff;
+  --sidebar: #0e1b37;
+  --sidebar-foreground: #e8eef8;
+  --sidebar-accent: #182a52;
+  --sidebar-accent-foreground: #e8eef8;
+  --sidebar-border: rgb(147 163 192 / 0.14);
+  --sidebar-ring: #8fb0ff;
+  --sidebar-primary-foreground: #0c1730;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+
+  ::selection {
+    background: var(--optic);
+    color: #10213f;
+  }
+
+  html {
+    scrollbar-color: color-mix(in oklab, var(--muted-foreground) 45%, transparent) transparent;
+    caret-color: var(--brand);
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--brand);
+    outline-offset: 2px;
+  }
+
+  .font-display {
+    font-stretch: 75%;
+    font-weight: 750;
+    letter-spacing: -0.02em;
+    line-height: 0.92;
+  }
+}
+
+/* Brackets on this site take their colours from the site tokens. Zero specificity, so a class can restyle one. */
+:where([data-scope="bracket"][data-part="root"]) {
+  --rb-text: var(--foreground);
+  --rb-text-muted: var(--muted-foreground);
+  --rb-surface: var(--card);
+  --rb-surface-hover: var(--accent);
+  --rb-border: var(--border);
+  --rb-line: color-mix(in oklab, var(--foreground) 22%, transparent);
+  --rb-accent: var(--brand);
+  --rb-shadow: 0 1px 2px rgb(0 0 0 / 0.05);
+}
+
+/* A bracket painted on the court: white lines, the winner's path in optic yellow. */
+.court-bracket {
+  --rb-text: #ffffff;
+  --rb-text-muted: rgb(255 255 255 / 0.6);
+  --rb-surface: rgb(255 255 255 / 0.07);
+  --rb-surface-hover: rgb(255 255 255 / 0.12);
+  --rb-border: rgb(255 255 255 / 0.16);
+  --rb-line: rgb(255 255 255 / 0.42);
+  --rb-line-width: 1.5px;
+  --rb-accent: var(--optic);
+  --rb-accent-soft: rgb(215 242 90 / 0.14);
+  --rb-live: #ffb4a2;
+  --rb-shadow: none;
+  --rb-radius: 6px;
+  --rb-match-width: 14rem;
+  --rb-match-gap: 0.5rem;
+  --rb-column-gap: 4rem;
+}

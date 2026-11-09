@@ -1,0 +1,50 @@
+---
+title: Introduction
+description: Headless, responsive tournament brackets for React.
+---
+
+react-brackets draws tournament brackets from plain data. It handles the hard parts, like seeding, byes, results, layout, connector lines and small screens, and leaves the look to you.
+
+<Preview>
+  <QuickStartDemo />
+</Preview>
+
+```tsx title="app.tsx"
+import { Bracket, singleElimination } from 'react-brackets';
+import '@react-brackets/theme/theme.css';
+
+const stage = singleElimination([
+  { id: 'falcons', name: 'Falcons' },
+  { id: 'wolves', name: 'Wolves' },
+  // …
+]);
+
+export function App() {
+  return <Bracket stage={stage} />;
+}
+```
+
+## How it fits together
+
+<Cards>
+  <Card title="Stages are data" href="/docs/guides/results">
+    A stage is a serialisable object. Format functions build one, `reportResult` returns the next one.
+  </Card>
+  <Card title="Components are headless" href="/docs/styling/data-attributes">
+    Every element has a `data-part` and state attributes. The theme is optional.
+  </Card>
+  <Card title="Every screen size" href="/docs/guides/small-screens">
+    A swipeable bracket on phones, or the full tree with scroll, fit, or pan and zoom.
+  </Card>
+  <Card title="Every format" href="/docs/formats/single-elimination">
+    Single and double elimination, round robin, Swiss and groups into playoffs.
+  </Card>
+</Cards>
+
+## Packages
+
+| Package | What it is |
+| --- | --- |
+| `react-brackets` | The React components. Re-exports everything from the core. |
+| `@react-brackets/core` | Formats, results, standings and layout. No framework, no dependencies. |
+| `@react-brackets/theme` | An optional stylesheet driven by CSS variables. |

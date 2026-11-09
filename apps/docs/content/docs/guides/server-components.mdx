@@ -1,0 +1,24 @@
+---
+title: Server components
+description: Use react-brackets with the Next.js App Router and other RSC frameworks.
+---
+
+`react-brackets` is a client module, because it measures layouts and handles gestures. Build the stage on the server with `@react-brackets/core`, which has no client code, and pass it down. Stages are plain JSON, so they cross the boundary as they are.
+
+```tsx title="app/tournament/page.tsx"
+import { singleElimination } from '@react-brackets/core';
+import { Bracket } from 'react-brackets';
+
+export default async function Page() {
+  const teams = await getTeams();
+  return <Bracket stage={singleElimination(teams)} />;
+}
+```
+
+Install the core next to the components:
+
+```bash
+npm install @react-brackets/core
+```
+
+The bracket renders on the server as the full tree. On the client it measures its container and switches to the paged view if it's narrow.

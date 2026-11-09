@@ -1,0 +1,57 @@
+---
+title: Utilities
+description: Look up matches and participants, compute layouts, and work with seeding.
+---
+
+## Lookups
+
+| Function | Returns |
+| --- | --- |
+| `allMatches(stage)` | Every match, group by group and round by round. |
+| `findMatch(stage, id)` | The match, or `undefined`. |
+| `getMatch(stage, id)` | The match. Throws when it doesn't exist. |
+| `participantMap(stage)` | A `Map` of participants by id, for looking up names. |
+
+```ts
+const names = participantMap(stage);
+const live = allMatches(stage).filter((match) => match.status === 'live');
+const label = live.map((match) =>
+  match.slots.map((slot) => names.get(slot.participantId ?? '')?.name ?? 'TBD').join(' vs '),
+);
+```
+
+## layoutGroup
+
+```ts
+function layoutGroup(group: Group, options?: LayoutOptions): GroupLayout
+```
+
+The layout `<Bracket>` uses: every match centred between its feeders, on a grid. Use it to draw a bracket elsewhere, like a canvas, a PDF or React Native.
+
+<ApiTable from="core" name="LayoutOptions" />
+
+### GroupLayout
+
+<ApiTable from="core" name="GroupLayout" />
+
+### LayoutColumn
+
+<ApiTable from="core" name="LayoutColumn" />
+
+### LayoutCell
+
+<ApiTable from="core" name="LayoutCell" />
+
+### LayoutEdge
+
+<ApiTable from="core" name="LayoutEdge" />
+
+A cell at `row` with `span` 2 covers grid rows `row` and `row + 1`. Rows are evenly sized, so a match's vertical centre is `(row + span / 2) / rows` of the height.
+
+## Seeding
+
+| Function | Returns |
+| --- | --- |
+| `bracketSize(entrants)` | The first-round size a field needs: the next power of two. `bracketSize(6)` is `8`. |
+| `standardOrder(size)` | Seed numbers in bracket order. `standardOrder(8)` is `[1, 8, 4, 5, 2, 7, 3, 6]`. |
+| `eliminationRoundName(index, total)` | The default names: `Round 1`… `Quarterfinals`, `Semifinals`, `Final`. |

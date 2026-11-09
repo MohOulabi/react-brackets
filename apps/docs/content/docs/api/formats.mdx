@@ -1,0 +1,119 @@
+---
+title: Formats
+description: Every function that builds a stage, with its parameters, options and errors.
+---
+
+Every format takes participants **in seed order**, so the first one is the top seed. Ids must be unique. Each returns a new [`Stage`](/docs/api/data-model#stage) with byes already resolved.
+
+## singleElimination
+
+```ts
+function singleElimination(participants: Participant[], options?: SingleEliminationOptions): Stage
+```
+
+A knockout bracket. Any number of participants works: when the field isn't a power of two, the top seeds get byes.
+
+<TypeTable
+  type={{
+    participants: { type: 'Participant[]', required: true, description: 'In seed order. At least two.' },
+    options: { type: 'SingleEliminationOptions', description: 'See below.' },
+  }}
+/>
+
+<ApiTable from="core" name="SingleEliminationOptions" />
+
+**Throws** a `RangeError` with fewer than two participants, and an `Error` when ids repeat.
+
+```ts
+singleElimination(teams, {
+  thirdPlace: true,
+  roundName: (index, total) => (index === total - 1 ? 'Championship' : `Round ${index + 1}`),
+});
+```
+
+## doubleElimination
+
+```ts
+function doubleElimination(participants: Participant[], options?: DoubleEliminationOptions): Stage
+```
+
+A winners bracket, a losers bracket fed by its losers, and a grand final. Produces groups `{id}.wb`, `{id}.lb` and, unless `grandFinal` is `'none'`, `{id}.gf`.
+
+<TypeTable
+  type={{
+    participants: { type: 'Participant[]', required: true, description: 'In seed order. At least three.' },
+    options: { type: 'DoubleEliminationOptions', description: 'See below.' },
+  }}
+/>
+
+<ApiTable from="core" name="DoubleEliminationOptions" />
+
+| `grandFinal` | Behaviour |
+| --- | --- |
+| `'reset'` | If the losers bracket champion wins the final, a second final (`{id}.gf.r2.m1`) decides it. Otherwise it's skipped. |
+| `'single'` | One final, whatever happens. |
+| `'none'` | No grand final. |
+
+## roundRobin
+
+```ts
+function roundRobin(participants: Participant[], options?: RoundRobinOptions): Stage
+```
+
+Everyone in a group plays everyone else, once per leg. Groups are `{id}.g1`, `{id}.g2`…, of kind `pool`.
+
+<TypeTable
+  type={{
+    participants: { type: 'Participant[]', required: true, description: 'In seed order. At least two per group.' },
+    options: { type: 'RoundRobinOptions', description: 'See below.' },
+  }}
+/>
+
+<ApiTable from="core" name="RoundRobinOptions" />
+
+With `groups: 2` and eight participants, snake seeding puts seeds 1, 4, 5 and 8 in group A and 2, 3, 6 and 7 in group B.
+
+## swiss
+
+```ts
+function swiss(participants: Participant[], options?: SwissOptions): Stage
+function nextSwissRound(stage: Stage): Stage
+function swissRoundsLeft(stage: Stage): number
+```
+
+`swiss` creates the stage with round one paired. Call `nextSwissRound` after every match of the current round has a result.
+
+<TypeTable
+  type={{
+    participants: { type: 'Participant[]', required: true, description: 'In seed order. At least two.' },
+    options: { type: 'SwissOptions', description: 'See below.' },
+  }}
+/>
+
+<ApiTable from="core" name="SwissOptions" />
+
+**`nextSwissRound` throws** when the current round has unfinished matches, or when every round has been played. Check `swissRoundsLeft(stage) > 0` first.
+
+## fromRounds
+
+```ts
+function fromRounds(rounds: RoundInput[], options?: FromRoundsOptions): Stage
+```
+
+Builds a stage from data you already have. Rounds that halve in size are linked as a knockout tree and equal-sized rounds one to one. See [Your own data](/docs/formats/your-own-data).
+
+### RoundInput
+
+<ApiTable from="core" name="RoundInput" />
+
+### MatchInput
+
+<ApiTable from="core" name="MatchInput" />
+
+### ParticipantInput
+
+<ApiTable from="core" name="ParticipantInput" />
+
+### FromRoundsOptions
+
+<ApiTable from="core" name="FromRoundsOptions" />

@@ -1,0 +1,12 @@
+{
+  "title": "API reference",
+  "pages": [
+    "data-model",
+    "formats",
+    "results-and-standings",
+    "utilities",
+    "bracket",
+    "parts",
+    "hooks-and-types"
+  ]
+}

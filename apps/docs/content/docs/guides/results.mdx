@@ -1,0 +1,49 @@
+---
+title: Results
+description: Report scores, stream live matches, and undo results. Winners move forward on their own.
+---
+
+<Preview>
+  <ResultsDemo />
+</Preview>
+
+Stages are immutable. Every update returns a new stage, so they drop straight into `useState`, a store, or a server response.
+
+```tsx
+import { reportResult, resetResult } from 'react-brackets';
+
+const [stage, setStage] = useState(() => singleElimination(teams));
+
+// a finished match: the higher score wins and moves on
+setStage((s) => reportResult(s, 'main.r1.m1', { scores: [3, 1] }));
+
+// a live match: scores show, nobody advances yet
+setStage((s) => reportResult(s, 'main.r1.m2', { scores: [1, 1], live: true }));
+
+// a tie in a knockout needs an explicit winner
+setStage((s) => reportResult(s, 'main.r1.m2', { scores: [2, 2], winner: 1 }));
+
+// undo, which also clears everything that depended on it
+setStage((s) => resetResult(s, 'main.r1.m1'));
+```
+
+## Match status
+
+| Status | Meaning |
+| --- | --- |
+| `waiting` | At least one side is still to be decided. |
+| `ready` | Both sides are known. |
+| `live` | Reported with `live: true`. |
+| `completed` | Finished. A bye completes on its own. |
+| `skipped` | Will never be played, like an unused bracket reset. |
+
+Overturning a result clears every result downstream of it, so a stage can't hold a winner who never qualified.
+
+## Saving stages
+
+A stage is JSON. Store it, send it, and render it anywhere:
+
+```ts
+await db.save(JSON.stringify(stage));
+const stage = JSON.parse(saved) as Stage;
+```

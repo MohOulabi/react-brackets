@@ -1,0 +1,82 @@
+---
+title: Results and standings
+description: Report results, undo them, and rank participants.
+---
+
+## reportResult
+
+```ts
+function reportResult(stage: Stage, matchId: Id, result: MatchResult): Stage
+```
+
+Records a result and returns a new stage. The winner and loser move on to whatever matches they feed, and the statuses of every affected match update. Changing an earlier result clears everything that depended on it.
+
+<TypeTable
+  type={{
+    stage: { type: 'Stage', required: true, description: 'The current stage. It is not modified.' },
+    matchId: { type: 'Id', required: true, description: 'The match to record, like "main.r1.m1".' },
+    result: { type: 'MatchResult', required: true, description: 'See below.' },
+  }}
+/>
+
+### MatchResult
+
+<ApiTable from="core" name="MatchResult" />
+
+**Throws** when the match doesn't exist, when it isn't ready to be played (`waiting` or `skipped`), or when it was decided by a bye.
+
+```ts
+reportResult(stage, 'main.r1.m1', { scores: [3, 1] });               // winner from scores
+reportResult(stage, 'main.r1.m2', { scores: [2, 2], winner: 1 });    // tie-break
+reportResult(stage, 'main.r1.m3', { scores: [1, 0], live: true });   // in progress
+reportResult(stage, 'main.g1.r1.m1', { scores: [1, 1] });            // draw, in a round robin
+reportResult(stage, 'main.r1.m4', { winner: 0 });                    // winner without scores
+```
+
+## resetResult
+
+```ts
+function resetResult(stage: Stage, matchId: Id): Stage
+```
+
+Clears a match's scores and winner. The match becomes `ready` again, and every slot and result downstream of it is cleared.
+
+## standings
+
+```ts
+function standings(stage: Stage, groupId?: Id, options?: StandingsOptions): Standing[]
+```
+
+A league table from completed matches, best first. Ranked by points, then score difference, then score, then seed. A bye counts as a win with no scores.
+
+<TypeTable
+  type={{
+    stage: { type: 'Stage', required: true },
+    groupId: { type: 'Id', description: 'Ranks one group, like "main.g1". Leave out to rank the whole stage, as for Swiss.' },
+    options: { type: 'StandingsOptions', description: 'See below.' },
+  }}
+/>
+
+### Standing
+
+<ApiTable from="core" name="Standing" />
+
+### StandingsOptions
+
+<ApiTable from="core" name="StandingsOptions" />
+
+## qualifiers
+
+```ts
+function qualifiers(stage: Stage, perGroup: number, options?: StandingsOptions): Participant[]
+```
+
+The top `perGroup` finishers of every group, ordered by placing and then by group: A1, B1, A2, B2. Pass them to [`singleElimination`](/docs/api/formats#singleelimination) for the classic crossover.
+
+## isComplete
+
+```ts
+function isComplete(stage: Stage): boolean
+```
+
+`true` once every match is `completed` or `skipped`.

@@ -1,0 +1,91 @@
+---
+title: Click events and control
+description: Make matches clickable, follow a team, and drive the bracket from your own UI.
+---
+
+## Clicking matches
+
+Pass `onMatchClick` and every match becomes a button: focusable, and it works with Enter and Space as well as clicks. Click a match, then pick its winner:
+
+<Preview>
+  <ClickDemo />
+</Preview>
+
+```tsx
+const [stage, setStage] = useState(() => singleElimination(teams));
+const [selected, setSelected] = useState<Match | null>(null);
+
+<Bracket stage={stage} onMatchClick={setSelected} />
+
+<Button onClick={() => setStage(reportResult(stage, selected.id, { scores: [1, 0] }))}>
+  {names.get(selected.slots[0].participantId)?.name} wins
+</Button>
+```
+
+To mark the selected match, render it yourself and add a class:
+
+```tsx
+<Bracket
+  stage={stage}
+  onMatchClick={(match) => setSelectedId(match.id)}
+  renderMatch={(match) => (
+    <Bracket.Match className={match.id === selectedId ? 'ring-2 ring-blue-500' : undefined}>
+      <Bracket.Participant slot={0} />
+      <Bracket.Participant slot={1} />
+    </Bracket.Match>
+  )}
+/>
+```
+
+## Clicking anything else
+
+Every part passes props through to its element, so any handler works: `onClick`, `onDoubleClick`, `onContextMenu`, `onPointerEnter`. Each participant carries `data-participant` with its id. Click a team to follow its path:
+
+<Preview>
+  <FollowTeamDemo />
+</Preview>
+
+```tsx
+const [followed, setFollowed] = useState<string | null>(null);
+
+<Bracket
+  stage={stage}
+  highlighted={followed}
+  renderMatch={() => (
+    <Bracket.Match>
+      {([0, 1] as const).map((slot) => (
+        <Bracket.Participant
+          key={slot}
+          slot={slot}
+          onClick={(event) => setFollowed(event.currentTarget.dataset.participant ?? null)}
+        />
+      ))}
+    </Bracket.Match>
+  )}
+/>
+```
+
+## Highlighting
+
+Hovering a participant with a mouse highlights their path, and touch doesn't trigger it. Control it with `highlighted` and `onHighlightChange`, or turn hover off with `highlightOnHover={false}`.
+
+## Controlling the round
+
+On narrow screens the bracket pages through rounds. Control the page with `page` and `onPageChange`, to sync it with your own tabs, the URL, or a select:
+
+<Preview>
+  <ControlledPageDemo />
+</Preview>
+
+```tsx
+const [page, setPage] = useState(0);
+
+<Tabs value={String(page)} onValueChange={(value) => setPage(Number(value))}>…</Tabs>
+<Bracket stage={stage} page={page} onPageChange={setPage} classNames={{ pagination: 'hidden' }} />
+```
+
+## Keyboard
+
+- Interactive matches are buttons in the tab order.
+- In the paged view, the left and right arrow keys change round, and the round tabs are buttons too.
+- Zoom controls are buttons with labels you can translate.

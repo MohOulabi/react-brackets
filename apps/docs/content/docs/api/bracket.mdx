@@ -1,0 +1,40 @@
+---
+title: <Bracket>
+description: The ready-made component that draws every group of a stage.
+---
+
+```tsx
+import { Bracket } from 'react-brackets';
+
+<Bracket stage={stage} />;
+```
+
+`<Bracket>` draws every group of a stage with the default parts: a group title where it helps, the viewport, the rounds, the connectors and the pagination. For a double elimination stage, it draws the winners bracket with the grand final on the same grid, and the losers bracket below it.
+
+## Props
+
+`<Bracket>` takes its own props plus every [`Bracket.Root`](/docs/api/parts#bracketroot) prop except `group` and `children`. Any other prop, like `dir`, `style` or `id`, goes to each group's root element.
+
+### Own props
+
+<ApiTable from="react" name="BracketOwnProps" />
+
+### Root props
+
+<ApiTable from="react" name="RootOwnProps" />
+
+## Examples
+
+```tsx
+// Paging and highlighting controlled from outside
+<Bracket stage={stage} page={page} onPageChange={setPage} highlighted={team} />
+
+// Always the whole tree, scaled to fit
+<Bracket stage={stage} compactBelow={0} mode="fit" />
+
+// Fully restyled with Tailwind, theme off for this one
+<Bracket stage={stage} classNames={classNames} unstyled />
+
+// Translated
+<Bracket stage={stage} labels={{ tbd: 'À déterminer', bye: 'Exempt' }} />
+```

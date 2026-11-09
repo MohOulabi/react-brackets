@@ -1,0 +1,20 @@
+---
+title: Groups to playoffs
+description: Round robin groups whose top finishers seed a knockout bracket.
+---
+
+<Preview>
+  <GroupsToPlayoffsDemo />
+</Preview>
+
+```tsx
+import { qualifiers, roundRobin, singleElimination } from 'react-brackets';
+
+const groups = roundRobin(teams, { groups: 2 });
+// …play the group matches…
+const playoffs = singleElimination(qualifiers(groups, 2), { id: 'playoffs' });
+```
+
+`qualifiers(stage, perGroup)` takes the top finishers of each group, ordered by placing and then group: A1, B1, A2, B2. Standard seeding then gives the classic crossover, where each group winner meets the other group's runner-up.
+
+See [`qualifiers`](/docs/api/results-and-standings#qualifiers) and [`standings`](/docs/api/results-and-standings#standings) in the API reference.

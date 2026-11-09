@@ -1,0 +1,54 @@
+---
+title: Theme
+description: The optional stylesheet, and every variable you can change.
+---
+
+<Preview>
+  <ThemeDemo />
+</Preview>
+
+```tsx
+import '@react-brackets/theme/theme.css';
+
+<Bracket stage={stage} className="my-bracket" />;
+```
+
+```css
+.my-bracket {
+  --rb-accent: #ea580c;
+  --rb-radius: 14px;
+  --rb-match-width: 11rem;
+  --rb-line-width: 2px;
+}
+```
+
+Every theme rule has zero specificity and lives in the `components` cascade layer, so your styles always win without `!important`: plain CSS because it's unlayered, and Tailwind utilities because their layer comes later. Add `unstyled` to a bracket to opt it out of the theme entirely, even while the stylesheet is loaded.
+
+## Variables
+
+| Variable | Default | Used for |
+| --- | --- | --- |
+| `--rb-accent` | blue | Winner scores, highlights, focus rings |
+| `--rb-accent-soft` | 14% of the accent | Highlighted rows |
+| `--rb-text` / `--rb-text-muted` | zinc | Text, losers, TBD |
+| `--rb-surface` / `--rb-surface-hover` | white / zinc-100 | Match cards |
+| `--rb-border` | zinc-200 | Card borders and dividers |
+| `--rb-live` | red | Live match border |
+| `--rb-line` / `--rb-line-width` | zinc-300 / `1.5px` | Connector lines |
+| `--rb-radius` | `10px` | Cards and controls |
+| `--rb-shadow` | subtle | Cards |
+| `--rb-match-width` | `13.5rem` | Card width in the tree |
+| `--rb-match-gap` | `0.75rem` | Space between matches |
+| `--rb-column-gap` | `3rem` (`1.5rem` paged) | Space between rounds |
+| `--rb-duration` | `160ms` | Hover and highlight transitions |
+| `--rb-font` | `inherit` | Font family |
+
+Colours use `light-dark()`, so they follow the page's `color-scheme`. For a site with its own tokens, point the variables at them:
+
+```css
+[data-scope="bracket"][data-part="root"] {
+  --rb-surface: var(--card);
+  --rb-border: var(--border);
+  --rb-accent: var(--primary);
+}
+```
