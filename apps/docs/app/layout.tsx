@@ -1,3 +1,5 @@
+import { Analytics } from '@vercel/analytics/next';
+import { SpeedInsights } from '@vercel/speed-insights/next';
 import { RootProvider } from 'fumadocs-ui/provider/next';
 import { GeistMono } from 'geist/font/mono';
 import type { Metadata, Viewport } from 'next';
@@ -51,6 +53,9 @@ export default function RootLayout({ children }: { children: ReactNode }) {
     >
       <body className="flex min-h-screen flex-col font-sans antialiased">
         <RootProvider search={{ SearchDialog: StaticSearchDialog }}>{children}</RootProvider>
+        {/* Vercel Web Analytics and Speed Insights: cookieless, collected in the Vercel project's dashboard. */}
+        <Analytics />
+        <SpeedInsights />
       </body>
     </html>
   );
