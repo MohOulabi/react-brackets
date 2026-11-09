@@ -158,7 +158,9 @@ export function usePanZoom({
     },
     onPointerUp: release,
     onPointerCancel: release,
-    onLostPointerCapture: release,
+    onLostPointerCapture(event) {
+      if (event.target === event.currentTarget) release(event);
+    },
     onClickCapture(event) {
       if (!dragged.current) return;
       dragged.current = false;

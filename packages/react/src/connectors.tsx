@@ -8,9 +8,11 @@ import {
   useRef,
   useState,
 } from 'react';
+import { flushSync } from 'react-dom';
 import { type ClassNameProp, cx, flag, useBracketContext, usePart } from './context';
+import { type Flight, FRAME_EVENT, flights } from './hooks/use-flip';
 import { useIsomorphicLayoutEffect } from './hooks/use-isomorphic-layout-effect';
-import { anchors, boxWithin, connectorPath, type Point } from './paths';
+import { anchors, type Box, boxWithin, connectorPath, type Point } from './paths';
 
 /** One line between two matches. Passed to `Bracket.Connectors` children and to `className` functions. */
 export interface ConnectorState {
@@ -68,6 +70,8 @@ interface MeasuredEdge extends LayoutEdge {
   d: string;
   start: Point;
   end: Point;
+  /** Below 1 while one of its cards is fading in. */
+  opacity: number;
 }
 
 /** The lines between matches, drawn as one SVG measured from the real match cards. */
@@ -92,27 +96,55 @@ export function Connectors({
   }, [layout]);
 
   useIsomorphicLayoutEffect(() => {
-    const content = svg.current?.parentElement;
-    if (!grid || !content) return;
+    const element = svg.current;
+    const content = element?.parentElement;
+    if (!grid || !element || !content) return;
 
-    const measure = () => {
+    // `following` places the lines where the cards are drawn right now, mid-animation, instead of their layout.
+    const measure = (following = false) => {
       const measured: MeasuredEdge[] = [];
       for (const edge of layout.edges) {
-        const from = anchorOf(cells.get(edge.from));
-        const to = anchorOf(cells.get(edge.to));
+        const fromCell = cells.get(edge.from);
+        const toCell = cells.get(edge.to);
+        const from = anchorOf(fromCell);
+        const to = anchorOf(toCell);
         if (!from || !to) continue;
-        const [start, end] = anchors(boxWithin(from, content), boxWithin(to, content));
-        measured.push({ ...edge, start, end, d: connectorPath(start, end, radius) });
+        const a = following ? inFlight(fromCell) : still;
+        const b = following ? inFlight(toCell) : still;
+        const [start, end] = anchors(
+          shifted(boxWithin(from, content), a),
+          shifted(boxWithin(to, content), b),
+        );
+        const opacity = Math.min(a.opacity, b.opacity);
+        measured.push({ ...edge, start, end, opacity, d: connectorPath(start, end, radius) });
       }
       setEdges(measured);
     };
 
+    let following = false;
+    // The cards' clock calls this right after placing them, so each frame's lines use the same numbers.
+    const follow = (event: Event) => {
+      const { done, sync } = (event as CustomEvent<{ done?: boolean; sync?: boolean }>).detail;
+      following = !done;
+      if (done) return measure();
+      // Inside React's commit the update is already synchronous; in a frame it has to be forced.
+      if (sync) measure(true);
+      else flushSync(() => measure(true));
+    };
+    element.addEventListener(FRAME_EVENT, follow);
+
     measure();
-    if (typeof ResizeObserver === 'undefined') return;
-    const observer = new ResizeObserver(measure);
-    observer.observe(content);
-    for (const cell of cells.values()) observer.observe(cell);
-    return () => observer.disconnect();
+    // Mid-flight, a resize would snap the lines to where the cards are going, not where they are.
+    const observer =
+      typeof ResizeObserver === 'undefined'
+        ? null
+        : new ResizeObserver(() => following || measure());
+    observer?.observe(content);
+    for (const cell of cells.values()) observer?.observe(cell);
+    return () => {
+      element.removeEventListener(FRAME_EVENT, follow);
+      observer?.disconnect();
+    };
   }, [grid, layout, cells, radius]);
 
   if (!grid) return null;
@@ -159,9 +191,11 @@ export function Connectors({
             to.slots[edge.slot].participantId === highlighted,
         };
         return (
-          <ConnectorContext.Provider key={`${edge.from}-${edge.to}`} value={connector}>
-            {children(connector)}
-          </ConnectorContext.Provider>
+          <g key={`${edge.from}-${edge.to}`} opacity={edge.opacity < 1 ? edge.opacity : undefined}>
+            <ConnectorContext.Provider value={connector}>
+              {children(connector)}
+            </ConnectorContext.Provider>
+          </g>
         );
       })}
     </svg>
@@ -196,6 +230,16 @@ export function ConnectorPart({ className, ...props }: ConnectorProps): ReactNod
       data-status={connector.status}
     />
   );
+}
+
+const still: Flight = { x: 0, y: 0, opacity: 1 };
+
+function inFlight(cell: HTMLElement | undefined): Flight {
+  return (cell && flights.get(cell)) || still;
+}
+
+function shifted(box: Box, flight: Flight): Box {
+  return { ...box, left: box.left + flight.x, top: box.top + flight.y };
 }
 
 function anchorOf(cell: HTMLElement | undefined): HTMLElement | undefined {

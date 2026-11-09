@@ -244,6 +244,43 @@ describe('paged view', () => {
     expect(content()).toBe('');
   });
 
+  test('keeps following a touch when the card under the finger loses its capture', () => {
+    const { container } = render(<Bracket stage={singleElimination(players(8))} />);
+    const viewport = parts(container, 'viewport')[0] as HTMLElement;
+    const card = parts(container, 'match')[0] as HTMLElement;
+    const content = () => (parts(container, 'content')[0] as HTMLElement).style.transform;
+    const touch = { pointerId: 7, pointerType: 'touch', clientY: 0 };
+
+    fireEvent.pointerDown(card, { ...touch, clientX: 200 });
+    fireEvent.pointerMove(card, { ...touch, clientX: 180 });
+    fireEvent.lostPointerCapture(card, { ...touch, clientX: 0 });
+    fireEvent.pointerMove(card, { ...touch, clientX: 150 });
+
+    expect(titles(container)[0]).toBe('Quarterfinals');
+    expect(content()).toContain('translateX');
+
+    fireEvent.pointerUp(viewport, { ...touch, clientX: 150 });
+    expect(content()).toBe('');
+  });
+
+  test('finishes fading in cards when the bracket re-renders mid-animation', async () => {
+    const stage = singleElimination(players(8));
+    const { container, rerender } = render(<Bracket stage={stage} />);
+    const page = (name: string) => fireEvent.click(screen.getByRole('button', { name }));
+    const faded = () =>
+      ([...parts(container, 'cell')] as HTMLElement[]).filter((cell) => cell.style.opacity);
+
+    page('Semifinals');
+    page('Quarterfinals');
+    expect(faded().length).toBeGreaterThan(0);
+
+    // A live score landing while the first round fades back in.
+    rerender(<Bracket stage={reportResult(stage, 'main.r1.m1', { scores: [1, 0] })} />);
+    await new Promise((resolve) => setTimeout(resolve, 600));
+
+    expect(faded()).toEqual([]);
+  });
+
   test('can show plain lists of matches instead', () => {
     const { container } = render(<Bracket stage={singleElimination(players(8))} compact="list" />);
     const rounds = [...parts(container, 'round')];

@@ -1,4 +1,4 @@
-import { type PointerEvent, useEffect, useRef, useState } from 'react';
+import { type PointerEvent, type RefObject, useEffect, useRef, useState } from 'react';
 
 export interface SwipeHandlers {
   onPointerDown: (event: PointerEvent<HTMLElement>) => void;
@@ -9,80 +9,149 @@ export interface SwipeHandlers {
 }
 
 interface SwipeOptions {
+  /** The element being swiped, so page scrolling can be held while a swipe is under way. */
+  target: RefObject<HTMLElement | null>;
+  /** Called on every move with the distance dragged, outside React, so it can move the content directly. */
+  onDrag: (offset: number) => void;
+  /** Called once when the finger lifts, before `onSwipe`, with the distance it was dragged. */
+  onRelease: (offset: number) => void;
   onSwipe: (direction: -1 | 1) => void;
-  /** Fraction of the element width a drag must cover to count as a swipe. */
+  /** Fraction of the element width a slow drag must cover to count as a swipe. */
   threshold?: number;
 }
 
+interface Gesture {
+  id: number;
+  x: number;
+  y: number;
+  width: number;
+  /** Recent positions, to tell a flick from a slow drag. */
+  samples: { x: number; t: number }[];
+  locked: boolean;
+}
+
+/** Pixels per millisecond: a flick this fast pages even over a short distance. */
+const FLICK_SPEED = 0.35;
+const FLICK_MIN = 16;
+const SLOP = 8;
+
 /**
- * Horizontal swipe on pointer events. Vertical drags are left to the browser
- * so the page keeps scrolling normally on touch screens.
+ * Horizontal swipe on pointer events. The content follows the finger without a
+ * re-render, flicks page on speed as well as distance, and vertical drags are
+ * left to the browser so the page keeps scrolling normally.
  */
-export function useSwipe({ onSwipe, threshold = 0.2 }: SwipeOptions): {
-  offset: number;
+export function useSwipe({ target, onDrag, onRelease, onSwipe, threshold = 0.2 }: SwipeOptions): {
   dragging: boolean;
   handlers: SwipeHandlers;
 } {
-  const start = useRef<{ x: number; y: number; width: number; id: number } | null>(null);
-  const [offset, setOffset] = useState(0);
+  const gesture = useRef<Gesture | null>(null);
   const [dragging, setDragging] = useState(false);
+  const callbacks = useRef({ onDrag, onRelease, onSwipe });
+  callbacks.current = { onDrag, onRelease, onSwipe };
 
-  const finish = (clientX: number, cancelled: boolean) => {
-    const origin = start.current;
-    if (!origin) return;
-    start.current = null;
+  const finish = (pointerId: number, clientX: number, cancelled: boolean) => {
+    const current = gesture.current;
+    if (!current || current.id !== pointerId) return;
+    gesture.current = null;
+    if (!current.locked) return;
+
+    const distance = cancelled ? 0 : clientX - current.x;
+    callbacks.current.onRelease(distance);
     setDragging(false);
-    setOffset(0);
     if (cancelled) return;
-    const distance = clientX - origin.x;
-    if (Math.abs(distance) >= origin.width * threshold) onSwipe(distance < 0 ? 1 : -1);
+
+    const speed = velocity(current.samples);
+    const flicked = Math.abs(speed) >= FLICK_SPEED && Math.abs(distance) >= FLICK_MIN;
+    if (flicked && Math.sign(speed) === Math.sign(distance)) {
+      callbacks.current.onSwipe(distance < 0 ? 1 : -1);
+    } else if (Math.abs(distance) >= current.width * threshold) {
+      callbacks.current.onSwipe(distance < 0 ? 1 : -1);
+    }
   };
   const latest = useRef(finish);
   latest.current = finish;
 
-  // A release outside the page, or a capture the browser took back, still ends the drag.
+  // Once a swipe is under way, hold the page still: iOS otherwise scrolls it on any diagonal movement.
+  useEffect(() => {
+    const element = target.current;
+    if (!element) return;
+    const hold = (event: TouchEvent) => {
+      if (gesture.current?.locked && event.cancelable) event.preventDefault();
+    };
+    element.addEventListener('touchmove', hold, { passive: false });
+    return () => element.removeEventListener('touchmove', hold);
+  }, [target]);
+
+  // A release outside the page, or the window losing focus, still ends the drag.
   useEffect(() => {
     if (!dragging) return;
-    const release = (event: globalThis.PointerEvent) => latest.current(event.clientX, false);
-    const cancel = () => latest.current(0, true);
+    const release = (event: globalThis.PointerEvent) =>
+      latest.current(event.pointerId, event.clientX, false);
+    const cancel = (event: globalThis.PointerEvent) => latest.current(event.pointerId, 0, true);
+    const blur = () => gesture.current && latest.current(gesture.current.id, 0, true);
     window.addEventListener('pointerup', release);
     window.addEventListener('pointercancel', cancel);
-    window.addEventListener('blur', cancel);
+    window.addEventListener('blur', blur);
     return () => {
       window.removeEventListener('pointerup', release);
       window.removeEventListener('pointercancel', cancel);
-      window.removeEventListener('blur', cancel);
+      window.removeEventListener('blur', blur);
     };
   }, [dragging]);
 
   const handlers: SwipeHandlers = {
     onPointerDown(event) {
       if (event.pointerType === 'mouse' && event.button !== 0) return;
-      const width = event.currentTarget.getBoundingClientRect().width;
-      start.current = { x: event.clientX, y: event.clientY, width, id: event.pointerId };
+      if (gesture.current) return;
+      gesture.current = {
+        id: event.pointerId,
+        x: event.clientX,
+        y: event.clientY,
+        width: event.currentTarget.getBoundingClientRect().width,
+        samples: [{ x: event.clientX, t: event.timeStamp }],
+        locked: false,
+      };
     },
     onPointerMove(event) {
-      const origin = start.current;
-      if (!origin || origin.id !== event.pointerId) return;
-      if (event.pointerType === 'mouse' && event.buttons === 0) return finish(event.clientX, false);
-      const dx = event.clientX - origin.x;
-      const dy = event.clientY - origin.y;
-      if (!dragging) {
-        if (Math.abs(dx) < 8 || Math.abs(dx) < Math.abs(dy)) {
-          if (Math.abs(dy) > 8) start.current = null;
+      const current = gesture.current;
+      if (!current || current.id !== event.pointerId) return;
+      if (event.pointerType === 'mouse' && event.buttons === 0) {
+        return finish(event.pointerId, event.clientX, false);
+      }
+      const dx = event.clientX - current.x;
+      const dy = event.clientY - current.y;
+      if (!current.locked) {
+        if (Math.abs(dx) < SLOP || Math.abs(dx) < Math.abs(dy)) {
+          if (Math.abs(dy) > SLOP) gesture.current = null;
           return;
         }
+        current.locked = true;
         capture(event);
         setDragging(true);
       }
-      setOffset(dx);
+      current.samples.push({ x: event.clientX, t: event.timeStamp });
+      if (current.samples.length > 6) current.samples.shift();
+      callbacks.current.onDrag(dx);
     },
-    onPointerUp: (event) => finish(event.clientX, false),
-    onPointerCancel: () => finish(0, true),
-    onLostPointerCapture: (event) => finish(event.clientX, false),
+    onPointerUp: (event) => finish(event.pointerId, event.clientX, false),
+    onPointerCancel: (event) => finish(event.pointerId, 0, true),
+    // Touch starts captured by the card under the finger. Taking it over makes that card fire this event, which
+    // bubbles here; only the viewport itself losing the pointer ends the drag, and then without a swipe.
+    onLostPointerCapture(event) {
+      if (event.target === event.currentTarget) finish(event.pointerId, 0, true);
+    },
   };
 
-  return { offset, dragging, handlers };
+  return { dragging, handlers };
+}
+
+/** Speed over the last ~100 ms of movement, in pixels per millisecond. */
+function velocity(samples: { x: number; t: number }[]): number {
+  const last = samples.at(-1);
+  if (!last) return 0;
+  const first = samples.find((sample) => last.t - sample.t <= 100) ?? last;
+  const time = last.t - first.t;
+  return time > 0 ? (last.x - first.x) / time : 0;
 }
 
 /** iOS-style resistance: the further you pull past an edge, the less it follows. */

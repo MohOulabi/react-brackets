@@ -89,7 +89,12 @@ export function Viewport({
   }
 
   return (
-    <div {...props} {...part} data-mode={mode} style={{ overflow: 'auto', ...style }}>
+    <div
+      {...props}
+      {...part}
+      data-mode={mode}
+      style={{ overflow: 'auto', overscrollBehaviorX: 'contain', ...style }}
+    >
       <GridContent>{children}</GridContent>
     </div>
   );
