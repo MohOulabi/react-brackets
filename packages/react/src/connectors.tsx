@@ -10,7 +10,7 @@ import {
 } from 'react';
 import { flushSync } from 'react-dom';
 import { type ClassNameProp, cx, flag, useBracketContext, usePart } from './context';
-import { type Flight, FRAME_EVENT, flights } from './hooks/use-flip';
+import { type Flight, FRAME_EVENT, flights, still } from './hooks/use-flip';
 import { useIsomorphicLayoutEffect } from './hooks/use-isomorphic-layout-effect';
 import { anchors, type Box, boxWithin, connectorPath, type Point } from './paths';
 
@@ -100,8 +100,8 @@ export function Connectors({
     const content = element?.parentElement;
     if (!grid || !element || !content) return;
 
-    // `following` places the lines where the cards are drawn right now, mid-animation, instead of their layout.
-    const measure = (following = false) => {
+    // Cards in motion are drawn away from their layout; `flights` says where, and is empty once they land.
+    const measure = () => {
       const measured: MeasuredEdge[] = [];
       for (const edge of layout.edges) {
         const fromCell = cells.get(edge.from);
@@ -109,8 +109,8 @@ export function Connectors({
         const from = anchorOf(fromCell);
         const to = anchorOf(toCell);
         if (!from || !to) continue;
-        const a = following ? inFlight(fromCell) : still;
-        const b = following ? inFlight(toCell) : still;
+        const a = inFlight(fromCell);
+        const b = inFlight(toCell);
         const [start, end] = anchors(
           shifted(boxWithin(from, content), a),
           shifted(boxWithin(to, content), b),
@@ -121,24 +121,21 @@ export function Connectors({
       setEdges(measured);
     };
 
-    let following = false;
+    let moving = false;
     // The cards' clock calls this right after placing them, so each frame's lines use the same numbers.
     const follow = (event: Event) => {
       const { done, sync } = (event as CustomEvent<{ done?: boolean; sync?: boolean }>).detail;
-      following = !done;
-      if (done) return measure();
+      moving = !done;
       // Inside React's commit the update is already synchronous; in a frame it has to be forced.
-      if (sync) measure(true);
-      else flushSync(() => measure(true));
+      if (done || sync) measure();
+      else flushSync(measure);
     };
     element.addEventListener(FRAME_EVENT, follow);
 
     measure();
     // Mid-flight, a resize would snap the lines to where the cards are going, not where they are.
     const observer =
-      typeof ResizeObserver === 'undefined'
-        ? null
-        : new ResizeObserver(() => following || measure());
+      typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(() => moving || measure());
     observer?.observe(content);
     for (const cell of cells.values()) observer?.observe(cell);
     return () => {
@@ -231,8 +228,6 @@ export function ConnectorPart({ className, ...props }: ConnectorProps): ReactNod
     />
   );
 }
-
-const still: Flight = { x: 0, y: 0, opacity: 1 };
 
 function inFlight(cell: HTMLElement | undefined): Flight {
   return (cell && flights.get(cell)) || still;

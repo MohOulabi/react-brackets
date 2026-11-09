@@ -14,7 +14,7 @@ interface SwipeOptions {
   /** Called on every move with the distance dragged, outside React, so it can move the content directly. */
   onDrag: (offset: number) => void;
   /** Called once when the finger lifts, before `onSwipe`, with the distance it was dragged. */
-  onRelease: (offset: number) => void;
+  onRelease?: (offset: number) => void;
   onSwipe: (direction: -1 | 1) => void;
   /** Fraction of the element width a slow drag must cover to count as a swipe. */
   threshold?: number;
@@ -56,7 +56,7 @@ export function useSwipe({ target, onDrag, onRelease, onSwipe, threshold = 0.2 }
     if (!current.locked) return;
 
     const distance = cancelled ? 0 : clientX - current.x;
-    callbacks.current.onRelease(distance);
+    callbacks.current.onRelease?.(distance);
     setDragging(false);
     if (cancelled) return;
 

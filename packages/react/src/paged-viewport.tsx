@@ -80,7 +80,8 @@ export function PagedListViewport({ style, children, ...props }: SectionProps): 
   const content = useRef<HTMLDivElement>(null);
   const { rtl, height } = useFrame(viewport, content, page, ROUNDS);
   const step = rtl ? -1 : 1;
-  const resting = `translateX(${-page * step * 100}%)`;
+  const at = -page * step * 100;
+  const resting = `translateX(${at}%)`;
   const pull = (offset: number) => resist(offset, step, page, rounds.length, width ?? 0);
   const { dragging, handlers } = useSwipe({
     target: viewport,
@@ -88,9 +89,8 @@ export function PagedListViewport({ style, children, ...props }: SectionProps): 
       const element = content.current;
       if (!element) return;
       element.style.transition = 'none';
-      element.style.transform = `translateX(calc(${-page * step * 100}% + ${pull(offset)}px))`;
+      element.style.transform = `translateX(calc(${at}% + ${pull(offset)}px))`;
     },
-    onRelease: () => {},
     onSwipe: (direction) => setPage(page + direction * step),
   });
 
