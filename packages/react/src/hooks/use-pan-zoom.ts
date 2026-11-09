@@ -61,6 +61,7 @@ export interface PanZoomHandlers {
   onPointerMove: (event: PointerEvent<HTMLElement>) => void;
   onPointerUp: (event: PointerEvent<HTMLElement>) => void;
   onPointerCancel: (event: PointerEvent<HTMLElement>) => void;
+  onLostPointerCapture: (event: PointerEvent<HTMLElement>) => void;
   onClickCapture: (event: { preventDefault: () => void; stopPropagation: () => void }) => void;
 }
 
@@ -151,10 +152,13 @@ export function usePanZoom({
       pointers.current.set(event.pointerId, local(event.clientX, event.clientY));
     },
     onPointerMove(event) {
-      if (pointers.current.has(event.pointerId)) update(event);
+      if (!pointers.current.has(event.pointerId)) return;
+      if (event.pointerType === 'mouse' && event.buttons === 0) release(event);
+      else update(event);
     },
     onPointerUp: release,
     onPointerCancel: release,
+    onLostPointerCapture: release,
     onClickCapture(event) {
       if (!dragged.current) return;
       dragged.current = false;

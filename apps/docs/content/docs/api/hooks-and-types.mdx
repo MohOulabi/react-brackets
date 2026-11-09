@@ -34,6 +34,14 @@ function useBracketCell(): LayoutCell
 
 The match being rendered and where it sits, inside `Bracket.Matches`. Returns a [`LayoutCell`](/docs/api/utilities#layoutcell).
 
+## useConnector
+
+```ts
+function useConnector(): ConnectorState
+```
+
+The line being rendered, inside `Bracket.Connectors`. Use it to keep a custom line in its own component. Returns a [`ConnectorState`](#connectorstate).
+
 ## Labels
 
 <ApiTable from="react" name="Labels" />
@@ -57,6 +65,10 @@ The match being rendered and where it sits, inside `Bracket.Matches`. Returns a 
 ## ParticipantState
 
 <ApiTable from="react" name="ParticipantState" />
+
+## ConnectorState
+
+<ApiTable from="react" name="ConnectorState" />
 
 ## Column
 

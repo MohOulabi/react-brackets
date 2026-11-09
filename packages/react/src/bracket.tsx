@@ -1,6 +1,6 @@
 import type { GroupKind, Id, Match as MatchData, Stage } from '@react-brackets/core';
 import type { ReactNode } from 'react';
-import { Connectors } from './connectors';
+import { ConnectorPart, type ConnectorState, Connectors } from './connectors';
 import { MatchPart, ParticipantPart } from './match';
 import { Pagination } from './pagination';
 import { Root, type RootProps } from './root';
@@ -24,6 +24,13 @@ export interface BracketOwnProps {
    * @defaultValue 'scroll'
    */
   mode?: ViewportMode;
+  /**
+   * Draws your own connector line. Return a `Bracket.Connector` with any SVG
+   * attribute, like `strokeDasharray` or `markerEnd`, or any SVG element.
+   */
+  renderConnector?: (connector: ConnectorState) => ReactNode;
+  /** SVG definitions your lines refer to, such as arrowhead markers or gradients. */
+  connectorDefs?: ReactNode;
 }
 
 /** Every `BracketOwnProps` prop, plus every `Bracket.Root` prop except `group` and `children`. */
@@ -55,6 +62,8 @@ function DefaultBracket({
   stage,
   renderMatch,
   connectorRadius,
+  renderConnector,
+  connectorDefs,
   mode,
   ...props
 }: BracketProps): ReactNode {
@@ -70,7 +79,9 @@ function DefaultBracket({
             </RoundPart>
           )}
         </Rounds>
-        <Connectors radius={connectorRadius} />
+        <Connectors radius={connectorRadius} defs={connectorDefs}>
+          {renderConnector}
+        </Connectors>
       </Viewport>
       <Pagination />
     </Root>
@@ -88,6 +99,7 @@ type BracketComponent = typeof DefaultBracket & {
   Match: typeof MatchPart;
   Participant: typeof ParticipantPart;
   Connectors: typeof Connectors;
+  Connector: typeof ConnectorPart;
   Pagination: typeof Pagination;
 };
 
@@ -102,5 +114,6 @@ export const Bracket: BracketComponent = Object.assign(DefaultBracket, {
   Match: MatchPart,
   Participant: ParticipantPart,
   Connectors,
+  Connector: ConnectorPart,
   Pagination,
 });

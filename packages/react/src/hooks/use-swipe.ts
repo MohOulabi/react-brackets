@@ -1,10 +1,11 @@
-import { type PointerEvent, useRef, useState } from 'react';
+import { type PointerEvent, useEffect, useRef, useState } from 'react';
 
 export interface SwipeHandlers {
   onPointerDown: (event: PointerEvent<HTMLElement>) => void;
   onPointerMove: (event: PointerEvent<HTMLElement>) => void;
   onPointerUp: (event: PointerEvent<HTMLElement>) => void;
   onPointerCancel: (event: PointerEvent<HTMLElement>) => void;
+  onLostPointerCapture: (event: PointerEvent<HTMLElement>) => void;
 }
 
 interface SwipeOptions {
@@ -26,15 +27,33 @@ export function useSwipe({ onSwipe, threshold = 0.2 }: SwipeOptions): {
   const [offset, setOffset] = useState(0);
   const [dragging, setDragging] = useState(false);
 
-  const finish = (event: PointerEvent<HTMLElement>, cancelled: boolean) => {
+  const finish = (clientX: number, cancelled: boolean) => {
     const origin = start.current;
+    if (!origin) return;
     start.current = null;
     setDragging(false);
     setOffset(0);
-    if (!origin || cancelled) return;
-    const distance = event.clientX - origin.x;
+    if (cancelled) return;
+    const distance = clientX - origin.x;
     if (Math.abs(distance) >= origin.width * threshold) onSwipe(distance < 0 ? 1 : -1);
   };
+  const latest = useRef(finish);
+  latest.current = finish;
+
+  // A release outside the page, or a capture the browser took back, still ends the drag.
+  useEffect(() => {
+    if (!dragging) return;
+    const release = (event: globalThis.PointerEvent) => latest.current(event.clientX, false);
+    const cancel = () => latest.current(0, true);
+    window.addEventListener('pointerup', release);
+    window.addEventListener('pointercancel', cancel);
+    window.addEventListener('blur', cancel);
+    return () => {
+      window.removeEventListener('pointerup', release);
+      window.removeEventListener('pointercancel', cancel);
+      window.removeEventListener('blur', cancel);
+    };
+  }, [dragging]);
 
   const handlers: SwipeHandlers = {
     onPointerDown(event) {
@@ -45,6 +64,7 @@ export function useSwipe({ onSwipe, threshold = 0.2 }: SwipeOptions): {
     onPointerMove(event) {
       const origin = start.current;
       if (!origin || origin.id !== event.pointerId) return;
+      if (event.pointerType === 'mouse' && event.buttons === 0) return finish(event.clientX, false);
       const dx = event.clientX - origin.x;
       const dy = event.clientY - origin.y;
       if (!dragging) {
@@ -57,8 +77,9 @@ export function useSwipe({ onSwipe, threshold = 0.2 }: SwipeOptions): {
       }
       setOffset(dx);
     },
-    onPointerUp: (event) => finish(event, false),
-    onPointerCancel: (event) => finish(event, true),
+    onPointerUp: (event) => finish(event.clientX, false),
+    onPointerCancel: () => finish(0, true),
+    onLostPointerCapture: (event) => finish(event.clientX, false),
   };
 
   return { offset, dragging, handlers };

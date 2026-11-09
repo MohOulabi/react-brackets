@@ -96,9 +96,17 @@ One side of a match. By default it shows the name and score.
 
 ## Bracket.Connectors
 
-The lines between matches, as one SVG. Place it inside `Bracket.Viewport`.
+The lines between matches, as one SVG. Place it inside `Bracket.Viewport`. Its `children` renders one line:
+
+```tsx
+<Bracket.Connectors radius={8}>{() => <Bracket.Connector strokeDasharray="4 4" />}</Bracket.Connectors>
+```
 
 <ApiTable from="react" name="ConnectorsOwnProps" />
+
+## Bracket.Connector
+
+One line, with its `data-*` attributes and theme styling. Takes any prop of an SVG `path`, including your own `d`. `className` receives [`ConnectorState`](/docs/api/hooks-and-types#connectorstate). See [connector lines](/docs/customize/connectors) for recipes.
 
 ## Bracket.Pagination
 

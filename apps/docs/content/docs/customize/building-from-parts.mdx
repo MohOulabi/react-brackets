@@ -1,0 +1,90 @@
+---
+title: Building from parts
+description: Compose every part of the bracket yourself, and read its state with hooks.
+---
+
+`<Bracket>` renders a default set of parts. Write them out yourself to change the structure, wrap parts in your own elements, or leave some out:
+
+```tsx
+<Bracket.Root stage={stage} onMatchClick={open}>
+  <Bracket.GroupTitle />
+  <Bracket.Viewport mode="pan-zoom">
+    <Bracket.Rounds>
+      {(column) => (
+        <Bracket.Round>
+          <Bracket.RoundTitle />
+          <Bracket.Matches>{(match) => <MyMatch match={match} />}</Bracket.Matches>
+        </Bracket.Round>
+      )}
+    </Bracket.Rounds>
+    <Bracket.Connectors radius={8}>
+      {() => <Bracket.Connector strokeDasharray="4 4" />}
+    </Bracket.Connectors>
+  </Bracket.Viewport>
+  <Bracket.Pagination />
+</Bracket.Root>
+```
+
+This is what `<Bracket>` renders, written out. The shortcut props map onto it:
+
+| `<Bracket>` prop | Composed equivalent |
+| --- | --- |
+| `renderMatch` | children of `Bracket.Matches` |
+| `connectorRadius` | `radius` on `Bracket.Connectors` |
+| `renderConnector` | children of `Bracket.Connectors` |
+| `connectorDefs` | `defs` on `Bracket.Connectors` |
+| `mode` | `mode` on `Bracket.Viewport` |
+| everything else | the same prop on `Bracket.Root` |
+
+## The parts
+
+| Part | Renders | Children |
+| --- | --- | --- |
+| `Bracket.Root` | the bracket and its state | anything |
+| `Bracket.GroupTitle` | the group's name | replace the name |
+| `Bracket.Viewport` | the scrolling, scaled or paged window | the rounds and connectors |
+| `Bracket.Rounds` | every column | a function of the column |
+| `Bracket.Round` | one column | the title and matches |
+| `Bracket.RoundTitle` | the round's name | replace the name |
+| `Bracket.Matches` | the matches in a column | a function of the match |
+| `Bracket.Match` | one match card | anything, usually two participants |
+| `Bracket.Participant` | one side of a match | a function of its state, or anything |
+| `Bracket.Connectors` | the SVG with every line | a function of the line |
+| `Bracket.Connector` | one line | none |
+| `Bracket.Pagination` | round navigation on narrow containers | none |
+
+Each one's props are in the [parts reference](/docs/api/parts).
+
+## Rules of thumb
+
+- Keep `Bracket.Rounds` and `Bracket.Connectors` inside `Bracket.Viewport`. Lines are measured within it.
+- Keep `Bracket.Match` around each card. Lines attach to it, and paging and clicks go through it.
+- Anything else can go anywhere inside `Bracket.Root`: a header above the viewport, a legend below it, a sidebar beside it.
+- `Bracket.Root` draws one group. For a stage with several, like double elimination, render one root per group with `group="main.lb"`, or several on one grid, like the winners bracket and its grand final with `group={['main.wb', 'main.gf']}`. `<Bracket>` does this for you.
+
+## Hooks
+
+Inside the root, hooks give your own components the same state the parts use:
+
+| Hook | Where | Returns |
+| --- | --- | --- |
+| `useBracket()` | anywhere inside `Bracket.Root` | the stage, group, rounds, participants, page, highlighted participant and more |
+| `useBracketCell()` | inside `Bracket.Matches` | the match being rendered and its place on the grid |
+| `useConnector()` | inside `Bracket.Connectors` | the line being rendered |
+
+A legend that names the highlighted team, for example:
+
+```tsx
+function Following() {
+  const { highlighted, participants, highlight } = useBracket();
+  const team = highlighted ? participants.get(highlighted) : undefined;
+  if (!team) return null;
+  return (
+    <p>
+      Following {team.name} <button onClick={() => highlight(null)}>Clear</button>
+    </p>
+  );
+}
+```
+
+See [hooks and types](/docs/api/hooks-and-types) for everything they return.

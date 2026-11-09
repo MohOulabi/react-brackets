@@ -123,6 +123,62 @@ describe('tree view', () => {
   });
 });
 
+describe('connectors', () => {
+  const tree = { compactBelow: 0 };
+  const lines = (container: HTMLElement) => [...parts(container, 'connector')];
+
+  test('draws a line from every match to the one it feeds', () => {
+    const { container } = render(<Bracket stage={singleElimination(players(4))} {...tree} />);
+
+    expect(lines(container)).toHaveLength(2);
+    expect(lines(container)[0]?.getAttribute('d')).toStartWith('M');
+  });
+
+  test('takes any SVG attribute and a className function on each line', () => {
+    const stage = reportResult(singleElimination(players(4)), 'main.r1.m1', { scores: [2, 1] });
+    const { container } = render(
+      <Bracket
+        stage={stage}
+        connectorDefs={<marker id="arrow" />}
+        renderConnector={() => (
+          <Bracket.Connector
+            strokeDasharray="4 4"
+            markerEnd="url(#arrow)"
+            className={({ status }) => (status === 'completed' ? 'done' : 'open')}
+          />
+        )}
+        {...tree}
+      />,
+    );
+    const [first, second] = lines(container);
+
+    expect(container.querySelector('defs > marker#arrow')).not.toBeNull();
+    expect(first?.getAttribute('stroke-dasharray')).toBe('4 4');
+    expect(first?.getAttribute('marker-end')).toBe('url(#arrow)');
+    expect(first?.getAttribute('class')).toBe('done');
+    expect(first?.getAttribute('data-status')).toBe('completed');
+    expect(second?.getAttribute('class')).toBe('open');
+  });
+
+  test('renders any SVG element in place of the default line', () => {
+    const { container } = render(
+      <Bracket.Root stage={singleElimination(players(4))} compactBelow={0}>
+        <Bracket.Viewport>
+          <Bracket.Rounds />
+          <Bracket.Connectors>
+            {({ start, end, from }) => (
+              <line key={from.id} data-line x1={start.x} y1={start.y} x2={end.x} y2={end.y} />
+            )}
+          </Bracket.Connectors>
+        </Bracket.Viewport>
+      </Bracket.Root>,
+    );
+
+    expect(container.querySelectorAll('line[data-line]')).toHaveLength(2);
+    expect(lines(container)).toHaveLength(0);
+  });
+});
+
 describe('paged view', () => {
   const titles = (container: HTMLElement) =>
     [...parts(container, 'round-title')].map((title) => title.textContent);
@@ -162,6 +218,30 @@ describe('paged view', () => {
     expect(
       (screen.getByRole('button', { name: 'Previous round' }) as HTMLButtonElement).disabled,
     ).toBe(true);
+  });
+
+  test('ends a swipe released outside the bracket', () => {
+    const { container } = render(<Bracket stage={singleElimination(players(8))} />);
+    const viewport = parts(container, 'viewport')[0] as HTMLElement;
+    const content = () => (parts(container, 'content')[0] as HTMLElement).style.transform;
+
+    fireEvent.pointerDown(viewport, {
+      pointerId: 1,
+      pointerType: 'mouse',
+      clientX: 200,
+      clientY: 0,
+    });
+    fireEvent.pointerMove(viewport, {
+      pointerId: 1,
+      pointerType: 'mouse',
+      buttons: 1,
+      clientX: 150,
+      clientY: 0,
+    });
+    expect(content()).toContain('translateX');
+
+    fireEvent.pointerUp(window, { pointerId: 1, pointerType: 'mouse', clientX: 150, clientY: 0 });
+    expect(content()).toBe('');
   });
 
   test('can show plain lists of matches instead', () => {
