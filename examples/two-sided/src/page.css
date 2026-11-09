@@ -1,0 +1,14 @@
+:root {
+  color-scheme: light dark;
+  font-family: system-ui, sans-serif;
+}
+
+body {
+  margin: 0;
+  padding: 2rem 1rem;
+}
+
+.compact {
+  --rb-match-width: 9.5rem;
+  --rb-column-gap: 1.75rem;
+}
