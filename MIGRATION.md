@@ -1,0 +1,87 @@
+# Migrating from 0.x to 2.0
+
+v2 is a rewrite. The ideas are the same, but the data model, styling and rendering are new. Most apps migrate in under an hour.
+
+## Install
+
+```bash
+npm uninstall react-swipeable-views styled-components   # if nothing else uses them
+npm install react-brackets@latest @react-brackets/theme
+```
+
+v2 has no runtime dependencies besides React 18 or 19.
+
+## Data: `rounds` → a stage
+
+0.x took an array of rounds with `seeds` and `teams`. v2 renders a **stage**. If you already have rounds, `fromRounds` converts them and links the rounds into a bracket for you:
+
+```tsx
+// 0.x
+const rounds = [
+  { title: 'Semifinals', seeds: [{ id: 1, date: 'Fri', teams: [{ name: 'A' }, { name: 'B' }] }] },
+];
+<Bracket rounds={rounds} />;
+
+// 2.0
+import { Bracket, fromRounds } from 'react-brackets';
+
+const stage = fromRounds(
+  rounds.map((round) => ({
+    name: round.title,
+    matches: round.seeds.map((seed) => ({
+      id: String(seed.id),
+      scheduledAt: seed.date,
+      participants: [seed.teams[0] ?? null, seed.teams[1] ?? null],
+    })),
+  })),
+);
+<Bracket stage={stage} />;
+```
+
+If you are building a tournament from a list of teams, skip the conversion and use `singleElimination(teams)`, `doubleElimination(teams)`, `roundRobin(teams)` or `swiss(teams)` instead. You also get seeding, byes and result tracking.
+
+## Props
+
+| 0.x                                  | 2.0                                                                                  |
+| ------------------------------------ | ------------------------------------------------------------------------------------ |
+| `rounds`                             | `stage`                                                                              |
+| `rtl`                                | Set `dir="rtl"` on the bracket or any parent.                                        |
+| `twoSided`                           | `layout="mirrored"`                                                                  |
+| `mobileBreakpoint`                   | `compactBelow`: a **container** width, not the window. `0` turns it off.             |
+| `swipeableProps`                     | Removed. Swiping is built in. Use `compact="bracket"` (default) or `compact="list"`. |
+| `roundTitleComponent`                | Compose `<Bracket.RoundTitle>`, or style `[data-part="round-title"]`.                |
+| `renderSeedComponent`                | `renderMatch={(match) => …}`                                                         |
+| `roundClassName`, `bracketClassName` | `classNames={{ round, root, … }}`                                                    |
+
+## Custom seeds
+
+`Seed`, `SeedItem`, `SeedTeam`, `SeedTime` and `SingleLineSeed` are gone. Connectors are no longer drawn by the seed. They're measured and drawn for you, so a custom card only needs to render content:
+
+```tsx
+// 0.x
+const CustomSeed = ({ seed, breakpoint }) => (
+  <Seed mobileBreakpoint={breakpoint}>
+    <SeedItem>
+      <SeedTeam>{seed.teams[0]?.name}</SeedTeam>
+      <SeedTeam>{seed.teams[1]?.name}</SeedTeam>
+    </SeedItem>
+  </Seed>
+);
+
+// 2.0
+<Bracket
+  stage={stage}
+  renderMatch={() => (
+    <Bracket.Match>
+      <Bracket.Participant slot={0} />
+      <Bracket.Participant slot={1} />
+    </Bracket.Match>
+  )}
+/>;
+```
+
+Extra data you used to put on seeds goes in `meta` on matches and participants.
+
+## Styling
+
+styled-components is gone. Either import `@react-brackets/theme/theme.css` and override its `--rb-*` variables, or style the `data-part` attributes and pass `classNames`. See the [README](README.md#styling).

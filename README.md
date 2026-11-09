@@ -1,234 +1,198 @@
 # react-brackets
 
-> Dynamic bracket component, usable for brackets such as single elimination and double elimination
+Headless, responsive tournament brackets for React.
 
-[![NPM](https://img.shields.io/npm/v/react-brackets.svg)](https://www.npmjs.com/package/react-brackets) [![JavaScript Style Guide](https://img.shields.io/badge/code_style-standard-brightgreen.svg)](https://standardjs.com)
+- **Headless.** Semantic markup with `data-*` hooks and no styles. Bring Tailwind, CSS modules, or the optional theme.
+- **A bracket on every screen.** On phones, swipe through the bracket one round at a time while it still looks like a bracket. Or keep the full tree with scroll, fit, or pan and zoom.
+- **Accurate lines.** Connectors are measured from your real match cards, so any card size, mirrored layout or right-to-left page just works.
+- **Every format.** Single and double elimination, two-sided brackets, round robin, Swiss and groups to playoffs, with seeding, byes, results and standings.
+- **Small.** No runtime dependencies besides React.
 
-![react-brackets](https://github.com/mohux/react-brackets/blob/master/images/web.gif?raw=true 'react-brackets')
-![react-brackets](https://github.com/mohux/react-brackets/blob/master/images/mobile.gif?raw=true 'react-brackets')
+> **v2 is a ground-up rewrite.** Upgrading from 0.x? Read the [migration guide](MIGRATION.md). v0.x lives on the [`legacy`](https://github.com/MohOulabi/react-brackets/tree/legacy) branch.
 
 ## Install
 
-via npm
+```bash
+npm install react-brackets @react-brackets/theme
+```
+
+## Quick start
+
+```tsx
+import { Bracket, singleElimination } from 'react-brackets';
+import '@react-brackets/theme/theme.css';
+
+const stage = singleElimination([
+  { id: 'falcons', name: 'Falcons' },
+  { id: 'wolves', name: 'Wolves' },
+  { id: 'herons', name: 'Herons' },
+  { id: 'lynx', name: 'Lynx' },
+]);
+
+export function App() {
+  return <Bracket stage={stage} />;
+}
+```
+
+## Results
+
+Stages are plain data. Report a result and get a new stage back, with the winner moved forward:
+
+```ts
+import { reportResult } from 'react-brackets';
+
+const next = reportResult(stage, 'main.r1.m1', { scores: [3, 1] });
+const live = reportResult(next, 'main.r1.m2', { scores: [1, 1], live: true });
+```
+
+Overturning a result clears everything that depended on it.
+
+## Formats
+
+```ts
+import {
+  doubleElimination,
+  nextSwissRound,
+  qualifiers,
+  roundRobin,
+  singleElimination,
+  standings,
+  swiss,
+} from 'react-brackets';
+
+singleElimination(teams, { thirdPlace: true });
+doubleElimination(teams, { grandFinal: 'reset' });
+roundRobin(teams, { groups: 2, legs: 2 });
+swiss(players, { rounds: 5 }); // then nextSwissRound(stage) after each round
+
+standings(stage); // points, wins, draws, losses, score difference
+singleElimination(qualifiers(groupStage, 2)); // A1 v B2, B1 v A2
+```
+
+Pass `layout="mirrored"` to `<Bracket>` for a two-sided bracket that meets in the middle.
+
+## Small screens
+
+Below `compactBelow` (640px of **container** width by default) the bracket pages through one round at a time. The round in focus stacks tightly, the next one peeks in with its connectors, and swiping glides every match into place.
+
+```tsx
+<Bracket stage={stage} />                    // swipeable bracket (default)
+<Bracket stage={stage} compact="list" />     // swipeable lists of matches
+<Bracket stage={stage} compactBelow={0} mode="fit" />       // the whole tree, scaled to fit
+<Bracket stage={stage} compactBelow={0} mode="pan-zoom" />  // drag, pinch and zoom
+```
+
+## Styling
+
+Every element has `data-scope="bracket"` and a `data-part`, plus state attributes such as `data-winner`, `data-loser`, `data-bye`, `data-status` and `data-highlighted`.
+
+Pass classes per part:
+
+```tsx
+<Bracket
+  stage={stage}
+  classNames={{
+    match: 'rounded-xl bg-white ring-1 ring-zinc-200 data-highlighted:ring-indigo-500',
+    participant: 'flex justify-between px-3 py-2 data-winner:font-semibold',
+    connector: 'stroke-zinc-300 data-highlighted:stroke-indigo-500',
+  }}
+/>;
+```
+
+Or use the theme and override its variables:
+
+```css
+.my-bracket {
+  --rb-accent: #c2410c;
+  --rb-radius: 14px;
+  --rb-match-width: 12rem;
+}
+```
+
+The theme follows the page's `color-scheme`, so light and dark work without extra setup.
+
+## Composition
+
+`<Bracket>` is a shortcut. Compose the parts yourself for full control:
+
+```tsx
+<Bracket.Root stage={stage} layout="mirrored" onMatchClick={openMatch}>
+  <Bracket.Viewport>
+    <Bracket.Rounds>
+      {() => (
+        <Bracket.Round>
+          <Bracket.RoundTitle />
+          <Bracket.Matches>
+            {(match) => (
+              <Bracket.Match>
+                <Bracket.Participant slot={0} />
+                <Bracket.Participant slot={1} />
+              </Bracket.Match>
+            )}
+          </Bracket.Matches>
+        </Bracket.Round>
+      )}
+    </Bracket.Rounds>
+    <Bracket.Connectors radius={8} />
+  </Bracket.Viewport>
+  <Bracket.Pagination />
+</Bracket.Root>;
+```
+
+## Server components
+
+`react-brackets` is a client module. In a React Server Component, build the stage with `@react-brackets/core` and pass it down:
+
+```tsx
+import { singleElimination } from '@react-brackets/core';
+import { Bracket } from 'react-brackets';
+
+export default function Page() {
+  return <Bracket stage={singleElimination(teams)} />;
+}
+```
+
+## Packages
+
+| Package                                   | Description                                                 |
+| ----------------------------------------- | ----------------------------------------------------------- |
+| [`react-brackets`](packages/react)        | Headless React components. Re-exports the core.             |
+| [`@react-brackets/core`](packages/core)   | Formats, results and layout. No framework, no dependencies. |
+| [`@react-brackets/theme`](packages/theme) | Optional stylesheet driven by CSS variables.                |
+
+## Examples
+
+Run them all locally with `bun install && bun run build && bun run examples`. The source is in [`examples`](examples):
+
+- [basic](examples/basic)
+- [theme and dark mode](examples/theme)
+- [custom match card](examples/custom-match)
+- [Tailwind CSS](examples/tailwind)
+- [right to left](examples/rtl)
+- [double elimination](examples/double-elimination)
+- [two-sided](examples/two-sided)
+- [round robin](examples/round-robin)
+- [Swiss](examples/swiss)
+- [groups to playoffs](examples/groups-to-playoffs)
+- [full bracket on every screen](examples/full-bracket)
+- [live scores](examples/live-scores)
+- [Next.js App Router](examples/nextjs)
+
+## Contributing
+
+The repo uses [Bun](https://bun.sh) workspaces and [Biome](https://biomejs.dev).
 
 ```bash
-
-npm install --save react-brackets
-
+bun install
+bun run build
+bun run test
+bun run lint
 ```
 
-via yarn
+## Thanks
 
-```bash
-
-yarn add --save react-brackets
-
-```
-
-## Usage
-
-The simplest usage of this component is
-
-```jsx
-import { Bracket, RoundProps } from 'react-brackets';
-
-const rounds: RoundProps[] = [
-  {
-    title: 'Round one',
-    seeds: [
-      {
-        id: 1,
-        date: new Date().toDateString(),
-        teams: [{ name: 'Team A' }, { name: 'Team B' }],
-      },
-      {
-        id: 2,
-        date: new Date().toDateString(),
-        teams: [{ name: 'Team C' }, { name: 'Team D' }],
-      },
-    ],
-  },
-  {
-    title: 'Round one',
-    seeds: [
-      {
-        id: 3,
-        date: new Date().toDateString(),
-        teams: [{ name: 'Team A' }, { name: 'Team C' }],
-      },
-    ],
-  },
-];
-
-const Component = () => {
-  return <Bracket rounds={rounds} />;
-};
-```
-
-The core shape is similar to the above, since we can customize seeds and titles, you can pass any additional data to a seed or treat the title as a component.
-
-modifying a title of the round is so simple,
-
-```jsx
-import { Bracket, RoundProps } from 'react-brackets';
-import React from 'react';
-
-const Component = () => {
-  //....
-  return (
-    <Bracket
-      rounds={rounds}
-      roundTitleComponent={(title: React.ReactNode, roundIndex: number) => {
-        return <div style={{ textAlign: 'center', color: 'red' }}>{title}</div>;
-      }}
-    />
-  );
-};
-```
-
-Customizing a seed on the other hand is a little bit more complicated, yet still easy,
-because we need to let the bracket tree to have a consitent design
-
-**Any additional data you pass inside a seed object is accessibile via renderSeedComponent**
-
-```jsx
-import { Bracket, RoundProps, Seed, SeedItem, SeedTeam, RenderSeedProps } from 'react-brackets';
-import React from 'react';
-
-const CustomSeed = ({seed, breakpoint, roundIndex, seedIndex}: RenderSeedProps) => {
-  // breakpoint passed to Bracket component
-  // to check if mobile view is triggered or not
-
-  // mobileBreakpoint is required to be passed down to a seed
-  return (
-    <Seed mobileBreakpoint={breakpoint} style={{ fontSize: 12 }}>
-      <SeedItem>
-        <div>
-          <SeedTeam style={{ color: 'red' }}>{seed.teams[0]?.name || 'NO TEAM '}</SeedTeam>
-          <SeedTeam>{seed.teams[1]?.name || 'NO TEAM '}</SeedTeam>
-        </div>
-      </SeedItem>
-    </Seed>
-  );
-};
-
-const Component = () => {
-  //....
-  return <Bracket rounds={rounds} renderSeedComponent={CustomSeed} />;
-};
-```
-
-How about if I want to use this component for double elimination losing bracket? the current Seed component only works on single elimination, the answer is fairly simple as well.
-
-```jsx
-import { Bracket, RoundProps, Seed, SingleLineSeed, SeedItem, SeedTeam, RenderSeedProps } from 'react-brackets';
-import React from 'react';
-
-const CustomSeed = ({seed, breakpoint, roundIndex, seedIndex}: RenderSeedProps) => {
-  // ------ assuming rounds is the losers brackets rounds ------
-  // losers rounds usually got some identical seeds amount like (2 - 2 - 1 - 1)
-
-  const isLineConnector = rounds[roundIndex].seeds.length === rounds[roundIndex + 1]?.seeds.length;
-
-  const Wrapper = isLineConnector ? SingleLineSeed : Seed;
-
-  // mobileBreakpoint is required to be passed down to a seed
-  return (
-    <Wrapper mobileBreakpoint={breakpoint} style={{ fontSize: 12 }}>
-      <SeedItem>
-        <div>
-          <SeedTeam style={{ color: 'red' }}>{seed.teams[0]?.name || 'NO TEAM '}</SeedTeam>
-          <SeedTeam>{seed.teams[1]?.name || 'NO TEAM '}</SeedTeam>
-        </div>
-      </SeedItem>
-    </Wrapper>
-  );
-};
-
-const Component = () => {
-  //....
-  return <Bracket rounds={rounds} renderSeedComponent={CustomSeed} />;
-};
-```
-
-### Two-sided Single Elimination
-
-How to render Single Elimination as a two-sided bracket? You must set twoSided to true, and structure your custom seed render component like below, if you have a custom seed render component.
-
-```jsx
-import { Bracket, RoundProps, Seed, SeedItem, SeedTeam, RenderSeedProps } from 'react-brackets';
-import React from 'react';
-
-const CustomSeed = ({seed, breakpoint, roundIndex, seedIndex, isMiddleOfTwoSided}: RenderSeedProps) => {
-  // breakpoint passed to Bracket component
-  // to check if mobile view is triggered or not
-
-  // mobileBreakpoint is required to be passed down to a seed
-  const Wrapper = isMiddleOfTwoSided ? SingleLineSeed : Seed
-  return (
-    <Wrapper mobileBreakpoint={breakpoint} style={{ fontSize: 12 }}>
-      <SeedItem>
-        <div>
-          <SeedTeam style={{ color: 'red' }}>{seed.teams[0]?.name || 'NO TEAM '}</SeedTeam>
-          <SeedTeam>{seed.teams[1]?.name || 'NO TEAM '}</SeedTeam>
-        </div>
-      </SeedItem>
-    </Wrapper>
-  );
-};
-
-const Component = () => {
-  //....
-  return <Bracket rounds={rounds} renderSeedComponent={CustomSeed} twoSided={true} />;
-};
-```
-
-## Bracket Props
-
-| Prop                | Type                 | Description                                                                                                                                                              |
-|---------------------| -------------------- |--------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| rounds              | RoundProps[]         | Array of rounds, each round has {title,array of seeds}, if you're not using a custom seed render, each seed needs an array of teams, each team should have a name        |
-| mobileBreakpoint    | number               | This bracket supports responsive design, on window reaching this size, it will trigger mobile swipable view, if you want to disable it, you can pass 0, (default is 992) |
-| rtl                 | boolean              | Direction of the bracket as RTL (default is LTR)                                                                                                                         |
-| twoSided            | boolean              | Sets Single elimination to be two sided if true. Default is False                                                                                                        |
-| roundClassName      | string               | Round wrapper className                                                                                                                                                  |
-| bracketClassName    | string               | The bracket className                                                                                                                                                    |
-| renderSeedComponent | functional component | Custom render for every seed                                                                                                                                             |
-| roundTitleComponent | functional component | Custom render for every round title                                                                                                                                      |
-| swipeableProps      | SwipeableProps       | Please check this [React Swipeable Views](https://github.com/oliviertassinari/react-swipeable-views)                                                                     |
-
-For detailed examples, you can clone this repo then:
-
-> you can skip starting the root folder, but if you want to modify the library you have to run it.
-
-```bash
-yarn
-```
-
-then
-
-```bash
-yarn start
-```
-
-then open a new terminal
-
-```bash
-cd example
-```
-
-then
-
-```bash
-yarn
-```
-
-lastly
-
-```bash
-yarn start
-```
+To everyone who used, reported and improved v0.x, and especially to [Oliver Looney](https://github.com/Oliver-Looney) for keeping it alive.
 
 ## License
 
-MIT © [mohammadou1](https://github.com/mohammadou1)
+[MIT](LICENSE)
