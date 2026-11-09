@@ -27,13 +27,23 @@ export function PagedBracketViewport({ style, children, ...props }: SectionProps
   const { page, setPage, rounds, width, labels, motion } = useBracketContext();
   const viewport = useRef<HTMLElement>(null);
   const content = useRef<HTMLDivElement>(null);
+  const carry = useRef(0);
   const { rtl, height } = useFrame(viewport, content, page);
   const step = rtl ? -1 : 1;
-  const { offset, dragging, handlers } = useSwipe({
+  const pull = (offset: number) => resist(offset, step, page, rounds.length, width ?? 0);
+  const { dragging, handlers } = useSwipe({
+    target: viewport,
+    onDrag: (offset) => {
+      if (content.current) content.current.style.transform = `translateX(${pull(offset)}px)`;
+    },
+    onRelease: (offset) => {
+      // The matches glide on from where the finger left them, not from where the drag began.
+      carry.current = pull(offset);
+      if (content.current) content.current.style.transform = '';
+    },
     onSwipe: (direction) => setPage(page + direction * step),
   });
-  useFlip(viewport, dragging ? null : motion);
-  const drag = resist(offset, step, page, rounds.length, width ?? 0);
+  useFlip(viewport, dragging ? null : motion, carry);
 
   return (
     <section
@@ -55,7 +65,7 @@ export function PagedBracketViewport({ style, children, ...props }: SectionProps
       <GridContent
         contentRef={content}
         columnWidth={Math.round((width ?? 320) * FOCUS)}
-        style={{ transform: drag ? `translateX(${drag}px)` : undefined }}
+        style={{ willChange: dragging ? 'transform' : undefined }}
       >
         {children}
       </GridContent>
@@ -70,11 +80,27 @@ export function PagedListViewport({ style, children, ...props }: SectionProps): 
   const content = useRef<HTMLDivElement>(null);
   const { rtl, height } = useFrame(viewport, content, page, ROUNDS);
   const step = rtl ? -1 : 1;
-  const { offset, dragging, handlers } = useSwipe({
+  const resting = `translateX(${-page * step * 100}%)`;
+  const pull = (offset: number) => resist(offset, step, page, rounds.length, width ?? 0);
+  const { dragging, handlers } = useSwipe({
+    target: viewport,
+    onDrag: (offset) => {
+      const element = content.current;
+      if (!element) return;
+      element.style.transition = 'none';
+      element.style.transform = `translateX(calc(${-page * step * 100}% + ${pull(offset)}px))`;
+    },
+    onRelease: () => {},
     onSwipe: (direction) => setPage(page + direction * step),
   });
-  const timing = dragging ? null : motion;
-  const drag = resist(offset, step, page, rounds.length, width ?? 0);
+
+  // Slides from wherever the finger let go to the round in focus.
+  useIsomorphicLayoutEffect(() => {
+    const element = content.current;
+    if (!element || dragging) return;
+    element.style.transition = transition('transform', motion) ?? '';
+    element.style.transform = resting;
+  }, [resting, dragging, motion]);
 
   return (
     <section
@@ -89,7 +115,7 @@ export function PagedListViewport({ style, children, ...props }: SectionProps): 
         touchAction: 'pan-y',
         userSelect: 'none',
         height,
-        transition: transition('height', timing),
+        transition: transition('height', dragging ? null : motion),
         ...style,
       }}
     >
@@ -98,13 +124,7 @@ export function PagedListViewport({ style, children, ...props }: SectionProps): 
         data-scope="bracket"
         data-part="content"
         className={classNames.content}
-        style={{
-          display: 'flex',
-          alignItems: 'flex-start',
-          gap: 0,
-          transform: `translateX(calc(${-page * step * 100}% + ${drag}px))`,
-          transition: transition('transform', timing),
-        }}
+        style={{ display: 'flex', alignItems: 'flex-start', gap: 0, transform: resting }}
       >
         {children}
       </div>

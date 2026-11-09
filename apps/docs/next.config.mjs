@@ -12,6 +12,8 @@ const config = {
   env: { NEXT_PUBLIC_BASE_PATH: basePath },
   images: { unoptimized: true },
   reactStrictMode: true,
+  // Lets a phone on the same Wi-Fi load the dev server: DEV_ORIGINS=192.168.1.10 bun run dev
+  allowedDevOrigins: process.env.DEV_ORIGINS?.split(',') ?? [],
 };
 
 export default withMDX(config);

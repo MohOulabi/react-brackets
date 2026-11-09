@@ -78,7 +78,7 @@ export function FormatShowcase() {
       <div
         role="tablist"
         aria-label="Formats"
-        className="flex gap-6 overflow-x-auto border-b [scrollbar-width:none]"
+        className="flex gap-6 overflow-x-auto overflow-y-hidden overscroll-x-contain shadow-[inset_0_-1px_0_var(--border)] [scrollbar-width:none]"
       >
         {formats.map((item) => (
           <button
@@ -88,7 +88,7 @@ export function FormatShowcase() {
             aria-selected={item.id === active}
             onClick={() => setActive(item.id)}
             className={cn(
-              '-mb-px shrink-0 border-b-2 border-transparent pb-3 text-[15px] font-medium text-muted-foreground transition-colors hover:text-foreground',
+              'shrink-0 border-b-2 border-transparent pb-3 text-[15px] font-medium text-muted-foreground transition-colors hover:text-foreground',
               item.id === active && 'border-brand text-foreground',
             )}
           >

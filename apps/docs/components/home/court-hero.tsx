@@ -208,26 +208,30 @@ function InstallCommand() {
   );
 }
 
-/** Faint service lines, so the band reads as a court rather than a coloured box. */
+/**
+ * Faint service lines, so the band reads as a court rather than a coloured box. Drawn at a fixed size from the
+ * top and never stretched, so they stay put while the bracket in front changes height.
+ */
 function CourtMarkings() {
   return (
     <svg
       aria-hidden
-      className="pointer-events-none absolute inset-0 -z-10 h-full w-full text-white/[0.07]"
-      preserveAspectRatio="none"
-      viewBox="0 0 1200 800"
+      className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[1400px] w-full text-white/[0.07]"
+      preserveAspectRatio="xMidYMin slice"
+      viewBox="0 0 1200 1400"
       fill="none"
       stroke="currentColor"
       strokeWidth="2"
-      vectorEffect="non-scaling-stroke"
     >
-      <rect x="60" y="40" width="1080" height="720" vectorEffect="non-scaling-stroke" />
-      <line x1="60" y1="130" x2="1140" y2="130" vectorEffect="non-scaling-stroke" />
-      <line x1="60" y1="670" x2="1140" y2="670" vectorEffect="non-scaling-stroke" />
-      <line x1="600" y1="40" x2="600" y2="760" vectorEffect="non-scaling-stroke" />
-      <line x1="330" y1="130" x2="330" y2="670" vectorEffect="non-scaling-stroke" />
-      <line x1="870" y1="130" x2="870" y2="670" vectorEffect="non-scaling-stroke" />
-      <line x1="330" y1="400" x2="870" y2="400" vectorEffect="non-scaling-stroke" />
+      <g vectorEffect="non-scaling-stroke">
+        <rect x="60" y="40" width="1080" height="1320" vectorEffect="non-scaling-stroke" />
+        <line x1="60" y1="160" x2="1140" y2="160" vectorEffect="non-scaling-stroke" />
+        <line x1="60" y1="1240" x2="1140" y2="1240" vectorEffect="non-scaling-stroke" />
+        <line x1="600" y1="40" x2="600" y2="1360" vectorEffect="non-scaling-stroke" />
+        <line x1="330" y1="160" x2="330" y2="1240" vectorEffect="non-scaling-stroke" />
+        <line x1="870" y1="160" x2="870" y2="1240" vectorEffect="non-scaling-stroke" />
+        <line x1="330" y1="700" x2="870" y2="700" vectorEffect="non-scaling-stroke" />
+      </g>
     </svg>
   );
 }
