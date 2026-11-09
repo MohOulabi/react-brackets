@@ -145,6 +145,24 @@
   --rb-shadow: 0 1px 2px rgb(0 0 0 / 0.05);
 }
 
+/* The leader's path on the home court flows toward the final. */
+.court-flow {
+  stroke-dasharray: 6 6;
+  animation: court-flow 0.8s linear infinite;
+}
+
+@keyframes court-flow {
+  to {
+    stroke-dashoffset: -12;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .court-flow {
+    animation: none;
+  }
+}
+
 /* A bracket painted on the court: white lines, the winner's path in optic yellow. */
 .court-bracket {
   --rb-text: #ffffff;

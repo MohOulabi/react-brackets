@@ -3,8 +3,17 @@
 import { Check, Copy } from 'lucide-react';
 import Link from 'next/link';
 import { useState } from 'react';
-import { allMatches, Bracket, participantMap, type Stage } from 'react-brackets';
+import {
+  allMatches,
+  Bracket,
+  type ConnectorState,
+  type Match,
+  participantMap,
+  type Stage,
+} from 'react-brackets';
+import { teams } from '@/components/demos/data';
 import { useLiveStage } from '@/components/demos/motion';
+import { cn } from '@/lib/utils';
 
 /** Whoever won most recently, and the round they reached. Their path is lit up on the court. */
 function leader(stage: Stage): { id: string; name: string; next: string | null } | null {
@@ -68,6 +77,8 @@ export function CourtHero() {
             connectorRadius={4}
             highlighted={current?.id ?? null}
             highlightOnHover={false}
+            renderMatch={(match) => <CourtCard match={match} />}
+            renderConnector={(line) => <CourtLine line={line} />}
           />
         </div>
         <p aria-live="polite" className="min-h-6 text-sm text-white/70 tabular-nums">
@@ -82,6 +93,93 @@ export function CourtHero() {
         </p>
       </div>
     </section>
+  );
+}
+
+/** Each team keeps one colour, so you can follow it round to round. */
+const colours = [
+  '#7dd3fc',
+  '#fda4af',
+  '#fcd34d',
+  '#86efac',
+  '#c4b5fd',
+  '#fdba74',
+  '#5eead4',
+  '#f9a8d4',
+];
+const colourOf = new Map(
+  teams(16).map((team, index) => [team.id, colours[index % colours.length]]),
+);
+
+function CourtCard({ match }: { match: Match }) {
+  const live = match.status === 'live';
+  return (
+    <Bracket.Match
+      className={({ highlighted }) =>
+        cn(
+          'relative w-56 rounded-lg bg-white/[0.06] ring-1 ring-white/12 transition-[box-shadow,background-color] duration-300',
+          live && 'bg-white/[0.09] ring-[#ffb4a2]',
+          highlighted && 'ring-optic/80',
+        )
+      }
+    >
+      {live && (
+        <span className="absolute -top-1 -right-1 size-2.5 rounded-full bg-[#ffb4a2] ring-2 ring-court motion-safe:animate-pulse" />
+      )}
+      {([0, 1] as const).map((slot) => (
+        <Bracket.Participant
+          key={slot}
+          slot={slot}
+          className="flex h-9 items-center gap-2.5 px-2.5 text-sm not-first:border-t not-first:border-white/8 data-loser:opacity-45 data-entered:bg-optic/10"
+        >
+          {({ participant, winner, slot: { score } }) => (
+            <>
+              <span
+                aria-hidden
+                className="grid size-5 shrink-0 place-items-center rounded-[5px] text-[11px] font-bold text-court-deep"
+                style={{
+                  background: participant
+                    ? colourOf.get(participant.id)
+                    : 'rgb(255 255 255 / 0.12)',
+                }}
+              >
+                {participant?.name[0]}
+              </span>
+              <span
+                className={cn(
+                  'flex-1 truncate',
+                  winner && 'font-semibold',
+                  !participant && 'text-white/45',
+                )}
+              >
+                {participant?.name ?? 'To be decided'}
+              </span>
+              <span
+                className={cn('w-4 text-end tabular-nums', winner ? 'text-optic' : 'text-white/70')}
+              >
+                {score ?? ''}
+              </span>
+            </>
+          )}
+        </Bracket.Participant>
+      ))}
+    </Bracket.Match>
+  );
+}
+
+/** A soft curve between cards; the leader's path flows in optic. */
+function CourtLine({ line }: { line: ConnectorState }) {
+  const { start, end } = line;
+  const mid = (start.x + end.x) / 2;
+  return (
+    <Bracket.Connector
+      d={`M${start.x},${start.y} C${mid},${start.y} ${mid},${end.y} ${end.x},${end.y}`}
+      className={({ highlighted }) =>
+        highlighted
+          ? 'court-flow stroke-optic [stroke-width:2]'
+          : 'stroke-white/25 [stroke-width:1.5]'
+      }
+    />
   );
 }
 
