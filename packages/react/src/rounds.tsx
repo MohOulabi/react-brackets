@@ -4,13 +4,20 @@ import type {
   Match as MatchData,
   Round as RoundData,
 } from '@react-brackets/core';
-import type { ComponentPropsWithoutRef, CSSProperties, ReactNode } from 'react';
+import {
+  type ComponentPropsWithoutRef,
+  type CSSProperties,
+  type ReactNode,
+  useContext,
+} from 'react';
 import {
   CellContext,
   type ClassNameProp,
   type Column,
   ColumnContext,
   flag,
+  type Placed,
+  PlacedContext,
   useBracketContext,
   useColumn,
   usePart,
@@ -28,11 +35,16 @@ export interface RoundsProps {
 /** Renders every column of the current layout, left to right. */
 export function Rounds({ children = defaultRound }: RoundsProps): ReactNode {
   const { columns } = useBracketContext();
-  return columns.map((column, index) => (
-    <ColumnContext.Provider key={column.key} value={{ column, index }}>
-      {children(column, index)}
-    </ColumnContext.Provider>
-  ));
+  // Leaving rounds sit outside the grid, so grid columns count from the first round still in it.
+  const firstPlaced = columns.findIndex((column) => !column.leaving);
+  return columns.map((column, index) => {
+    const placed = column.leaving ? -1 : index - firstPlaced;
+    return (
+      <ColumnContext.Provider key={column.key} value={{ column, index: placed }}>
+        {children(column, placed)}
+      </ColumnContext.Provider>
+    );
+  });
 }
 
 function defaultRound(): ReactNode {
@@ -63,12 +75,15 @@ export interface RoundProps extends Omit<ComponentPropsWithoutRef<'section'>, 'c
 export function RoundPart({ className, style, ...props }: RoundProps): ReactNode {
   const { grid, labels } = useBracketContext();
   const { column, index } = useColumn();
-  const { round, side, current, hidden } = column;
+  const { round, side, current, hidden, leaving } = column;
   const part = usePart('round', className, { round, side, current });
 
-  const layout: CSSProperties = grid
-    ? { gridColumn: index + 1, gridRow: '1 / -1', display: 'grid', gridTemplateRows: 'subgrid' }
-    : { flex: '0 0 100%', minWidth: 0, boxSizing: 'border-box' };
+  // A leaving round is laid out from where its parts were last drawn, not from the grid.
+  const layout: CSSProperties = leaving
+    ? { position: 'absolute', inset: 0, pointerEvents: 'none' }
+    : grid
+      ? { gridColumn: index + 1, gridRow: '1 / -1', display: 'grid', gridTemplateRows: 'subgrid' }
+      : { flex: '0 0 100%', minWidth: 0, boxSizing: 'border-box' };
 
   return (
     <section
@@ -81,6 +96,7 @@ export function RoundPart({ className, style, ...props }: RoundProps): ReactNode
       aria-hidden={hidden || undefined}
       data-side={side}
       data-current={flag(current)}
+      data-leaving={flag(leaving)}
       style={{ ...layout, ...style }}
     />
   );
@@ -112,12 +128,14 @@ export function RoundTitle({ className, style, children, ...props }: RoundTitleP
   const { grid } = useBracketContext();
   const { column } = useColumn();
   const part = usePart('round-title', className, { round: column.round });
+  const placed = useContext(PlacedContext);
+  const at = column.leaving ? placed?.(`round:${column.round.id}`) : undefined;
   return (
     <h3
       {...props}
       {...part}
       data-round={column.round.id}
-      style={{ margin: 0, ...(grid && { gridRow: 1 }), ...style }}
+      style={{ margin: 0, ...(grid && { gridRow: 1 }), ...(at && pinned(at)), ...style }}
     >
       {children ?? column.round.name}
     </h3>
@@ -145,6 +163,8 @@ export function Matches({
   const { grid, cells, classNames, hideByes } = useBracketContext();
   const { column } = useColumn();
   const part = usePart('matches', className, { round: column.round });
+  const placed = useContext(PlacedContext);
+  const pin = (id: string) => (column.leaving ? placed?.(id) : undefined);
 
   return (
     <ol
@@ -154,7 +174,8 @@ export function Matches({
         margin: 0,
         padding: 0,
         listStyle: 'none',
-        ...(grid && { gridRow: '2 / -1', display: 'grid', gridTemplateRows: 'subgrid' }),
+        ...(grid &&
+          !column.leaving && { gridRow: '2 / -1', display: 'grid', gridTemplateRows: 'subgrid' }),
         ...style,
       }}
     >
@@ -178,6 +199,7 @@ export function Matches({
                   display: 'flex',
                   flexDirection: 'column',
                   justifyContent: 'center',
+                  ...pinnedAt(pin(cell.match.id)),
                 }
               : undefined
           }
@@ -187,6 +209,15 @@ export function Matches({
       ))}
     </ol>
   );
+}
+
+/** Places a part of a leaving round exactly where it was last drawn. */
+function pinned({ x, y, width, height }: Placed): CSSProperties {
+  return { position: 'absolute', left: x, top: y, width, height, boxSizing: 'border-box' };
+}
+
+function pinnedAt(at: Placed | undefined): CSSProperties | undefined {
+  return at && pinned(at);
 }
 
 function defaultMatch(): ReactNode {

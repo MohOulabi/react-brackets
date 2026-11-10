@@ -3,11 +3,13 @@ import {
   type KeyboardEvent,
   type ReactNode,
   type RefObject,
+  useContext,
   useRef,
   useState,
 } from 'react';
-import { type Motion, useBracketContext } from './context';
-import { useFlip } from './hooks/use-flip';
+import { flushSync } from 'react-dom';
+import { type Motion, PagingContext, PlacedContext, useBracketContext } from './context';
+import { type Run, useFlip } from './hooks/use-flip';
 import { useIsomorphicLayoutEffect } from './hooks/use-isomorphic-layout-effect';
 import { rubberBand, useSwipe } from './hooks/use-swipe';
 import { GridContent } from './viewport';
@@ -20,30 +22,119 @@ const ROUNDS = ':scope > [data-part="round"]';
 
 /**
  * One round at a time, still drawn as a bracket: the round in focus stacks
- * tightly, the next one peeks in with its connectors, and swiping glides every
- * match into its new place.
+ * tightly, and the next one peeks in with its connectors. A swipe scrubs the
+ * change of round under the finger: the next round tightens into focus while the
+ * one before slides away, and letting go finishes the move or takes it back.
  */
 export function PagedBracketViewport({ style, children, ...props }: SectionProps): ReactNode {
-  const { page, setPage, rounds, width, labels, motion } = useBracketContext();
+  const { page, setPage, rounds, width, labels, motion, maxSwipeRounds } = useBracketContext();
+  const paging = useContext(PagingContext);
   const viewport = useRef<HTMLElement>(null);
   const content = useRef<HTMLDivElement>(null);
   const carry = useRef(0);
-  const { rtl, height } = useFrame(viewport, content, page);
+  const scrub = useRef(false);
+  const heading = useRef<number | null>(null);
+  const segment = useRef({ way: 0, rounds: 0 });
+  // Where the finger was when the move in progress began: a move restarted mid-drag (a new round ahead, or a
+  // re-render) starts from where the cards are drawn, which is where the finger last put them.
+  const anchor = useRef({ run: null as Run | null, from: 0, last: 0 });
+  const height = useRef({ from: 0, to: 0, rest: 0 });
+  const rtl = useRtl(viewport);
   const step = rtl ? -1 : 1;
+  const travel = Math.round((width || 320) * FOCUS);
   const pull = (offset: number) => resist(offset, step, page, rounds.length, width ?? 0);
-  const { dragging, handlers } = useSwipe({
+
+  // The box follows the move, so it never jumps to the new round's height while cards are still on their way.
+  // Heights are the box's own natural height, padding included, so the move lands exactly where layout will.
+  const sizes = {
+    onBegin() {
+      const box = viewport.current;
+      if (!box) return;
+      const held = box.style.height;
+      box.style.height = '';
+      const natural = box.offsetHeight;
+      box.style.height = held;
+      height.current.from = held ? box.offsetHeight : height.current.rest || natural;
+      height.current.to = natural;
+    },
+    onFrame(progress: number) {
+      const box = viewport.current;
+      if (!box) return;
+      if (progress >= 1) {
+        box.style.height = '';
+        height.current.rest = box.offsetHeight;
+        return;
+      }
+      const { from, to } = height.current;
+      if (from > 0) box.style.height = `${from + (to - from) * progress}px`;
+    },
+  };
+
+  const { placed, run } = useFlip(viewport, motion, {
+    carry,
+    scrub,
+    onSettle: () => paging?.settle(),
+    ...sizes,
+  });
+
+  const { handlers } = useSwipe({
     target: viewport,
     onDrag: (offset) => {
-      if (content.current) content.current.style.transform = `translateX(${pull(offset)}px)`;
+      // Past a whole round, the move carries on into the next one, never back: rounds already passed stay passed.
+      const way = offset < 0 ? step : -step;
+      const passed = Math.floor(Math.abs(offset) / travel);
+      const steps = Math.min(
+        maxSwipeRounds,
+        Math.max(1, passed + 1, way === segment.current.way ? segment.current.rounds : 0),
+      );
+      const to = clamp(page + way * steps, 0, rounds.length - 1);
+      const scrubbing = paging && motion && offset !== 0 && to !== page;
+      if (!scrubbing) {
+        // No round that way: let the bracket stretch, and let any preview go.
+        if (heading.current !== null) {
+          heading.current = null;
+          flushSync(() => paging?.preview(null));
+        }
+        if (content.current) content.current.style.transform = `translateX(${pull(offset)}px)`;
+        return;
+      }
+      if (heading.current !== to) {
+        if (content.current) content.current.style.transform = '';
+        segment.current = { way, rounds: Math.abs(to - page) };
+        heading.current = to;
+        scrub.current = true;
+        // Drawn now, so the move exists before the next movement seeks it.
+        flushSync(() => paging.preview(to));
+      }
+      // The cards under the finger move exactly as far as it does.
+      const move = run.current;
+      if (!move) return;
+      if (move !== anchor.current.run)
+        anchor.current = { ...anchor.current, run: move, from: anchor.current.last };
+      move.seek((Math.abs(offset) - anchor.current.from) / (move.distance || travel));
+      anchor.current.last = Math.abs(offset);
     },
-    onRelease: (offset) => {
-      // The matches glide on from where the finger left them, not from where the drag began.
-      carry.current = pull(offset);
-      if (content.current) content.current.style.transform = '';
+    onRelease: (offset, direction, aim) => {
+      const to = heading.current;
+      heading.current = null;
+      scrub.current = false;
+      segment.current = { way: 0, rounds: 0 };
+      anchor.current = { run: null, from: 0, last: 0 };
+      const landing = clamp(
+        page + direction * step * Math.min(maxSwipeRounds, pages(offset, aim, travel)),
+        0,
+        rounds.length - 1,
+      );
+      if (to === null) {
+        // The matches glide on from where the finger left them, not from where the drag began.
+        carry.current = pull(offset);
+        if (content.current) content.current.style.transform = '';
+      }
+      if (landing !== page) setPage(landing);
+      // The clock carries every card to that round from wherever the finger left it.
+      paging?.preview(null);
     },
-    onSwipe: (direction) => setPage(page + direction * step),
   });
-  useFlip(viewport, dragging ? null : motion, carry);
 
   return (
     <section
@@ -54,28 +145,36 @@ export function PagedBracketViewport({ style, children, ...props }: SectionProps
       aria-label={labels.rounds}
       onKeyDown={useArrowKeys(page, setPage, step)}
       style={{
+        position: 'relative',
+        boxSizing: 'border-box',
         overflow: 'hidden',
         touchAction: 'pan-y',
         userSelect: 'none',
-        height,
-        transition: transition('height', dragging ? null : motion),
         ...style,
       }}
     >
-      <GridContent
-        contentRef={content}
-        columnWidth={Math.round((width ?? 320) * FOCUS)}
-        style={{ willChange: dragging ? 'transform' : undefined }}
-      >
-        {children}
-      </GridContent>
+      <PlacedContext.Provider value={(key) => placed.current.get(key)}>
+        <GridContent contentRef={content} columnWidth={travel}>
+          {children}
+        </GridContent>
+      </PlacedContext.Provider>
     </section>
   );
 }
 
+/** Reads the text direction the viewport is laid out in. */
+function useRtl(viewport: RefObject<HTMLElement | null>): boolean {
+  const [rtl, setRtl] = useState(false);
+  useIsomorphicLayoutEffect(() => {
+    if (viewport.current) setRtl(getComputedStyle(viewport.current).direction === 'rtl');
+  }, []);
+  return rtl;
+}
+
 /** One round at a time as a plain list of matches, sliding sideways between rounds. */
 export function PagedListViewport({ style, children, ...props }: SectionProps): ReactNode {
-  const { page, setPage, rounds, classNames, labels, width, motion } = useBracketContext();
+  const { page, setPage, rounds, classNames, labels, width, motion, maxSwipeRounds } =
+    useBracketContext();
   const viewport = useRef<HTMLElement>(null);
   const content = useRef<HTMLDivElement>(null);
   const { rtl, height } = useFrame(viewport, content, page, ROUNDS);
@@ -86,21 +185,22 @@ export function PagedListViewport({ style, children, ...props }: SectionProps): 
   const { dragging, handlers } = useSwipe({
     target: viewport,
     onDrag: (offset) => {
-      const element = content.current;
-      if (!element) return;
-      element.style.transition = 'none';
-      element.style.transform = `translateX(calc(${at}% + ${pull(offset)}px))`;
+      if (content.current) {
+        content.current.style.transition = 'none';
+        content.current.style.transform = `translateX(calc(${at}% + ${pull(offset)}px))`;
+      }
     },
-    onSwipe: (direction) => setPage(page + direction * step),
+    onRelease: (offset, direction, aim) => {
+      const steps = Math.min(maxSwipeRounds, pages(offset, aim, width || 320));
+      if (direction !== 0) setPage(clamp(page + direction * step * steps, 0, rounds.length - 1));
+    },
   });
 
-  // Slides from wherever the finger let go to the round in focus.
+  // React restores the transition and moves to the new round in one commit, so the slide runs from wherever the
+  // finger let go. A release that stays on the same round leaves React nothing to change: send it home here.
   useIsomorphicLayoutEffect(() => {
-    const element = content.current;
-    if (!element || dragging) return;
-    element.style.transition = transition('transform', motion) ?? '';
-    element.style.transform = resting;
-  }, [resting, dragging, motion]);
+    if (content.current && !dragging) content.current.style.transform = resting;
+  }, [resting, dragging]);
 
   return (
     <section
@@ -124,12 +224,32 @@ export function PagedListViewport({ style, children, ...props }: SectionProps): 
         data-scope="bracket"
         data-part="content"
         className={classNames.content}
-        style={{ display: 'flex', alignItems: 'flex-start', gap: 0, transform: resting }}
+        style={{
+          display: 'flex',
+          alignItems: 'flex-start',
+          gap: 0,
+          transform: resting,
+          transition: dragging ? 'none' : transition('transform', motion),
+        }}
       >
         {children}
       </div>
     </section>
   );
+}
+
+/**
+ * How many rounds a swipe pages, like native paging: a flick goes one round past the round under the finger,
+ * and a slower release settles on the nearest round. Always at least one: the swipe already decided to page.
+ */
+function pages(offset: number, aim: number, round: number): number {
+  const dragged = Math.abs(offset) / round;
+  const flicked = Math.round(Math.abs(aim) / round) > Math.round(dragged);
+  return flicked ? Math.floor(dragged) + 1 : Math.max(1, Math.round(dragged));
+}
+
+function clamp(value: number, min: number, max: number): number {
+  return Math.min(max, Math.max(min, value));
 }
 
 /** Follows the finger, but resists once there is no round left to reveal. */

@@ -120,6 +120,8 @@ export interface Column {
   current: boolean;
   /** Off screen in the paged view, so kept out of the accessibility tree. */
   hidden: boolean;
+  /** A round the paged view moved past, still drawn where it was while it slides away. */
+  leaving: boolean;
 }
 
 /** What `useBracket()` returns inside `Bracket.Root`. */
@@ -140,6 +142,8 @@ export interface BracketContextValue {
   view: View;
   /** How the paged view draws a round. */
   compact: Compact;
+  /** The most rounds one swipe can move, at least 1. */
+  maxSwipeRounds: number;
   /** `true` when columns share one grid with connector lines: the tree, and the bracket-style paged view. */
   grid: boolean;
   /** The container width in pixels, or `null` before it is measured, as on the server. */
@@ -165,6 +169,31 @@ export interface BracketContextValue {
   /** Rendered match cells by match id, used to measure connectors. */
   cells: Map<Id, HTMLElement>;
 }
+
+/** How the paged view talks to `Bracket.Root` while it moves between rounds. Internal. */
+export interface Paging {
+  /** The round drawn in focus: the page, or the one a swipe in progress is heading to. */
+  shown: number;
+  /** Draws a round in focus while a swipe heads to it, without changing the page; `null` goes back. */
+  preview: (page: number | null) => void;
+  /** Lets the rounds that slid away go, once the move has finished. */
+  settle: () => void;
+}
+
+export const PagingContext: Context<Paging | null> = createContext<Paging | null>(null);
+
+/** A card or title's box where the paged view last drew it, in the content's own pixels. */
+export interface Placed {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+/** Where the paged view last drew each card (by match id) and title (`round:` + id): a leaving round stays put. */
+export const PlacedContext: Context<((key: string) => Placed | undefined) | null> = createContext<
+  ((key: string) => Placed | undefined) | null
+>(null);
 
 interface ColumnContextValue {
   column: Column;

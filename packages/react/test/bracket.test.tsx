@@ -15,8 +15,11 @@ const players = (count: number): Participant[] =>
     name: `Player ${index + 1}`,
   }));
 
+/** Every element of a part, leaving out a round that is sliding away after a change of round. */
 const parts = (container: HTMLElement, part: string) =>
-  container.querySelectorAll(`[data-scope="bracket"][data-part="${part}"]`);
+  [...container.querySelectorAll(`[data-scope="bracket"][data-part="${part}"]`)].filter(
+    (element) => !element.closest('[data-leaving]'),
+  );
 
 afterEach(cleanup);
 
@@ -182,6 +185,8 @@ describe('connectors', () => {
 describe('paged view', () => {
   const titles = (container: HTMLElement) =>
     [...parts(container, 'round-title')].map((title) => title.textContent);
+  const active = (container: HTMLElement) =>
+    container.querySelector('[data-part="page"][data-active]')?.textContent;
 
   test('draws the round in focus and the rest of the bracket after it', () => {
     const { container } = render(<Bracket stage={singleElimination(players(8))} />);
@@ -220,35 +225,33 @@ describe('paged view', () => {
     ).toBe(true);
   });
 
-  test('ends a swipe released outside the bracket', () => {
+  test('previews the next round under a swipe, and settles when released outside the bracket', async () => {
     const { container } = render(<Bracket stage={singleElimination(players(8))} />);
     const viewport = parts(container, 'viewport')[0] as HTMLElement;
-    const content = () => (parts(container, 'content')[0] as HTMLElement).style.transform;
-
-    fireEvent.pointerDown(viewport, {
-      pointerId: 1,
-      pointerType: 'mouse',
-      clientX: 200,
-      clientY: 0,
-    });
-    fireEvent.pointerMove(viewport, {
+    const mouse = (clientX: number) => ({
       pointerId: 1,
       pointerType: 'mouse',
       buttons: 1,
-      clientX: 150,
+      clientX,
       clientY: 0,
     });
-    expect(content()).toContain('translateX');
 
-    fireEvent.pointerUp(window, { pointerId: 1, pointerType: 'mouse', clientX: 150, clientY: 0 });
-    expect(content()).toBe('');
+    fireEvent.pointerDown(viewport, mouse(200));
+    fireEvent.pointerMove(viewport, mouse(150));
+    expect(titles(container)[0]).toBe('Semifinals');
+    expect(active(container)).toBe('Quarterfinals');
+    expect(container.querySelector('[data-leaving]')).not.toBeNull();
+
+    fireEvent.pointerUp(window, { ...mouse(150), buttons: 0 });
+    await new Promise((resolve) => setTimeout(resolve, 600));
+    expect(active(container)).toBe('Semifinals');
+    expect(container.querySelector('[data-leaving]')).toBeNull();
   });
 
   test('keeps following a touch when the card under the finger loses its capture', () => {
     const { container } = render(<Bracket stage={singleElimination(players(8))} />);
     const viewport = parts(container, 'viewport')[0] as HTMLElement;
     const card = parts(container, 'match')[0] as HTMLElement;
-    const content = () => (parts(container, 'content')[0] as HTMLElement).style.transform;
     const touch = { pointerId: 7, pointerType: 'touch', clientY: 0 };
 
     fireEvent.pointerDown(card, { ...touch, clientX: 200 });
@@ -256,29 +259,93 @@ describe('paged view', () => {
     fireEvent.lostPointerCapture(card, { ...touch, clientX: 0 });
     fireEvent.pointerMove(card, { ...touch, clientX: 150 });
 
-    expect(titles(container)[0]).toBe('Quarterfinals');
-    expect(content()).toContain('translateX');
+    // Still a swipe in progress: the next round is previewed, but the page has not changed.
+    expect(titles(container)[0]).toBe('Semifinals');
+    expect(active(container)).toBe('Quarterfinals');
 
     fireEvent.pointerUp(viewport, { ...touch, clientX: 150 });
-    expect(content()).toBe('');
+    expect(active(container)).toBe('Semifinals');
   });
 
-  test('finishes fading in cards when the bracket re-renders mid-animation', async () => {
+  test('lets the round that slid away go, even when the bracket re-renders mid-move', async () => {
     const stage = singleElimination(players(8));
     const { container, rerender } = render(<Bracket stage={stage} />);
-    const page = (name: string) => fireEvent.click(screen.getByRole('button', { name }));
-    const faded = () =>
-      ([...parts(container, 'cell')] as HTMLElement[]).filter((cell) => cell.style.opacity);
+    fireEvent.click(screen.getByRole('button', { name: 'Semifinals' }));
+    expect(container.querySelector('[data-leaving]')).not.toBeNull();
 
-    page('Semifinals');
-    page('Quarterfinals');
-    expect(faded().length).toBeGreaterThan(0);
-
-    // A live score landing while the first round fades back in.
-    rerender(<Bracket stage={reportResult(stage, 'main.r1.m1', { scores: [1, 0] })} />);
+    // A live score landing while the first round slides away.
+    await new Promise((resolve) => setTimeout(resolve, 60));
+    rerender(<Bracket stage={reportResult(stage, 'main.r1.m2', { scores: [1, 0] })} />);
     await new Promise((resolve) => setTimeout(resolve, 600));
 
-    expect(faded()).toEqual([]);
+    expect(container.querySelector('[data-leaving]')).toBeNull();
+    const moving = [
+      ...parts(container, 'cell'),
+      ...parts(container, 'round-title'),
+    ] as HTMLElement[];
+    expect(moving.filter((element) => element.style.opacity || element.style.transform)).toEqual(
+      [],
+    );
+  });
+
+  test('pages on a quick flick, but not after holding still before letting go', async () => {
+    const rect = HTMLElement.prototype.getBoundingClientRect;
+    HTMLElement.prototype.getBoundingClientRect = () => new DOMRect(0, 0, 300, 400);
+    const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+    const drag = async (container: HTMLElement, pause: number) => {
+      const viewport = parts(container, 'viewport')[0] as HTMLElement;
+      const at = (clientX: number) => ({
+        pointerId: 1,
+        pointerType: 'mouse',
+        buttons: 1,
+        clientX,
+        clientY: 0,
+      });
+      fireEvent.pointerDown(viewport, at(250));
+      for (const x of [240, 230, 220]) {
+        await wait(15);
+        fireEvent.pointerMove(viewport, at(x));
+      }
+      await wait(pause);
+      fireEvent.pointerUp(viewport, at(220));
+    };
+    try {
+      const flick = render(<Bracket stage={singleElimination(players(8))} />);
+      await drag(flick.container, 0);
+      expect(titles(flick.container)[0]).toBe('Semifinals');
+      cleanup();
+
+      const held = render(<Bracket stage={singleElimination(players(8))} />);
+      await drag(held.container, 180);
+      expect(titles(held.container)[0]).toBe('Quarterfinals');
+    } finally {
+      HTMLElement.prototype.getBoundingClientRect = rect;
+    }
+  });
+
+  test('crosses several rounds on a long swipe, unless limited to fewer', () => {
+    const swipe = (container: HTMLElement) => {
+      const viewport = parts(container, 'viewport')[0] as HTMLElement;
+      const at = (clientX: number) => ({
+        pointerId: 1,
+        pointerType: 'mouse',
+        buttons: 1,
+        clientX,
+        clientY: 0,
+      });
+      fireEvent.pointerDown(viewport, at(700));
+      for (const x of [600, 400, 200, 100]) fireEvent.pointerMove(viewport, at(x));
+      fireEvent.pointerUp(viewport, at(100));
+    };
+
+    const free = render(<Bracket stage={singleElimination(players(8))} />);
+    swipe(free.container);
+    expect(active(free.container)).toBe('Final');
+    cleanup();
+
+    const limited = render(<Bracket stage={singleElimination(players(8))} maxSwipeRounds={1} />);
+    swipe(limited.container);
+    expect(active(limited.container)).toBe('Semifinals');
   });
 
   test('can show plain lists of matches instead', () => {

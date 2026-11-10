@@ -123,7 +123,7 @@ export function GridContent({
       style={{
         position: 'relative',
         display: 'grid',
-        gridTemplateColumns: `repeat(${columns.length}, ${track})`,
+        gridTemplateColumns: `repeat(${columns.filter((column) => !column.leaving).length}, ${track})`,
         gridTemplateRows: `auto repeat(${layout.rows}, auto)`,
         width: 'max-content',
         ...style,
