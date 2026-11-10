@@ -1,0 +1,77 @@
+---
+title: React Native
+description: The same brackets in React Native and Expo, with every swipe and zoom on the UI thread.
+---
+
+`@react-brackets/native` draws brackets in React Native and Expo. It shares the core with the web package, so formats, results, standings and your data work the same way.
+
+```bash
+npx expo install @react-brackets/native react-native-reanimated react-native-worklets react-native-gesture-handler
+```
+
+It needs React Native's New Architecture, Reanimated 4 and Gesture Handler 3. Expo Go includes all of them, so you can try it without a build.
+
+```tsx
+import { Bracket, singleElimination } from '@react-brackets/native';
+
+export function Screen() {
+  return <Bracket stage={singleElimination(teams)} />;
+}
+```
+
+Wrap your app in `GestureHandlerRootView`. Inside a scrolling screen, use Gesture Handler's `ScrollView`, so a swipe across the bracket and a scroll down the page never fight over a touch.
+
+## How it moves
+
+On a phone the bracket pages through one round at a time, still drawn as a bracket, like the web. Every card's place on every page is worked out up front. A swipe only moves one number on the UI thread, and the cards, round titles, lines and height all follow it there. React hears about the new round once the swipe lands.
+
+Connector lines are plain views, moved by the same transforms as the cards in the same frame, so they never trail behind, and they stay sharp when you zoom.
+
+On wider screens you get the whole tree. Set `mode` to `scroll`, `fit` or `pan-zoom`; pan and zoom handles pinch, drag with momentum and a double tap to zoom.
+
+## Your own cards
+
+```tsx
+<Bracket
+  stage={stage}
+  renderMatch={() => (
+    <Bracket.Match style={({ live }) => [styles.card, live && styles.live]}>
+      <Bracket.Participant slot={0}>
+        {({ participant, winner }) => <Team name={participant?.name} bold={winner} />}
+      </Bracket.Participant>
+      <Bracket.Participant slot={1}>
+        {({ participant, winner }) => <Team name={participant?.name} bold={winner} />}
+      </Bracket.Participant>
+    </Bracket.Match>
+  )}
+/>
+```
+
+Every part takes a `style`, or a function of its state: `winner`, `loser`, `highlighted` and `live` among others. There is no hover on a phone, so tapping a participant highlights their path. Pass `onMatchPress` to make whole matches pressable instead.
+
+## Styling
+
+- **Theme**: `theme={{ colors: { accent: '#ea580c' }, radius: 14 }}` on a bracket, or `BracketThemeProvider` with `createTheme` for all of them. Light and dark follow the device by default.
+- **Uniwind or NativeWind**: wrap a part to give it a `className`, like `withUniwind(Bracket.Match)`, and use classes freely inside `renderMatch`.
+- **Unistyles**: `withUnistyles(Bracket, (theme) => ({ theme: { colors: theme.bracket } }))` keeps the bracket in step with your themes, including when they change.
+
+## Smoothest in a development build
+
+Reanimated can move views without a layout pass. The bracket only animates transforms and opacity, and its presses use Gesture Handler, so it is ready for this fast path. Turn it on in your app's `package.json` and rebuild:
+
+```json
+{
+  "reanimated": {
+    "staticFeatureFlags": {
+      "IOS_SYNCHRONOUSLY_UPDATE_UI_PROPS": true,
+      "ANDROID_SYNCHRONOUSLY_UPDATE_UI_PROPS": true
+    }
+  }
+}
+```
+
+## Not yet
+
+The native package is new. Plain lists of matches (`compact="list"` on the web), right-to-left layouts and the mirrored layout on phones are coming next.
+
+The example app in [`examples/native`](https://github.com/MohOulabi/react-brackets/tree/main/examples/native) shows the paged bracket, the three tree modes, custom cards with a live match, and theming with Tailwind and Unistyles.
