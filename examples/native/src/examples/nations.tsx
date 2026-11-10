@@ -7,7 +7,7 @@ import {
   singleElimination,
 } from '@react-brackets/native';
 import { type ReactNode, useEffect, useState } from 'react';
-import { Text, View } from 'react-native';
+import { Text, useColorScheme, View } from 'react-native';
 import Animated, {
   Easing,
   useAnimatedStyle,
@@ -50,7 +50,8 @@ const kickoff: Record<string, string> = {
   'main.r3.m1': 'Sun 19:00',
 };
 
-export function CustomDemo({ dark }: { dark: boolean }): ReactNode {
+export default function Nations(): ReactNode {
+  const dark = useColorScheme() === 'dark';
   const [selected, setSelected] = useState<Match | null>(null);
   const names = participantMap(stage);
   const muted = dark ? '#a1a1aa' : '#71717a';

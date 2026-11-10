@@ -1,6 +1,10 @@
 {
   "extends": "expo/tsconfig.base",
   "compilerOptions": {
-    "strict": true
+    "strict": true,
+    "paths": {
+      "@react-brackets/native": ["../../packages/native/src/index.ts"],
+      "@react-brackets/core": ["../../packages/core/src/index.ts"]
+    }
   }
 }

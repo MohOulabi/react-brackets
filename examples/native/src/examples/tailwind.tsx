@@ -1,13 +1,26 @@
-import { Bracket } from '@react-brackets/native';
+import { Bracket, reportResult, type Stage, singleElimination } from '@react-brackets/native';
 import type { ReactNode } from 'react';
 import { Text, View } from 'react-native';
 import { withUniwind } from 'uniwind';
-import { cup } from './data';
 
 // Library components take a className once wrapped; React Native's own take one as they are.
 const Match = withUniwind(Bracket.Match);
 
-export function TailwindDemo(): ReactNode {
+const teams = ['Falcons', 'Wolves', 'Herons', 'Lynx', 'Orcas', 'Ravens', 'Bison', 'Cobras'];
+
+const cup = (
+  [
+    ['main.r1.m1', [3, 1]],
+    ['main.r1.m2', [0, 2]],
+    ['main.r1.m3', [2, 1]],
+    ['main.r1.m4', [1, 3]],
+  ] as [string, [number, number]][]
+).reduce<Stage>(
+  (current, [match, scores]) => reportResult(current, match, { scores }),
+  singleElimination(teams.map((name) => ({ id: name, name }))),
+);
+
+export default function Tailwind(): ReactNode {
   return (
     <View className="gap-4 rounded-3xl bg-indigo-50 p-4 dark:bg-indigo-950">
       <Text className="text-lg font-bold text-indigo-950 dark:text-indigo-50">

@@ -1,15 +1,28 @@
-import { Bracket } from '@react-brackets/native';
+import { Bracket, reportResult, type Stage, singleElimination } from '@react-brackets/native';
 import type { ReactNode } from 'react';
 import { Pressable, Text, View } from 'react-native';
 import { StyleSheet, UnistylesRuntime, withUnistyles } from 'react-native-unistyles';
-import { cup } from '../data';
 
 // The bracket takes its theme from Unistyles, and follows it when the theme changes.
 const ThemedBracket = withUnistyles(Bracket, (theme) => ({
   theme: { colors: theme.bracket, radius: 14 },
 }));
 
-export function UnistylesDemo(): ReactNode {
+const teams = ['Falcons', 'Wolves', 'Herons', 'Lynx', 'Orcas', 'Ravens', 'Bison', 'Cobras'];
+
+const cup = (
+  [
+    ['main.r1.m1', [3, 1]],
+    ['main.r1.m2', [0, 2]],
+    ['main.r1.m3', [2, 1]],
+    ['main.r1.m4', [1, 3]],
+  ] as [string, [number, number]][]
+).reduce<Stage>(
+  (current, [match, scores]) => reportResult(current, match, { scores }),
+  singleElimination(teams.map((name) => ({ id: name, name }))),
+);
+
+export default function Unistyles(): ReactNode {
   return (
     <View style={styles.panel}>
       <View style={styles.header}>
