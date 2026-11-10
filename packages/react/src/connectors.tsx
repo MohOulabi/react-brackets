@@ -83,17 +83,18 @@ export function Connectors({
   style,
   ...props
 }: ConnectorsProps): ReactNode {
-  const { grid, layout, cells, highlighted, classNames, hideByes } = useBracketContext();
+  const { grid, layout, columns, cells, highlighted, classNames, hideByes } = useBracketContext();
   const svg = useRef<SVGSVGElement>(null);
   const [edges, setEdges] = useState<MeasuredEdge[]>([]);
 
+  // From the columns on screen, so the lines of a round that is sliding away still find their matches.
   const matches = useMemo(() => {
     const byId = new Map<Id, Match>();
-    for (const column of layout.columns) {
+    for (const column of columns) {
       for (const cell of column.cells) byId.set(cell.match.id, cell.match);
     }
     return byId;
-  }, [layout]);
+  }, [columns]);
 
   useIsomorphicLayoutEffect(() => {
     const element = svg.current;

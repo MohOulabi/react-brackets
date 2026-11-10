@@ -13,11 +13,14 @@ Below `compactBelow` (640px by default) the bracket pages through one round at a
 
 With `compact="bracket"` (the default), the round in focus stacks tightly and the next round peeks in with its connector lines. Swipe or tap a round and every match glides into place. Swiping past the first or last round meets a soft rubber-band resistance.
 
+A long or fast swipe crosses several rounds at once, the way a native carousel does. Set `maxSwipeRounds={1}` to page one round at a time.
+
 `compact="list"` shows each round as a plain list of matches instead.
 
 ```tsx
 <Bracket stage={stage} />                       // swipeable bracket
 <Bracket stage={stage} compact="list" />        // swipeable lists
+<Bracket stage={stage} maxSwipeRounds={1} />    // one round per swipe
 <Bracket stage={stage} compactBelow={480} />    // switch at a different width
 ```
 

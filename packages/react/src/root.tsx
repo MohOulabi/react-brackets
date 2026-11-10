@@ -18,6 +18,8 @@ import {
   cx,
   type Labels,
   type Motion,
+  type Paging,
+  PagingContext,
   type View,
 } from './context';
 import { useElementWidth } from './hooks/use-element-width';
@@ -62,6 +64,12 @@ export interface RootOwnProps {
    * @defaultValue 'bracket'
    */
   compact?: Compact;
+  /**
+   * The most rounds one swipe can move in the paged view. A long or fast swipe crosses several rounds; `1` pages
+   * one round at a time.
+   * @defaultValue Infinity
+   */
+  maxSwipeRounds?: number;
   /**
    * Timing for paging, swiping, zooming and the `data-updated` / `data-entered`
    * flags, or `false` to turn all of it off. Off anyway for people who prefer
@@ -135,6 +143,7 @@ export function Root({
   layout = 'standard',
   compactBelow = 640,
   compact = 'bracket',
+  maxSwipeRounds = Number.POSITIVE_INFINITY,
   motion,
   page: controlledPage,
   onPageChange,
@@ -165,16 +174,44 @@ export function Root({
   const view: View = width !== null && width < compactBelow ? 'paged' : 'tree';
   const grid = view === 'tree' || compact === 'bracket';
   const page = Math.min(requestedPage, group.rounds.length - 1);
+  const animated = motion !== false && !reducedMotion;
+  const sliding = view === 'paged' && compact === 'bracket';
+
+  // While a swipe heads to a round it is drawn in focus without changing the page, so letting go can still cancel.
+  const [preview, setPreview] = useState<number | null>(null);
+  const shown = sliding && preview !== null ? preview : page;
+
+  // Rounds moved past keep their place on screen and slide away, instead of vanishing the moment focus moves.
+  const [leaving, setLeaving] = useState<number[]>([]);
+  const [lastShown, setLastShown] = useState(shown);
+  if (shown !== lastShown) {
+    setLastShown(shown);
+    const passed = sliding && animated ? range(lastShown, shown) : [];
+    setLeaving((rounds) => [...new Set([...rounds, ...passed])].filter((round) => round < shown));
+  }
 
   const treeLayout = useMemo(
     () => layoutGroup(group, { mirror: layout === 'mirrored' }),
     [group, layout],
   );
   const pagedLayout = useMemo(
-    () => layoutGroup({ ...group, rounds: group.rounds.slice(page) }),
-    [group, page],
+    () => layoutGroup({ ...group, rounds: group.rounds.slice(shown) }),
+    [group, shown],
   );
-  const activeLayout: GroupLayout = view === 'tree' ? treeLayout : pagedLayout;
+  const firstLeaving = leaving.length > 0 ? Math.min(...leaving) : shown;
+  const leavingLayout = useMemo(
+    () => layoutGroup({ ...group, rounds: group.rounds.slice(firstLeaving) }),
+    [group, firstLeaving],
+  );
+  const activeLayout = useMemo<GroupLayout>(() => {
+    if (view === 'tree') return treeLayout;
+    if (leaving.length === 0) return pagedLayout;
+    const gone = new Set(
+      leaving.flatMap((round) => group.rounds[round]?.matches.map((match) => match.id) ?? []),
+    );
+    const edges = leavingLayout.edges.filter((edge) => gone.has(edge.from));
+    return { ...pagedLayout, edges: [...edges, ...pagedLayout.edges] };
+  }, [view, treeLayout, pagedLayout, leavingLayout, leaving, group]);
   const participants = useMemo(() => participantMap(stage), [stage]);
 
   const columns = useMemo<Column[]>(() => {
@@ -184,15 +221,26 @@ export function Root({
         key: `${column.round.id}.${index}`,
         current: false,
         hidden: false,
+        leaving: false,
       }));
     }
     if (compact === 'bracket') {
-      return pagedLayout.columns.map((column, index) => ({
-        ...column,
-        key: column.round.id,
-        current: index === 0,
-        hidden: false,
-      }));
+      const gone = leaving.flatMap((round) => {
+        const column = leavingLayout.columns[round - firstLeaving];
+        return column
+          ? [{ ...column, key: column.round.id, current: false, hidden: true, leaving: true }]
+          : [];
+      });
+      return [
+        ...gone,
+        ...pagedLayout.columns.map((column, index) => ({
+          ...column,
+          key: column.round.id,
+          current: index === 0,
+          hidden: false,
+          leaving: false,
+        })),
+      ];
     }
     return group.rounds.map((round, index) => ({
       key: round.id,
@@ -201,8 +249,18 @@ export function Root({
       cells: round.matches.map((match, row) => ({ match, row, span: 1 })),
       current: index === page,
       hidden: index !== page,
+      leaving: false,
     }));
-  }, [view, compact, treeLayout, pagedLayout, group, page]);
+  }, [view, compact, treeLayout, pagedLayout, leavingLayout, leaving, firstLeaving, group, page]);
+
+  const paging = useMemo<Paging>(
+    () => ({
+      shown,
+      preview: setPreview,
+      settle: () => setLeaving([]),
+    }),
+    [shown],
+  );
 
   const value: BracketContextValue = {
     stage,
@@ -213,9 +271,10 @@ export function Root({
     participants,
     view,
     compact,
+    maxSwipeRounds: Math.max(1, maxSwipeRounds),
     grid,
     width,
-    motion: motion === false || reducedMotion ? null : { ...defaultMotion, ...motion },
+    motion: animated ? { ...defaultMotion, ...motion } : null,
     page,
     setPage(next) {
       const clamped = Math.max(0, Math.min(next, group.rounds.length - 1));
@@ -241,21 +300,28 @@ export function Root({
 
   return (
     <BracketContext.Provider value={value}>
-      <div
-        {...props}
-        ref={ref}
-        data-scope="bracket"
-        data-part="root"
-        data-view={view}
-        data-compact={view === 'paged' ? compact : undefined}
-        data-layout={layout}
-        data-unstyled={unstyled ? '' : undefined}
-        className={cx(classNames.root, ownClassName)}
-      >
-        {children}
-      </div>
+      <PagingContext.Provider value={paging}>
+        <div
+          {...props}
+          ref={ref}
+          data-scope="bracket"
+          data-part="root"
+          data-view={view}
+          data-compact={view === 'paged' ? compact : undefined}
+          data-layout={layout}
+          data-unstyled={unstyled ? '' : undefined}
+          className={cx(classNames.root, ownClassName)}
+        >
+          {children}
+        </div>
+      </PagingContext.Provider>
     </BracketContext.Provider>
   );
+}
+
+/** Whole numbers from `from` up to, not including, `to`. */
+function range(from: number, to: number): number[] {
+  return Array.from({ length: Math.max(0, to - from) }, (_, index) => from + index);
 }
 
 function selectGroup(stage: Stage, key: string): Group {

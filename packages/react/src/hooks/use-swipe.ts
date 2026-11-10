@@ -13,10 +13,14 @@ interface SwipeOptions {
   target: RefObject<HTMLElement | null>;
   /** Called on every move with the distance dragged, outside React, so it can move the content directly. */
   onDrag: (offset: number) => void;
-  /** Called once when the finger lifts, before `onSwipe`, with the distance it was dragged. */
-  onRelease?: (offset: number) => void;
-  onSwipe: (direction: -1 | 1) => void;
-  /** Fraction of the element width a slow drag must cover to count as a swipe. */
+  /**
+   * Called once when the finger lifts, before `onSwipe`, with the distance it was dragged, the way it pages
+   * (`1` on, `-1` back, `0` when it stays: a cancel, or a drag that was too short or too slow), and how far it
+   * was heading: the distance plus a short glide on its speed, for paging more than once.
+   */
+  onRelease?: (offset: number, direction: -1 | 0 | 1, heading: number) => void;
+  onSwipe?: (direction: -1 | 1) => void;
+  /** Fraction of the element width a release must be heading past to count as a swipe. */
   threshold?: number;
 }
 
@@ -30,9 +34,10 @@ interface Gesture {
   locked: boolean;
 }
 
-/** Pixels per millisecond: a flick this fast pages even over a short distance. */
-const FLICK_SPEED = 0.35;
-const FLICK_MIN = 16;
+/** How far a release glides on its speed when judging where the finger was heading, in milliseconds. */
+const GLIDE = 180;
+/** Shorter drags never page, however fast: they are taps that slipped. */
+const MIN_DISTANCE = 16;
 const SLOP = 8;
 
 /**
@@ -49,24 +54,27 @@ export function useSwipe({ target, onDrag, onRelease, onSwipe, threshold = 0.2 }
   const callbacks = useRef({ onDrag, onRelease, onSwipe });
   callbacks.current = { onDrag, onRelease, onSwipe };
 
-  const finish = (pointerId: number, clientX: number, cancelled: boolean) => {
+  const finish = (pointerId: number, clientX: number, time: number, cancelled: boolean) => {
     const current = gesture.current;
     if (!current || current.id !== pointerId) return;
     gesture.current = null;
     if (!current.locked) return;
 
     const distance = cancelled ? 0 : clientX - current.x;
-    callbacks.current.onRelease?.(distance);
-    setDragging(false);
-    if (cancelled) return;
+    // Judge where the finger was heading as it lifted, like native paging: a flick carries a short drag over,
+    // and a pause before lifting leaves only the distance.
+    current.samples.push({ x: clientX, t: time });
+    const heading = distance + velocity(current.samples) * GLIDE;
+    const pages =
+      !cancelled &&
+      Math.abs(distance) >= MIN_DISTANCE &&
+      Math.sign(heading) === Math.sign(distance) &&
+      Math.abs(heading) >= current.width * threshold;
+    const direction = pages ? (distance < 0 ? 1 : -1) : 0;
 
-    const speed = velocity(current.samples);
-    const flicked = Math.abs(speed) >= FLICK_SPEED && Math.abs(distance) >= FLICK_MIN;
-    if (flicked && Math.sign(speed) === Math.sign(distance)) {
-      callbacks.current.onSwipe(distance < 0 ? 1 : -1);
-    } else if (Math.abs(distance) >= current.width * threshold) {
-      callbacks.current.onSwipe(distance < 0 ? 1 : -1);
-    }
+    callbacks.current.onRelease?.(distance, direction, cancelled ? 0 : heading);
+    setDragging(false);
+    if (direction !== 0) callbacks.current.onSwipe?.(direction);
   };
   const latest = useRef(finish);
   latest.current = finish;
@@ -86,9 +94,9 @@ export function useSwipe({ target, onDrag, onRelease, onSwipe, threshold = 0.2 }
   useEffect(() => {
     if (!dragging) return;
     const release = (event: globalThis.PointerEvent) =>
-      latest.current(event.pointerId, event.clientX, false);
-    const cancel = (event: globalThis.PointerEvent) => latest.current(event.pointerId, 0, true);
-    const blur = () => gesture.current && latest.current(gesture.current.id, 0, true);
+      latest.current(event.pointerId, event.clientX, event.timeStamp, false);
+    const cancel = (event: globalThis.PointerEvent) => latest.current(event.pointerId, 0, 0, true);
+    const blur = () => gesture.current && latest.current(gesture.current.id, 0, 0, true);
     window.addEventListener('pointerup', release);
     window.addEventListener('pointercancel', cancel);
     window.addEventListener('blur', blur);
@@ -116,7 +124,7 @@ export function useSwipe({ target, onDrag, onRelease, onSwipe, threshold = 0.2 }
       const current = gesture.current;
       if (!current || current.id !== event.pointerId) return;
       if (event.pointerType === 'mouse' && event.buttons === 0) {
-        return finish(event.pointerId, event.clientX, false);
+        return finish(event.pointerId, event.clientX, event.timeStamp, false);
       }
       const dx = event.clientX - current.x;
       const dy = event.clientY - current.y;
@@ -133,19 +141,19 @@ export function useSwipe({ target, onDrag, onRelease, onSwipe, threshold = 0.2 }
       if (current.samples.length > 6) current.samples.shift();
       callbacks.current.onDrag(dx);
     },
-    onPointerUp: (event) => finish(event.pointerId, event.clientX, false),
-    onPointerCancel: (event) => finish(event.pointerId, 0, true),
+    onPointerUp: (event) => finish(event.pointerId, event.clientX, event.timeStamp, false),
+    onPointerCancel: (event) => finish(event.pointerId, 0, 0, true),
     // Touch starts captured by the card under the finger. Taking it over makes that card fire this event, which
     // bubbles here; only the viewport itself losing the pointer ends the drag, and then without a swipe.
     onLostPointerCapture(event) {
-      if (event.target === event.currentTarget) finish(event.pointerId, 0, true);
+      if (event.target === event.currentTarget) finish(event.pointerId, 0, 0, true);
     },
   };
 
   return { dragging, handlers };
 }
 
-/** Speed over the last ~100 ms of movement, in pixels per millisecond. */
+/** Speed over the last ~100 ms before the finger lifted, in pixels per millisecond. */
 function velocity(samples: { x: number; t: number }[]): number {
   const last = samples.at(-1);
   if (!last) return 0;

@@ -1,14 +1,10 @@
 import { type RefObject, useEffect, useRef } from 'react';
-import type { Motion } from '../context';
+import type { Motion, Placed } from '../context';
 import { useIsomorphicLayoutEffect } from './use-isomorphic-layout-effect';
-
-interface Position {
-  x: number;
-  y: number;
-}
 
 /** Everything that moves when the paged bracket changes round, keyed so it can be followed. */
 const MOVING = '[data-part="cell"][data-match], [data-part="round-title"][data-round]';
+const LEAVING = '[data-leaving]';
 
 /**
  * Fired on `Bracket.Connectors` on every frame of a move, right after the cards are placed, so the lines are
@@ -29,125 +25,259 @@ export const flights: WeakMap<Element, Flight> = new WeakMap();
 /** A flight that has landed: where the layout puts it, fully visible. */
 export const still: Flight = { x: 0, y: 0, opacity: 1 };
 
+/** An element animated from one offset and opacity to another. */
 interface Move {
   element: HTMLElement;
-  dx: number;
-  dy: number;
-  /** Opacity it starts from: 0 for a newcomer, or wherever an interrupted fade had got to. */
-  from: number;
+  x: [number, number];
+  y: [number, number];
+  opacity: [number, number];
+  /** How far into the move it reaches its final height, so a part caught mid-move keeps its pace. */
+  landsAt: number;
+  /** Part of a round sliding away: it keeps its last place until React lets it go. */
+  leaving: boolean;
+}
+
+/** A move in progress, run by a clock or by a finger. */
+export interface Run {
+  /** How far the rounds travel sideways over the whole move, in pixels. */
+  distance: number;
+  /** Places everything `progress` of the way there (0 to 1), for a swipe in progress. */
+  seek(progress: number): void;
+  /** Plays the rest of the move on the clock, then calls `done`. */
+  finish(done?: () => void): void;
+}
+
+interface FlipOptions {
+  /** How far the content was dragged, so a released drag continues from the finger. */
+  carry?: RefObject<number>;
+  /** When true the next move waits at its start for `run.seek`, instead of playing on the clock. */
+  scrub?: RefObject<boolean>;
+  /** Called when a move played on the clock has finished. */
+  onSettle?: () => void;
+  /** Called as a move starts, before its first frame is placed. */
+  onBegin?: () => void;
+  /** Called on every placed frame with the move's progress, to resize what holds the cards. */
+  onFrame?: (progress: number) => void;
 }
 
 const keyOf = (element: HTMLElement) => element.dataset.match ?? `round:${element.dataset.round}`;
 
 /**
  * Animates matches and round titles from where they were drawn on the previous
- * render to where they are now (the FLIP technique) and fades in newcomers.
- * `carry` is how far the content was dragged, so a released swipe continues from
- * the finger. Cards and connectors are moved by one clock in the same frame:
- * animating the cards on the compositor lets iOS draw them ahead of the lines.
+ * render to where they are now (the FLIP technique). Newcomers slide in from
+ * the side everything is moving towards, and a round that was moved past slides
+ * away the same way instead of vanishing. Cards and connectors move on one clock
+ * in the same frame: animating the cards on the compositor lets iOS draw them
+ * ahead of the lines. Returns where each element was last drawn, and the move in
+ * progress, so a swipe can drive it.
  */
 export function useFlip(
   container: RefObject<HTMLElement | null>,
   motion: Motion | null,
-  carry?: RefObject<number>,
-): void {
-  const previous = useRef(new Map<string, Position>());
-  const running = useRef<(() => void) | null>(null);
+  { carry, scrub, onSettle, onBegin, onFrame }: FlipOptions = {},
+): { placed: RefObject<Map<string, Placed>>; run: RefObject<Run | null> } {
+  const placed = useRef(new Map<string, Placed>());
+  const run = useRef<Run | null>(null);
+  const stop = useRef<(() => void) | null>(null);
+  const hooks = useRef({ onSettle, onBegin, onFrame });
+  hooks.current = { onSettle, onBegin, onFrame };
 
   useIsomorphicLayoutEffect(() => {
     const root = container.current;
     if (!root) return;
+    // Boxes are kept relative to the content, which is what a leaving round is pinned inside.
+    const origin = root.querySelector<HTMLElement>(':scope > [data-part="content"]') ?? root;
 
     const offset = carry?.current ?? 0;
     if (carry) carry.current = 0;
-    const current = new Map<string, Position>();
+    const before = placed.current;
+    const now = new Map<string, Placed>();
     const moves: Move[] = [];
+    const newcomers: HTMLElement[] = [];
+    const leaving: HTMLElement[] = [];
 
     for (const element of root.querySelectorAll<HTMLElement>(MOVING)) {
       const key = keyOf(element);
-      const position = layoutPosition(element, root);
-      current.set(key, position);
+      if (element.closest(LEAVING)) {
+        leaving.push(element);
+        const was = before.get(key);
+        if (was) now.set(key, was);
+        continue;
+      }
+      const box = layoutBox(element, origin);
+      now.set(key, box);
       if (!motion) continue;
 
-      const before = previous.current.get(key);
-      if (!before) {
-        if (previous.current.size > 0) moves.push({ element, dx: 0, dy: 0, from: 0 });
+      const was = before.get(key);
+      if (!was) {
+        if (before.size > 0) newcomers.push(element);
         continue;
       }
       // A move cut short by a new one continues from where the element is drawn, not from its old layout.
       const drawn = flights.get(element) ?? still;
-      const dx = before.x + offset + drawn.x - position.x;
-      const dy = before.y + drawn.y - position.y;
+      const dx = was.x + offset + drawn.x - box.x;
+      const dy = was.y + drawn.y - box.y;
       if (Math.abs(dx) >= 1 || Math.abs(dy) >= 1 || drawn.opacity < 1) {
-        moves.push({ element, dx, dy, from: drawn.opacity });
+        moves.push({
+          element,
+          x: [dx, 0],
+          y: [dy, 0],
+          opacity: [drawn.opacity, 1],
+          landsAt: 1,
+          leaving: false,
+        });
       }
     }
-    previous.current = current;
+    placed.current = now;
+
+    // Everything travels the same way sideways; the middle of the moves says how far.
+    const shift = median(moves.map((move) => move.x[0]));
+    if (motion) {
+      for (const element of newcomers) {
+        moves.push({
+          element,
+          x: [shift, 0],
+          y: [0, 0],
+          opacity: [0, 1],
+          landsAt: 1,
+          leaving: false,
+        });
+      }
+      for (const element of leaving) {
+        const drawn = flights.get(element) ?? still;
+        const to = drawn.x - shift;
+        // Caught on its way into place, it settles to its height as it passes that place, as it was going to.
+        moves.push({
+          element,
+          x: [drawn.x, to],
+          y: [drawn.y, 0],
+          opacity: [drawn.opacity, 0],
+          landsAt: shift ? Math.min(1, Math.max(0.05, drawn.x / shift)) : 1,
+          leaving: true,
+        });
+      }
+    }
 
     // Whatever was still moving is cleared first: anything the new moves don't cover rests in its place.
-    const interrupted = running.current;
-    running.current = null;
+    const interrupted = stop.current;
+    stop.current = null;
+    run.current = null;
     interrupted?.();
     const connectors = root.querySelector('[data-part="connectors"]');
-    if (motion && moves.length > 0) running.current = play(moves, motion, connectors);
-    else if (interrupted)
-      connectors?.dispatchEvent(new CustomEvent(FRAME_EVENT, { detail: { done: true } }));
+    if (motion && moves.length > 0) {
+      hooks.current.onBegin?.();
+      const next = start(moves, Math.abs(shift), motion, connectors, (progress) =>
+        hooks.current.onFrame?.(progress),
+      );
+      stop.current = next.stop;
+      run.current = next;
+      if (!scrub?.current) next.finish(() => hooks.current.onSettle?.());
+    } else {
+      if (interrupted) {
+        connectors?.dispatchEvent(new CustomEvent(FRAME_EVENT, { detail: { done: true } }));
+      }
+      hooks.current.onFrame?.(1);
+      if (leaving.length > 0) hooks.current.onSettle?.();
+    }
   });
 
-  useEffect(() => () => running.current?.(), []);
+  useEffect(() => () => stop.current?.(), []);
+
+  return { placed, run };
 }
 
-/** Runs the moves on one clock; returns a function that stops them and puts every element back at rest. */
-function play(moves: Move[], motion: Motion, connectors: Element | null): () => void {
+/** Sets up a move at its start; a finger seeks it, or the clock finishes it. */
+function start(
+  moves: Move[],
+  distance: number,
+  motion: Motion,
+  connectors: Element | null,
+  onFrame: (progress: number) => void,
+): Run & { stop: () => void } {
   const progressAt = easing(motion);
-  const start = performance.now();
+  let progress = 0;
   let frame = 0;
+  let timer: ReturnType<typeof setTimeout> | undefined;
 
-  const place = (progress: number) => {
-    const left = 1 - progress;
-    for (const { element, dx, dy, from } of moves) {
-      const flight = { x: dx * left, y: dy * left, opacity: from + (1 - from) * progress };
-      flights.set(element, flight);
-      element.style.transform =
-        flight.x || flight.y ? `translate(${flight.x}px, ${flight.y}px)` : '';
-      element.style.opacity = flight.opacity < 1 ? String(flight.opacity) : '';
+  const between = ([from, to]: [number, number], at: number) => from + (to - from) * at;
+  const place = (at: number) => {
+    progress = at;
+    for (const move of moves) {
+      const flight = {
+        x: between(move.x, at),
+        y: between(move.y, Math.min(1, at / move.landsAt)),
+        opacity: between(move.opacity, at),
+      };
+      flights.set(move.element, flight);
+      const { style } = move.element;
+      // translate3d keeps each card on its own GPU layer while the clock moves it from the main thread.
+      style.transform = flight.x || flight.y ? `translate3d(${flight.x}px, ${flight.y}px, 0)` : '';
+      style.opacity = flight.opacity < 1 ? String(flight.opacity) : '';
     }
+    onFrame(at);
   };
+  const emit = (detail: { done?: boolean; sync?: boolean }) =>
+    connectors?.dispatchEvent(new CustomEvent(FRAME_EVENT, { detail }));
+  // Leaving parts keep their last place and fade until React removes them, so they never flash back; if one
+  // comes back instead, its flight says where it is drawn, and the next move picks it up from there.
   const settle = () => {
-    for (const { element } of moves) {
+    for (const { element, leaving } of moves) {
+      if (leaving) continue;
       flights.delete(element);
       element.style.transform = '';
       element.style.opacity = '';
     }
   };
-  const emit = (detail: { done?: boolean; sync?: boolean }) =>
-    connectors?.dispatchEvent(new CustomEvent(FRAME_EVENT, { detail }));
+  const halt = () => {
+    cancelAnimationFrame(frame);
+    clearTimeout(timer);
+  };
 
   place(0);
   emit({ sync: true });
 
-  const finish = () => {
-    cancelAnimationFrame(frame);
-    clearTimeout(timer);
-    settle();
-    emit({ done: true });
+  return {
+    distance,
+    seek(at) {
+      halt();
+      place(Math.min(1, Math.max(0, at)));
+      emit({});
+    },
+    finish(done) {
+      halt();
+      const from = progress;
+      const duration = motion.duration * (1 - from);
+      const begin = performance.now();
+      const land = () => {
+        halt();
+        place(1);
+        settle();
+        emit({ done: true });
+        done?.();
+      };
+      const tick = (now: number) => {
+        const elapsed = now - begin;
+        if (elapsed >= duration) return land();
+        place(from + (1 - from) * progressAt((elapsed / duration) * motion.duration));
+        emit({});
+        frame = requestAnimationFrame(tick);
+      };
+      if (duration <= 0) return land();
+      frame = requestAnimationFrame(tick);
+      // Hidden tabs pause frames; a timer still lands everything where it belongs.
+      timer = setTimeout(land, duration + 50);
+    },
+    stop() {
+      halt();
+      settle();
+    },
   };
-  const tick = (now: number) => {
-    const progress = progressAt(now - start);
-    if (progress >= 1) return finish();
-    place(progress);
-    emit({});
-    frame = requestAnimationFrame(tick);
-  };
-  frame = requestAnimationFrame(tick);
-  // Hidden tabs pause frames; a timer still lands everything where it belongs.
-  const timer = setTimeout(finish, motion.duration + 50);
+}
 
-  return () => {
-    cancelAnimationFrame(frame);
-    clearTimeout(timer);
-    settle();
-  };
+function median(values: number[]): number {
+  if (values.length === 0) return 0;
+  const sorted = [...values].sort((a, b) => a - b);
+  return sorted[sorted.length >> 1] ?? 0;
 }
 
 /**
@@ -166,19 +296,19 @@ function easing({ duration, easing }: Motion): (elapsed: number) => number {
   };
 }
 
-/** Where the element sits inside `root`, from layout offsets: transforms, drags and running moves don't count. */
-function layoutPosition(element: HTMLElement, root: HTMLElement): Position {
+/** The element's box inside `origin`, from layout offsets: transforms, drags and running moves don't count. */
+function layoutBox(element: HTMLElement, origin: HTMLElement): Placed {
   let x = 0;
   let y = 0;
   let node: HTMLElement | null = element;
-  while (node && node !== root && root.contains(node)) {
+  while (node && node !== origin && origin.contains(node)) {
     x += node.offsetLeft;
     y += node.offsetTop;
     node = node.offsetParent as HTMLElement | null;
   }
-  if (node !== root) {
-    x -= root.offsetLeft;
-    y -= root.offsetTop;
+  if (node !== origin) {
+    x -= origin.offsetLeft;
+    y -= origin.offsetTop;
   }
-  return { x, y };
+  return { x, y, width: element.offsetWidth, height: element.offsetHeight };
 }

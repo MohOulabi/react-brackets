@@ -122,8 +122,8 @@ function LiveNow() {
 }
 
 /**
- * Pages through the rounds on its own while the phone is on screen, the way a thumb would, until someone swipes or
- * taps it themselves. Stays still for people who prefer reduced motion.
+ * Pages through the rounds on its own while the phone is on screen, the way a thumb would, until someone presses on
+ * it, so it never pages under a swipe in progress. Stays still for people who prefer reduced motion.
  */
 function useDemoPaging() {
   const ref = useRef<HTMLDivElement>(null);
@@ -152,6 +152,7 @@ function useDemoPaging() {
   return {
     ref,
     page,
+    onPointerDown: () => setTouched(true),
     onPageChange: (next: number) => {
       setTouched(true);
       setPage(next);
@@ -160,11 +161,15 @@ function useDemoPaging() {
 }
 
 export function PhoneShowcase() {
-  const { ref, page, onPageChange } = useDemoPaging();
+  const { ref, page, onPointerDown, onPageChange } = useDemoPaging();
 
   return (
     <IPhone label="An iPhone showing the Spring Cup bracket one round at a time, with the next round peeking in at the edge">
-      <div ref={ref} className="absolute inset-0 flex flex-col pt-[60px] pb-5">
+      <div
+        ref={ref}
+        onPointerDown={onPointerDown}
+        className="absolute inset-0 flex flex-col pt-[60px] pb-5"
+      >
         <div className="flex items-end justify-between px-5 pb-4">
           <div>
             <p className="text-[13px] text-white/55">Sunday, 14 April</p>
