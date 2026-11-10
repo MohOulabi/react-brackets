@@ -9,6 +9,9 @@ description: Brackets flow right to left on RTL pages, and every string can be t
 
 Set `dir="rtl"` on the bracket or any parent. The tree, connector lines, swipe direction, arrow keys and pagination all flip.
 
+<Tabs groupId="platform" persist items={['React', 'React Native']}>
+<Tab value="React">
+
 ```tsx
 <div dir="rtl" lang="ar">
   <Bracket
@@ -17,6 +20,20 @@ Set `dir="rtl"` on the bracket or any parent. The tree, connector lines, swipe d
   />
 </div>
 ```
+
+</Tab>
+<Tab value="React Native">
+
+```tsx
+<Bracket
+  dir="rtl"
+  stage={singleElimination(clubs, { roundName: (index) => arabicRoundNames[index] })}
+  labels={{ tbd: 'لم يحدد', bye: 'تأهل مباشر' }}
+/>
+```
+
+</Tab>
+</Tabs>
 
 ## Labels
 

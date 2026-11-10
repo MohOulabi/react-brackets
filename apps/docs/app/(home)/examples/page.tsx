@@ -1,7 +1,3 @@
-import { readdir, readFile } from 'node:fs/promises';
-import path from 'node:path';
-import { ServerCodeBlock } from 'fumadocs-ui/components/codeblock.rsc';
-import { Tab, Tabs } from 'fumadocs-ui/components/tabs';
 import type { Metadata } from 'next';
 import type { ReactNode } from 'react';
 import {
@@ -21,8 +17,9 @@ import {
   Theme,
   TwoSided,
 } from '@/components/examples/apps';
-import { ExamplesNav } from '@/components/examples/nav';
+import { Gallery } from '@/components/examples/gallery';
 import { OnScreen } from '@/components/examples/on-screen';
+import { Source } from '@/components/examples/source';
 import { repository } from '@/lib/layout.shared';
 
 export const dynamic = 'force-static';
@@ -190,118 +187,27 @@ const count = groups.reduce((total, group) => total + group.examples.length, 0);
 
 export default function ExamplesPage() {
   return (
-    <main className="mx-auto w-full max-w-6xl px-4 pt-16 pb-24 sm:px-6 md:pt-24">
-      <header className="flex max-w-2xl flex-col gap-5">
-        <h1 className="font-display text-balance text-[clamp(2.75rem,6vw,4.5rem)]">Examples.</h1>
-        <p className="text-lg leading-relaxed text-muted-foreground">
+    <Gallery
+      platform="react"
+      repository={repository}
+      intro={
+        <>
           {count} small apps from the repository, each running here exactly as it does on its own,
           with all of its code. To run them locally, clone the repository and run{' '}
           <code className="text-foreground">bun run examples</code>.
-        </p>
-      </header>
-
-      <div className="mt-14 grid gap-12 lg:grid-cols-[11rem_minmax(0,1fr)] lg:gap-16">
-        <ExamplesNav
-          groups={groups.map((group) => ({
-            title: group.title,
-            links: group.examples.map(({ folder, title }) => ({ id: folder, title })),
-          }))}
-        />
-
-        <div className="flex min-w-0 flex-col">
-          {groups.map((group) => (
-            <section key={group.title} aria-labelledby={`group-${group.title}`}>
-              <h2
-                id={`group-${group.title}`}
-                className="font-display pt-4 pb-2 text-[clamp(1.75rem,3vw,2.25rem)]"
-              >
-                {group.title}
-              </h2>
-              {group.examples.map((example) => (
-                <ExampleEntry key={example.folder} example={example} />
-              ))}
-            </section>
-          ))}
-        </div>
-      </div>
-    </main>
-  );
-}
-
-function ExampleEntry({ example }: { example: Example }) {
-  const { folder, title, summary, demo } = example;
-  return (
-    <article id={folder} className="flex scroll-mt-24 flex-col gap-4 border-t py-10">
-      <div className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-1">
-        <h3 className="text-xl font-semibold tracking-tight">{title}</h3>
-        <a
-          href={`${repository}/tree/main/examples/${folder}`}
-          className="text-sm text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
-        >
-          examples/{folder}
-        </a>
-      </div>
-      <p className="max-w-2xl leading-relaxed text-muted-foreground">{summary}</p>
-      {demo && (
-        <div className="example-stage overflow-hidden rounded-2xl border p-4 sm:p-7">{demo}</div>
-      )}
-      <details className="group" open={!demo}>
-        <summary className="inline-flex h-9 cursor-pointer list-none items-center rounded-full border px-4 text-sm font-medium transition-colors hover:bg-fd-accent [&::-webkit-details-marker]:hidden">
-          <span className="group-open:hidden">Show the code</span>
-          <span className="hidden group-open:inline">Hide the code</span>
-        </summary>
-        <Source folder={folder} />
-      </details>
-    </article>
-  );
-}
-
-const examples = path.join(process.cwd(), '../../examples');
-
-/** Where a file comes in the tabs: the app first, its entry point last. */
-const rank = (file: string) =>
-  /(^|\/)(app|page)\.tsx$/.test(file) ? 0 : /main\.tsx$/.test(file) ? 2 : 1;
-
-/** Every source file of an example, so the code can be copied as a whole. */
-async function Source({ folder }: { folder: string }) {
-  const base = path.join(examples, folder);
-  const dir = folder === 'nextjs' ? 'app' : 'src';
-  const entries = await readdir(path.join(base, dir), { recursive: true });
-  const files = entries
-    .filter((file) => /\.(tsx?|css)$/.test(file))
-    .sort((a, b) => rank(a) - rank(b) || a.localeCompare(b));
-  // shadcn/ui components are added with its CLI rather than copied from here.
-  const shadcn = files.filter((file) => file.startsWith('components/ui/'));
-  const shown = files.filter((file) => !shadcn.includes(file));
-  const sources = await Promise.all(
-    shown.map((file) => readFile(path.join(base, dir, file), 'utf8')),
-  );
-  const { dependencies = {} } = JSON.parse(await readFile(path.join(base, 'package.json'), 'utf8'));
-  const packages = Object.keys(dependencies).filter(
-    (name) => !/^(react|react-dom|next)$/.test(name),
-  );
-  const setup = [
-    `npm install ${packages.join(' ')}`,
-    shadcn.length > 0 &&
-      `npx shadcn@latest add ${shadcn.map((file) => path.basename(file, '.tsx')).join(' ')}`,
-  ]
-    .filter(Boolean)
-    .join('\n');
-
-  return (
-    <div className="mt-4 flex flex-col gap-3">
-      <ServerCodeBlock code={setup} lang="bash" codeblock={{ className: 'my-0' }} />
-      <Tabs items={shown}>
-        {shown.map((file, index) => (
-          <Tab key={file} value={file}>
-            <ServerCodeBlock
-              code={sources[index] ?? ''}
-              lang={file.endsWith('.css') ? 'css' : 'tsx'}
-              codeblock={{ className: 'my-0' }}
-            />
-          </Tab>
-        ))}
-      </Tabs>
-    </div>
+        </>
+      }
+      groups={groups.map((group) => ({
+        title: group.title,
+        examples: group.examples.map(({ folder, title, summary, demo }) => ({
+          id: folder,
+          title,
+          summary,
+          path: `examples/${folder}`,
+          preview: demo,
+          code: <Source folder={folder} />,
+        })),
+      }))}
+    />
   );
 }

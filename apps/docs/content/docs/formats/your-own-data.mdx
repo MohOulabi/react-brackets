@@ -5,6 +5,9 @@ description: Draw brackets from data you already have, like an API, a CMS or a s
 
 If your tournament lives elsewhere, describe its rounds and `fromRounds` turns them into a stage:
 
+<Tabs groupId="platform" persist items={['React', 'React Native']}>
+<Tab value="React">
+
 ```tsx
 import { Bracket, fromRounds } from 'react-brackets';
 
@@ -21,6 +24,29 @@ const stage = fromRounds([
 
 <Bracket stage={stage} />;
 ```
+
+</Tab>
+<Tab value="React Native">
+
+```tsx
+import { Bracket, fromRounds } from '@react-brackets/native';
+
+const stage = fromRounds([
+  {
+    name: 'Semifinals',
+    matches: [
+      { participants: [{ name: 'Falcons', score: 2 }, { name: 'Wolves', score: 1 }], winner: 0 },
+      { participants: [{ name: 'Herons' }, { name: 'Lynx' }], live: true },
+    ],
+  },
+  { name: 'Final', matches: [{ participants: [{ name: 'Falcons' }, null] }] },
+]);
+
+<Bracket stage={stage} />;
+```
+
+</Tab>
+</Tabs>
 
 - Rounds that halve in size are linked as a knockout tree, and equal-sized rounds one to one (like a losers bracket). The connector lines follow.
 - Participants are matched by `id`, or by `name` when there's no id.
