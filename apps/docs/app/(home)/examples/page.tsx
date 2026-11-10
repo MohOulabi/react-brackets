@@ -259,7 +259,8 @@ function ExampleEntry({ example }: { example: Example }) {
 const examples = path.join(process.cwd(), '../../examples');
 
 /** Where a file comes in the tabs: the app first, its entry point last. */
-const rank = (file: string) => (/(^|\/)app\.tsx$/.test(file) ? 0 : /main\.tsx$/.test(file) ? 2 : 1);
+const rank = (file: string) =>
+  /(^|\/)(app|page)\.tsx$/.test(file) ? 0 : /main\.tsx$/.test(file) ? 2 : 1;
 
 /** Every source file of an example, so the code can be copied as a whole. */
 async function Source({ folder }: { folder: string }) {
