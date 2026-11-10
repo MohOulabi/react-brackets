@@ -1,6 +1,6 @@
 {
   "name": "@react-brackets/theme",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "description": "Optional default theme for react-brackets, driven by CSS variables.",
   "license": "MIT",
   "author": "Mohammed AlOulabi",
