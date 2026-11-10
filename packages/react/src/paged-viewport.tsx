@@ -4,6 +4,7 @@ import {
   type ReactNode,
   type RefObject,
   useContext,
+  useEffect,
   useRef,
   useState,
 } from 'react';
@@ -12,6 +13,7 @@ import { type Motion, PagingContext, PlacedContext, useBracketContext } from './
 import { type Run, useFlip } from './hooks/use-flip';
 import { useIsomorphicLayoutEffect } from './hooks/use-isomorphic-layout-effect';
 import { rubberBand, useSwipe } from './hooks/use-swipe';
+import { heightAt, type PageHeight } from './page-height';
 import { GridContent } from './viewport';
 
 type SectionProps = ComponentPropsWithoutRef<'section'>;
@@ -27,7 +29,8 @@ const ROUNDS = ':scope > [data-part="round"]';
  * one before slides away, and letting go finishes the move or takes it back.
  */
 export function PagedBracketViewport({ style, children, ...props }: SectionProps): ReactNode {
-  const { page, setPage, rounds, width, labels, motion, maxSwipeRounds } = useBracketContext();
+  const { page, setPage, rounds, width, labels, motion, maxSwipeRounds, pageHeight } =
+    useBracketContext();
   const paging = useContext(PagingContext);
   const viewport = useRef<HTMLElement>(null);
   const content = useRef<HTMLDivElement>(null);
@@ -66,7 +69,7 @@ export function PagedBracketViewport({ style, children, ...props }: SectionProps
         return;
       }
       const { from, to } = height.current;
-      if (from > 0) box.style.height = `${from + (to - from) * progress}px`;
+      if (from > 0) box.style.height = `${heightAt([from, to], progress, pageHeight)}px`;
     },
   };
 
@@ -173,12 +176,13 @@ function useRtl(viewport: RefObject<HTMLElement | null>): boolean {
 
 /** One round at a time as a plain list of matches, sliding sideways between rounds. */
 export function PagedListViewport({ style, children, ...props }: SectionProps): ReactNode {
-  const { page, setPage, rounds, classNames, labels, width, motion, maxSwipeRounds } =
+  const { page, setPage, rounds, classNames, labels, width, motion, maxSwipeRounds, pageHeight } =
     useBracketContext();
   const viewport = useRef<HTMLElement>(null);
   const content = useRef<HTMLDivElement>(null);
-  const { rtl, height } = useFrame(viewport, content, page, ROUNDS);
+  const rtl = useRtl(viewport);
   const step = rtl ? -1 : 1;
+  const follow = useListHeight(viewport, content, page, step, pageHeight);
   const at = -page * step * 100;
   const resting = `translateX(${at}%)`;
   const pull = (offset: number) => resist(offset, step, page, rounds.length, width ?? 0);
@@ -189,6 +193,7 @@ export function PagedListViewport({ style, children, ...props }: SectionProps): 
         content.current.style.transition = 'none';
         content.current.style.transform = `translateX(calc(${at}% + ${pull(offset)}px))`;
       }
+      follow();
     },
     onRelease: (offset, direction, aim) => {
       const steps = Math.min(maxSwipeRounds, pages(offset, aim, width || 320));
@@ -200,6 +205,7 @@ export function PagedListViewport({ style, children, ...props }: SectionProps): 
   // finger let go. A release that stays on the same round leaves React nothing to change: send it home here.
   useIsomorphicLayoutEffect(() => {
     if (content.current && !dragging) content.current.style.transform = resting;
+    follow();
   }, [resting, dragging]);
 
   return (
@@ -210,14 +216,7 @@ export function PagedListViewport({ style, children, ...props }: SectionProps): 
       aria-roledescription="carousel"
       aria-label={labels.rounds}
       onKeyDown={useArrowKeys(page, setPage, step)}
-      style={{
-        overflow: 'hidden',
-        touchAction: 'pan-y',
-        userSelect: 'none',
-        height,
-        transition: transition('height', dragging ? null : motion),
-        ...style,
-      }}
+      style={{ overflow: 'hidden', touchAction: 'pan-y', userSelect: 'none', ...style }}
     >
       <div
         ref={content}
@@ -263,31 +262,56 @@ function transition(property: string, motion: Motion | null): string | undefined
   return motion ? `${property} ${motion.duration}ms ${motion.easing}` : undefined;
 }
 
-/** Reads the text direction and follows the height of the content, or of the round on `page`. */
-function useFrame(
+/**
+ * Sizes the list to the rounds on screen. While the list moves, each frame works out where the rounds are
+ * from its own transform; at rest, the height follows the round on `page` as it changes size.
+ * Returns the function that starts following a move.
+ */
+function useListHeight(
   viewport: RefObject<HTMLElement | null>,
   content: RefObject<HTMLElement | null>,
   page: number,
-  roundSelector?: string,
-): { rtl: boolean; height: number | undefined } {
-  const [rtl, setRtl] = useState(false);
-  const [height, setHeight] = useState<number | undefined>(undefined);
+  step: number,
+  fit: PageHeight,
+): () => void {
   const { columns } = useBracketContext();
+  const frame = useRef(0);
+  const moving = useRef(false);
 
   useIsomorphicLayoutEffect(() => {
-    if (viewport.current) setRtl(getComputedStyle(viewport.current).direction === 'rtl');
-    const target = roundSelector
-      ? content.current?.querySelectorAll(roundSelector)[page]
-      : content.current;
-    if (!(target instanceof HTMLElement)) return;
-    setHeight(target.offsetHeight);
-    if (typeof ResizeObserver === 'undefined') return;
-    const observer = new ResizeObserver(() => setHeight(target.offsetHeight));
-    observer.observe(target);
+    const box = viewport.current;
+    const round = content.current?.querySelectorAll(ROUNDS)[page];
+    if (!box || !(round instanceof HTMLElement) || typeof ResizeObserver === 'undefined') return;
+    const observer = new ResizeObserver(() => {
+      if (!moving.current) box.style.height = `${round.offsetHeight}px`;
+    });
+    observer.observe(round);
     return () => observer.disconnect();
-  }, [page, columns, roundSelector]);
+  }, [page, columns]);
 
-  return { rtl, height };
+  useEffect(() => () => cancelAnimationFrame(frame.current), []);
+
+  return () => {
+    const box = viewport.current;
+    const list = content.current;
+    if (!box || !list) return;
+    cancelAnimationFrame(frame.current);
+    const heights = Array.from(
+      list.querySelectorAll<HTMLElement>(ROUNDS),
+      (round) => round.offsetHeight,
+    );
+    const tick = () => {
+      // Browsers resolve the transform to a matrix; anything else is taken as resting on `page`.
+      const transform = getComputedStyle(list).transform;
+      const position = transform.startsWith('matrix')
+        ? (-new DOMMatrixReadOnly(transform).m41 * step) / (list.offsetWidth || 1)
+        : page;
+      box.style.height = `${heightAt(heights, position, fit)}px`;
+      moving.current = Math.abs(position - page) > 0.001;
+      if (moving.current) frame.current = requestAnimationFrame(tick);
+    };
+    tick();
+  };
 }
 
 function useArrowKeys(

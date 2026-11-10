@@ -28,6 +28,7 @@ export type {
   ParticipantProps,
   ParticipantState,
 } from './match';
+export type { PageHeight } from './page-height';
 export type { PaginationProps } from './pagination';
 export type { Point } from './paths';
 export type { BracketLayout, RootOwnProps, RootProps, RootState } from './root';

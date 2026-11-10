@@ -24,6 +24,7 @@ import {
 } from './context';
 import { useElementWidth } from './hooks/use-element-width';
 import { useReducedMotion } from './hooks/use-reduced-motion';
+import type { PageHeight } from './page-height';
 
 /** `standard` flows in one direction; `mirrored` splits the bracket into halves that meet at the final. */
 export type BracketLayout = 'standard' | 'mirrored';
@@ -64,6 +65,13 @@ export interface RootOwnProps {
    * @defaultValue 'bracket'
    */
   compact?: Compact;
+  /**
+   * How the paged view's height moves between rounds of different heights.
+   * `contain` holds both rounds while they move and settles once the move lands, so nothing is cut;
+   * `follow` blends the heights under the finger, cutting the taller round as it moves.
+   * @defaultValue 'contain'
+   */
+  pageHeight?: PageHeight;
   /**
    * The most rounds one swipe can move in the paged view. A long or fast swipe crosses several rounds; `1` pages
    * one round at a time.
@@ -143,6 +151,7 @@ export function Root({
   layout = 'standard',
   compactBelow = 640,
   compact = 'bracket',
+  pageHeight = 'contain',
   maxSwipeRounds = Number.POSITIVE_INFINITY,
   motion,
   page: controlledPage,
@@ -271,6 +280,7 @@ export function Root({
     participants,
     view,
     compact,
+    pageHeight,
     maxSwipeRounds: Math.max(1, maxSwipeRounds),
     grid,
     width,
