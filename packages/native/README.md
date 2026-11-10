@@ -4,7 +4,8 @@ Tournament brackets for React Native and Expo, from the same core as [react-brac
 
 - **Native feel.** Swipes, the change of round, pinch and zoom all run on the UI thread with Reanimated and Gesture Handler. React re-renders only once a swipe lands.
 - **Lines that never trail.** Connectors are plain views moved by the same transforms as the cards, in the same frame, and stay sharp at any zoom.
-- **Still a bracket on a phone.** Narrow screens page through one round at a time, with the next round and its lines at the edge. Wide screens get the whole tree, scrolled, fitted or zoomed.
+- **Still a bracket on a phone.** Narrow screens page through one round at a time, with the next round and its lines at the edge, or as plain lists. Wide screens get the whole tree, scrolled, fitted or zoomed, standard or mirrored.
+- **Right to left.** Follows your app's direction, or `dir="rtl"`: the first round on the right, swiped the other way.
 - **Every format.** Single and double elimination, round robin, Swiss and your own data, with results that move winners on.
 - **Styled your way.** A light and dark theme out of the box, and a `style` on every part that can depend on its state, for StyleSheet, Uniwind, NativeWind or Unistyles.
 
@@ -34,6 +35,15 @@ export function Screen() {
 ```
 
 Wrap your app in `GestureHandlerRootView`, as Gesture Handler asks. Inside a scrolling screen, use Gesture Handler's `ScrollView`, so a swipe across the bracket and a scroll down the page never fight over the same touch.
+
+## Layouts
+
+```tsx
+<Bracket stage={stage} />                          // a round at a time, as a bracket
+<Bracket stage={stage} compact="list" />           // a round at a time, as plain lists
+<Bracket stage={stage} compactBelow={0} mode="pan-zoom" />  // the whole tree, to pinch and zoom
+<Bracket stage={stage} dir="rtl" />                // right to left
+```
 
 ## Your own cards
 
@@ -75,6 +85,10 @@ Reanimated can move views without a layout pass. Turn it on in your app's `packa
 ```
 
 The bracket only animates transforms and opacity, and its presses use Gesture Handler, so it is ready for this fast path.
+
+## Examples
+
+[`examples/native`](https://github.com/MohOulabi/react-brackets/tree/main/examples/native) is an Expo app with every example in the docs, from a quick start to an esports bracket you can play. See them recorded on an iPhone, with their code, at [react-brackets.oulabi.dev/docs/native/examples](https://react-brackets.oulabi.dev/docs/native/examples).
 
 ## License
 

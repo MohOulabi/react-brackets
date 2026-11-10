@@ -9,11 +9,18 @@ import {
   type Stage,
 } from '@react-brackets/core';
 import { type ReactNode, useCallback, useMemo, useRef, useState } from 'react';
-import { type LayoutChangeEvent, type StyleProp, Text, View, type ViewStyle } from 'react-native';
+import {
+  I18nManager,
+  type LayoutChangeEvent,
+  type StyleProp,
+  Text,
+  View,
+  type ViewStyle,
+} from 'react-native';
 import { Pressable } from 'react-native-gesture-handler';
 import { useReducedMotion } from 'react-native-reanimated';
 import { BracketContext, type BracketContextValue, type Labels, MatchContext } from './context';
-import type { Metrics } from './geometry';
+import type { Metrics, PageHeight } from './geometry';
 import { edgeKey, PagedBracket } from './paged';
 import { MatchPart, ParticipantPart, RoundTitle } from './parts';
 import { type BracketTheme, type ThemeOverrides, useBracketTheme } from './theme';
@@ -33,6 +40,24 @@ export interface BracketProps {
    * @defaultValue 600
    */
   compactBelow?: number;
+  /**
+   * How the paged view draws a round: `bracket` keeps the lines with the next
+   * round peeking in; `list` shows each round as a plain list of matches.
+   * @defaultValue 'bracket'
+   */
+  compact?: 'bracket' | 'list';
+  /**
+   * Which way the rounds read. Right to left puts the first round on the right and swipes the other way.
+   * @defaultValue the app's own direction
+   */
+  dir?: 'ltr' | 'rtl';
+  /**
+   * How the paged view's height moves between rounds of different heights.
+   * `contain` holds both rounds while they move and settles once the swipe lands, so nothing is cut;
+   * `follow` blends the heights under the finger, cutting the taller round as it moves.
+   * @defaultValue 'contain'
+   */
+  pageHeight?: PageHeight;
   /**
    * How the whole tree fits its width.
    * @defaultValue 'scroll'
@@ -125,6 +150,9 @@ function GroupBracket({
   title,
   layout = 'standard',
   compactBelow = 600,
+  compact = 'bracket',
+  dir = I18nManager.isRTL ? 'rtl' : 'ltr',
+  pageHeight = 'contain',
   mode = 'scroll',
   page: controlledPage,
   onPageChange,
@@ -228,7 +256,7 @@ function GroupBracket({
   return (
     <BracketContext.Provider value={context}>
       <View
-        style={[{ opacity: matchHeight.measured ? 1 : 0 }, style]}
+        style={[{ opacity: matchHeight.measured ? 1 : 0, direction: dir }, style]}
         onLayout={(event: LayoutChangeEvent) => setWidth(event.nativeEvent.layout.width)}
       >
         {title && (
@@ -258,6 +286,9 @@ function GroupBracket({
               duration={duration}
               highlightedEdges={highlightedEdges}
               renderMatch={drawMatch}
+              variant={compact}
+              rtl={dir === 'rtl'}
+              fit={pageHeight}
             />
           ) : (
             <TreeBracket
@@ -270,6 +301,7 @@ function GroupBracket({
               duration={duration}
               highlightedEdges={highlightedEdges}
               renderMatch={drawMatch}
+              rtl={dir === 'rtl'}
             />
           ))}
       </View>

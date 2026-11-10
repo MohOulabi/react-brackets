@@ -1,5 +1,5 @@
 import type { GroupLayout, Match } from '@react-brackets/core';
-import { type ReactNode, useMemo } from 'react';
+import { type ComponentRef, type ReactNode, useMemo, useRef } from 'react';
 import { Text, View } from 'react-native';
 import {
   GestureDetector,
@@ -20,7 +20,7 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 import { StaticConnector } from './connectors';
-import { type Metrics, type TreeGeometry, treeGeometry } from './geometry';
+import { type Metrics, mirrorTree, type TreeGeometry, treeGeometry } from './geometry';
 import { edgeKey } from './paged';
 import { RoundTitle } from './parts';
 import type { BracketTheme } from './theme';
@@ -38,6 +38,7 @@ export interface TreeProps {
   duration: number | null;
   highlightedEdges: Set<string>;
   renderMatch: (match: Match) => ReactNode;
+  rtl: boolean;
 }
 
 /** The whole bracket at once: scrolled sideways, scaled to fit, or panned and zoomed. */
@@ -51,19 +52,22 @@ export function TreeBracket({
   duration,
   highlightedEdges,
   renderMatch,
+  rtl,
 }: TreeProps): ReactNode {
   const { matchWidth, matchHeight, matchGap, columnGap, titleHeight } = metrics;
   // biome-ignore lint/correctness/useExhaustiveDependencies: the metrics are listed value by value
-  const geometry = useMemo(
-    () => treeGeometry(layout, metrics),
-    [layout, matchWidth, matchHeight, matchGap, columnGap, titleHeight],
-  );
+  const geometry = useMemo(() => {
+    const tree = treeGeometry(layout, metrics);
+    return rtl ? mirrorTree(tree) : tree;
+  }, [layout, rtl, matchWidth, matchHeight, matchGap, columnGap, titleHeight]);
+  const scroller = useRef<ComponentRef<typeof ScrollView>>(null);
   const content = (
     <Drawing
       geometry={geometry}
       theme={theme}
       highlightedEdges={highlightedEdges}
       renderMatch={renderMatch}
+      rtl={rtl}
     />
   );
   const fit = Math.min(1, width / Math.max(1, geometry.width));
@@ -92,7 +96,14 @@ export function TreeBracket({
     );
   }
   return (
-    <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+    <ScrollView
+      ref={scroller}
+      horizontal
+      showsHorizontalScrollIndicator={false}
+      style={{ direction: 'ltr' }}
+      // Read from right to left, the tree starts at its first round, on the right.
+      onContentSizeChange={() => rtl && scroller.current?.scrollToEnd({ animated: false })}
+    >
       {content}
     </ScrollView>
   );
@@ -103,12 +114,15 @@ function Drawing({
   theme,
   highlightedEdges,
   renderMatch,
+  rtl,
 }: {
   geometry: TreeGeometry;
   theme: BracketTheme;
   highlightedEdges: Set<string>;
   renderMatch: (match: Match) => ReactNode;
+  rtl: boolean;
 }): ReactNode {
+  const flow = rtl ? 'rtl' : 'ltr';
   const matches = useMemo(() => {
     const byId = new Map<string, Match>();
     for (const title of geometry.titles) {
@@ -122,7 +136,8 @@ function Drawing({
   );
 
   return (
-    <View style={{ width: geometry.width, height: geometry.height }}>
+    // Places are worked out left to right and mirrored for RTL, so this layer never flips them again.
+    <View style={{ width: geometry.width, height: geometry.height, direction: 'ltr' }}>
       {edges.map((edge) => {
         const from = geometry.matches.get(edge.from);
         const to = geometry.matches.get(edge.to);
@@ -151,6 +166,7 @@ function Drawing({
             width: geometry.matchWidth,
             height: theme.titleHeight,
             justifyContent: 'center',
+            direction: flow,
           }}
         >
           <RoundTitle round={title.round} />
@@ -162,7 +178,13 @@ function Drawing({
           match && (
             <View
               key={id}
-              style={{ position: 'absolute', left: box.x, top: box.y, width: box.width }}
+              style={{
+                position: 'absolute',
+                left: box.x,
+                top: box.y,
+                width: box.width,
+                direction: flow,
+              }}
             >
               {renderMatch(match)}
             </View>

@@ -143,6 +143,66 @@ export function pagedGeometry(group: Group, metrics: Metrics, step: number): Pag
 }
 
 /**
+ * Plain lists of matches, one round per page, in the same tables as
+ * `pagedGeometry`: each round fills the width, its matches stacked, and the
+ * rounds sit side by side like a carousel. There are no lines between them.
+ */
+export function listGeometry(group: Group, metrics: Metrics, step: number): PagedGeometry {
+  const pages = group.rounds.length;
+  const row = metrics.matchHeight + metrics.matchGap;
+  const matches = new Map<Id, number[]>();
+  const titles = new Map<Id, number[]>();
+  group.rounds.forEach((round, index) => {
+    const placeAt = (y: number) => {
+      const frames: number[] = [];
+      for (let page = 0; page < pages; page++) frames.push((index - page) * step, y, 1);
+      return frames;
+    };
+    titles.set(round.id, placeAt(0));
+    round.matches.forEach((match, order) => {
+      matches.set(match.id, placeAt(metrics.titleHeight + order * row));
+    });
+  });
+  return {
+    pages,
+    step,
+    matchWidth: metrics.matchWidth,
+    matches,
+    titles,
+    heights: group.rounds.map(
+      (round) => metrics.titleHeight + Math.max(0, round.matches.length * row - metrics.matchGap),
+    ),
+    edges: [],
+  };
+}
+
+/** The same tables read from right to left: every x is measured from the other side of `span`. */
+export function mirrorPaged(geometry: PagedGeometry, span: number): PagedGeometry {
+  const flip = (table: Map<Id, number[]>) =>
+    new Map(
+      [...table].map(([id, frames]) => [
+        id,
+        frames.map((value, index) =>
+          index % 3 === 0 ? span - value - geometry.matchWidth : value,
+        ),
+      ]),
+    );
+  return { ...geometry, matches: flip(geometry.matches), titles: flip(geometry.titles) };
+}
+
+/** The whole tree read from right to left. */
+export function mirrorTree(geometry: TreeGeometry): TreeGeometry {
+  const { width, matchWidth } = geometry;
+  return {
+    ...geometry,
+    matches: new Map(
+      [...geometry.matches].map(([id, box]) => [id, { ...box, x: width - box.x - box.width }]),
+    ),
+    titles: geometry.titles.map((title) => ({ ...title, x: width - title.x - matchWidth })),
+  };
+}
+
+/**
  * Where an entry of a paged table is at `position`, a page number that may sit
  * between two pages mid-swipe.
  */
@@ -169,6 +229,39 @@ export function valueAt(values: number[], position: number): number {
   const page = Math.min(Math.floor(at), last - 1);
   const from = values[page] ?? 0;
   return from + ((values[page + 1] ?? from) - from) * (at - page);
+}
+
+/** How the paged view's height moves between rounds of different heights. */
+export type PageHeight = 'contain' | 'follow';
+
+/** Share of a move spent growing to hold both rounds, and again settling to the new one. */
+const SETTLE = 0.25;
+
+/** Worklets capture what they use when they are defined, so this comes first. */
+function ease(t: number): number {
+  'worklet';
+  return t * t * (3 - 2 * t);
+}
+
+/**
+ * The paged view's height at a fractional page. `follow` blends the two rounds'
+ * heights, so the taller one is cut while it moves. `contain` is as tall as both
+ * while they move, growing early and settling late, so neither is cut while on screen.
+ */
+export function heightAt(heights: number[], position: number, fit: PageHeight): number {
+  'worklet';
+  if (fit === 'follow') return valueAt(heights, position);
+  const last = heights.length - 1;
+  if (last <= 0) return heights[0] ?? 0;
+  const at = Math.min(Math.max(position, 0), last);
+  const page = Math.min(Math.floor(at), last - 1);
+  const t = at - page;
+  const from = heights[page] ?? 0;
+  const to = heights[page + 1] ?? from;
+  const both = Math.max(from, to);
+  return t < 0.5
+    ? from + (both - from) * ease(Math.min(1, t / SETTLE))
+    : to + (both - to) * ease(Math.min(1, (1 - t) / SETTLE));
 }
 
 /**

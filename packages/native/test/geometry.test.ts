@@ -3,7 +3,11 @@ import { layoutGroup, singleElimination } from '@react-brackets/core';
 import {
   connectorPieces,
   frameAt,
+  heightAt,
+  listGeometry,
   type Metrics,
+  mirrorPaged,
+  mirrorTree,
   pagedGeometry,
   treeGeometry,
   valueAt,
@@ -70,6 +74,61 @@ describe('paged geometry', () => {
     const final = paged.matches.get('main.r3.m1') ?? [];
     expect(frameAt(final, -0.4)).toEqual(frameAt(final, 0));
     expect(frameAt(final, 2.6)).toEqual(frameAt(final, 2));
+  });
+});
+
+describe('page height', () => {
+  const heights = [300, 100, 160];
+
+  test('rests on the height of the round in focus', () => {
+    for (const fit of ['contain', 'follow'] as const) {
+      expect(heightAt(heights, 0, fit)).toBe(300);
+      expect(heightAt(heights, 1, fit)).toBe(100);
+      expect(heightAt(heights, 2, fit)).toBe(160);
+    }
+  });
+
+  test('holds the taller round while both are on screen, settling only at the end', () => {
+    expect(heightAt(heights, 0.5, 'contain')).toBe(300);
+    expect(heightAt(heights, 0.75, 'contain')).toBe(300);
+    expect(heightAt(heights, 0.9, 'contain')).toBeGreaterThan(100);
+    expect(heightAt(heights, 1.1, 'contain')).toBeLessThan(160);
+    expect(heightAt(heights, 1.5, 'contain')).toBe(160);
+    expect(heightAt(heights, 0.5, 'follow')).toBe(200);
+  });
+});
+
+describe('list geometry', () => {
+  const list = listGeometry(group(), metrics, 300);
+
+  test('stacks each round in a full-width column, the rounds side by side', () => {
+    const second = list.matches.get('main.r1.m2') ?? [];
+    expect([second[0], second[1], second[2]]).toEqual([0, 30 + 72, 1]);
+    expect([second[3], second[5]]).toEqual([-300, 1]);
+    const semi = list.matches.get('main.r2.m1') ?? [];
+    expect([semi[0], semi[3], semi[4]]).toEqual([300, 0, 30]);
+  });
+
+  test('fits its height to the round on show, and has no lines', () => {
+    expect(list.heights).toEqual([30 + 4 * 72 - 12, 30 + 2 * 72 - 12, 30 + 60]);
+    expect(list.edges).toEqual([]);
+  });
+});
+
+describe('right to left', () => {
+  test('measures every paged x from the other side', () => {
+    const flipped = mirrorPaged(pagedGeometry(group(), metrics, 250), 400);
+    const semi = flipped.matches.get('main.r2.m1') ?? [];
+    // In focus on page 1, it sits against the right edge; on page 0 it waits on the left.
+    expect(semi[3]).toBe(400 - 200);
+    expect(semi[0]).toBe(400 - 250 - 200);
+  });
+
+  test('starts the tree on the right', () => {
+    const tree = mirrorTree(treeGeometry(layoutGroup(group()), metrics));
+    expect(tree.matches.get('main.r1.m1')?.x).toBe(680 - 200);
+    expect(tree.matches.get('main.r3.m1')?.x).toBe(0);
+    expect(tree.titles[0]?.x).toBe(480);
   });
 });
 
