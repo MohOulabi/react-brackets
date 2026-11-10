@@ -1,6 +1,6 @@
 {
   "name": "@react-brackets/native",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "description": "Tournament brackets for React Native, with native gestures and animation.",
   "license": "MIT",
   "author": "Mohammed AlOulabi",
