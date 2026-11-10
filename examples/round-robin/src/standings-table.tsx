@@ -1,19 +1,27 @@
 import { participantMap, type Stage, standings } from 'react-brackets';
 
-export function StandingsTable({ stage, groupId }: { stage: Stage; groupId?: string }) {
+export function StandingsTable({
+  stage,
+  groupId,
+  className,
+}: {
+  stage: Stage;
+  groupId?: string;
+  className?: string;
+}) {
   const names = participantMap(stage);
   return (
-    <table className="standings">
+    <table className={className}>
       <thead>
         <tr>
           <th>#</th>
           <th>Team</th>
-          <th>P</th>
-          <th>W</th>
-          <th>D</th>
-          <th>L</th>
-          <th>+/-</th>
-          <th>Pts</th>
+          <th title="Played">P</th>
+          <th title="Won">W</th>
+          <th title="Drawn">D</th>
+          <th title="Lost">L</th>
+          <th title="Goal difference">+/-</th>
+          <th title="Points">Pts</th>
         </tr>
       </thead>
       <tbody>

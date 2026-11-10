@@ -1,20 +1,16 @@
 :root {
   color-scheme: light dark;
   font-family: system-ui, sans-serif;
+  background: light-dark(#f7f8fa, #101114);
+  color: light-dark(#14161a, #e8eaee);
 }
 
 body {
   margin: 0;
-  padding: 2rem 1rem;
+  padding: 2.5rem 1.25rem;
 }
 
-.stack {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  gap: 1.5rem;
-}
-
-.detail {
-  margin: 0;
-  color: GrayText;
+#root {
+  max-width: 72rem;
+  margin: 0 auto;
 }

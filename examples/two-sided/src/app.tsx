@@ -1,4 +1,6 @@
+import { useState } from 'react';
 import { Bracket, reportResult, type Stage, singleElimination } from 'react-brackets';
+import styles from './app.module.css';
 
 const teams = [
   'Falcons',
@@ -28,5 +30,33 @@ const stage = firstRound.reduce<Stage>(
 );
 
 export function App() {
-  return <Bracket stage={stage} layout="mirrored" connectorRadius={8} className="compact" />;
+  const [team, setTeam] = useState('Lynx');
+
+  return (
+    <div className={styles.app}>
+      <header className={styles.header}>
+        <div>
+          <h2 className={styles.title}>City Championship</h2>
+          <p className={styles.meta}>Sixteen teams, two halves, one final in the middle.</p>
+        </div>
+        <label className={styles.follow}>
+          Follow
+          <select value={team} onChange={(event) => setTeam(event.target.value)}>
+            <option value="">Nobody</option>
+            {teams.map((name) => (
+              <option key={name}>{name}</option>
+            ))}
+          </select>
+        </label>
+      </header>
+      <Bracket
+        stage={stage}
+        layout="mirrored"
+        mode="fit"
+        highlighted={team || null}
+        connectorRadius={8}
+        className={styles.bracket}
+      />
+    </div>
+  );
 }

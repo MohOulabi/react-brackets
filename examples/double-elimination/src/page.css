@@ -1,9 +1,16 @@
 :root {
   color-scheme: light dark;
   font-family: system-ui, sans-serif;
+  background: light-dark(#f7f8fa, #101114);
+  color: light-dark(#14161a, #e8eaee);
 }
 
 body {
   margin: 0;
-  padding: 2rem 1rem;
+  padding: 2.5rem 1.25rem;
+}
+
+#root {
+  max-width: 72rem;
+  margin: 0 auto;
 }

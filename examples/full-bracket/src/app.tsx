@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import {
   Bracket,
   reportResult,
@@ -5,6 +6,7 @@ import {
   singleElimination,
   type ViewportMode,
 } from 'react-brackets';
+import styles from './app.module.css';
 
 const teams = [
   'Falcons',
@@ -31,26 +33,42 @@ const stage = Array.from({ length: 8 }, (_, index) => `main.r1.m${index + 1}`).r
   singleElimination(teams.map((name) => ({ id: name, name }))),
 );
 
-const modes: { mode: ViewportMode; title: string; note: string }[] = [
-  { mode: 'scroll', title: 'Scroll', note: 'Native horizontal scrolling.' },
-  { mode: 'fit', title: 'Fit', note: 'The whole bracket, scaled down to the width available.' },
-  { mode: 'pan-zoom', title: 'Pan and zoom', note: 'Drag, pinch, or ctrl/⌘ + scroll to zoom.' },
+const modes: { mode: ViewportMode; name: string; note: string }[] = [
+  { mode: 'scroll', name: 'Scroll', note: 'Scrolls sideways, like any wide table.' },
+  { mode: 'fit', name: 'Fit', note: 'Scaled down so the whole tree fits the width.' },
+  {
+    mode: 'pan-zoom',
+    name: 'Pan and zoom',
+    note: 'Drag to move, pinch or ctrl/⌘ + scroll to zoom.',
+  },
 ];
 
 export function App() {
+  const [mode, setMode] = useState<ViewportMode>('fit');
+  const note = modes.find((option) => option.mode === mode)?.note;
+
   return (
-    <main className="stack">
-      <p>
-        These brackets never switch to the paged view (<code>compactBelow={'{0}'}</code>). Open this
-        page on a phone to compare the three ways of fitting a full tree.
-      </p>
-      {modes.map(({ mode, title, note }) => (
-        <section key={mode}>
-          <h2>{title}</h2>
-          <p>{note}</p>
-          <Bracket stage={stage} mode={mode} compactBelow={0} connectorRadius={8} />
-        </section>
-      ))}
-    </main>
+    <div className={styles.app}>
+      <header className={styles.header}>
+        <div>
+          <h2 className={styles.title}>National Finals</h2>
+          <p className={styles.meta}>{note}</p>
+        </div>
+        <fieldset className={styles.switch} aria-label="Fit">
+          {modes.map((option) => (
+            <button
+              key={option.mode}
+              type="button"
+              aria-pressed={option.mode === mode}
+              onClick={() => setMode(option.mode)}
+            >
+              {option.name}
+            </button>
+          ))}
+        </fieldset>
+      </header>
+      {/* compactBelow={0} keeps the whole tree, even on a phone. */}
+      <Bracket key={mode} stage={stage} mode={mode} compactBelow={0} connectorRadius={8} />
+    </div>
   );
 }
