@@ -8,20 +8,89 @@
 .skeleton {
   color: transparent;
   border-radius: 999px;
-  background: color-mix(in oklab, currentColor 12%, transparent);
-  animation: skeleton-pulse 1.4s ease-in-out infinite;
+  background: color-mix(in oklab, var(--rb-text) 12%, transparent);
 }
 
-@keyframes skeleton-pulse {
+/* Pulse: the whole skeleton breathes. */
+[data-look="pulse"] .skeleton {
+  animation: breathe 1.4s ease-in-out infinite;
+}
+
+/* Shimmer: a light sweeps across every bar. */
+[data-look="shimmer"] .skeleton {
+  background:
+    linear-gradient(
+      100deg,
+      transparent 30%,
+      color-mix(in oklab, var(--rb-text) 18%, transparent) 50%,
+      transparent 70%
+    )
+    0 0 / 300% 100%,
+    color-mix(in oklab, var(--rb-text) 9%, transparent);
+  animation: sweep 1.6s linear infinite;
+}
+
+/* Wave: card after card lights up, round after round. */
+.stage[data-look="wave"] [data-part="match"] {
+  animation: breathe 1.6s ease-in-out infinite;
+  animation-delay: var(--delay);
+}
+
+/* The draw arrives card by card. */
+.loaded [data-part="cell"] [data-part="match"] {
+  animation: rise 0.5s cubic-bezier(0.2, 0, 0, 1) backwards;
+}
+
+.loaded [data-part="cell"]:nth-child(2) [data-part="match"] {
+  animation-delay: 60ms;
+}
+
+.loaded [data-part="cell"]:nth-child(3) [data-part="match"] {
+  animation-delay: 120ms;
+}
+
+.loaded [data-part="cell"]:nth-child(4) [data-part="match"] {
+  animation-delay: 180ms;
+}
+
+@keyframes breathe {
   50% {
-    opacity: 0.45;
+    opacity: 0.4;
+  }
+}
+
+@keyframes sweep {
+  from {
+    background-position:
+      100% 0,
+      0 0;
+  }
+
+  to {
+    background-position:
+      -50% 0,
+      0 0;
+  }
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .skeleton {
+  .skeleton,
+  .stage [data-part="match"] {
     animation: none;
   }
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
 }
 
 .header {
@@ -59,10 +128,38 @@
 }
 
 .button:hover:not(:disabled) {
-  background: color-mix(in oklab, currentColor 12%, transparent);
+  background: color-mix(in oklab, var(--rb-text) 12%, transparent);
 }
 
 .button:disabled {
   opacity: 0.45;
   cursor: default;
+}
+
+/* A segmented control: the view on show sits raised on the track. */
+.switch {
+  display: inline-flex;
+  flex-wrap: wrap;
+  padding: 3px;
+  border-radius: 999px;
+  background: color-mix(in oklab, currentColor 7%, transparent);
+}
+
+.switch button {
+  height: 2rem;
+  padding: 0 0.875rem;
+  border: 0;
+  border-radius: 999px;
+  background: none;
+  color: color-mix(in oklab, currentColor 65%, transparent);
+  font: inherit;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.switch button[aria-pressed="true"] {
+  background: Canvas;
+  color: inherit;
+  box-shadow: 0 1px 3px rgb(0 0 0 / 0.12);
 }

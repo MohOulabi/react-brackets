@@ -91,6 +91,7 @@ export function App() {
       <Bracket
         stage={stage}
         connectorRadius={8}
+        className={styles.bracket}
         onMatchClick={(match) => setFollowed(match.id === followed ? null : match.id)}
       />
     </div>
