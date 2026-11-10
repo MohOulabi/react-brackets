@@ -1,9 +1,9 @@
 export const site = {
   name: 'react-brackets',
   url: 'https://react-brackets.oulabi.dev',
-  title: 'react-brackets: tournament brackets for React',
+  title: 'react-brackets: tournament brackets for React and React Native',
   description:
-    'Headless, responsive tournament brackets for React. Single and double elimination, round robin and Swiss, with a swipeable bracket on phones, live results and zero dependencies.',
+    'Headless, responsive tournament brackets for React and React Native. Single and double elimination, round robin and Swiss, with a swipeable bracket on phones, live results and zero dependencies on the web.',
   repository: 'https://github.com/MohOulabi/react-brackets',
   npm: 'https://www.npmjs.com/package/react-brackets',
   author: { name: 'Mohammed AlOulabi', url: 'https://oulabi.dev', x: '@mhmdou1' },
@@ -17,6 +17,8 @@ export const site = {
     'swiss tournament',
     'headless react component',
     'esports bracket',
+    'react native bracket',
+    'expo tournament bracket',
     'bracket generator',
   ],
   colors: {

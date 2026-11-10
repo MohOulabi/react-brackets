@@ -57,8 +57,8 @@ export function CourtHero() {
             Brackets that keep up with the tournament.
           </h1>
           <p className="max-w-xl text-pretty text-lg leading-relaxed text-white/75">
-            Single and double elimination, round robin and Swiss for React. Seeded, live-updating,
-            swipeable on a phone, and styled with whatever you already use.
+            Single and double elimination, round robin and Swiss for React and React Native. Seeded,
+            live-updating, swipeable on a phone, and styled with whatever you already use.
           </p>
           <div className="flex flex-wrap items-center gap-x-6 gap-y-4">
             <Link
