@@ -5,6 +5,7 @@
 @import "@react-brackets/theme/theme.css";
 
 @source "../node_modules/fumadocs-ui/dist/**/*.js";
+@source "../../../examples/tailwind/src";
 
 @custom-variant dark (&:is(.dark *));
 

@@ -1,0 +1,51 @@
+.app {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 1.5rem;
+}
+
+.header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.title {
+  margin: 0;
+  font-size: 1.375rem;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.meta {
+  margin: 0.25rem 0 0;
+  font-size: 0.875rem;
+  color: color-mix(in oklab, currentColor 60%, transparent);
+}
+
+.follow {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.625rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.follow select {
+  height: 2.25rem;
+  padding: 0 0.75rem;
+  border: 1px solid color-mix(in oklab, currentColor 18%, transparent);
+  border-radius: 999px;
+  background: Canvas;
+  color: inherit;
+  font: inherit;
+  font-weight: 500;
+}
+
+/* Two halves side by side need narrower cards to fit. */
+.bracket {
+  --rb-match-width: 9.5rem;
+  --rb-column-gap: 1.75rem;
+}

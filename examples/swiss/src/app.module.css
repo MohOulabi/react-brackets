@@ -1,0 +1,97 @@
+.app {
+  container-type: inline-size;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 1.5rem;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-items: start;
+  gap: 2rem;
+}
+
+/* Standings beside the rounds once there is room for both. */
+@container (min-width: 52rem) {
+  .body {
+    grid-template-columns: 19rem minmax(0, 1fr);
+  }
+}
+
+.header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.title {
+  margin: 0;
+  font-size: 1.375rem;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.meta {
+  margin: 0.25rem 0 0;
+  font-size: 0.875rem;
+  color: color-mix(in oklab, currentColor 60%, transparent);
+}
+
+.button {
+  height: 2.25rem;
+  padding: 0 1.125rem;
+  border: 1px solid color-mix(in oklab, currentColor 20%, transparent);
+  border-radius: 999px;
+  background: color-mix(in oklab, currentColor 6%, transparent);
+  color: inherit;
+  font: inherit;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.button:hover:not(:disabled) {
+  background: color-mix(in oklab, currentColor 12%, transparent);
+}
+
+.button:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.standings {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.standings th,
+.standings td {
+  padding: 0.5rem 0.625rem;
+  border-bottom: 1px solid color-mix(in oklab, currentColor 10%, transparent);
+  text-align: end;
+}
+
+.standings :is(th, td):nth-child(2) {
+  width: 100%;
+  text-align: start;
+}
+
+.standings th {
+  color: color-mix(in oklab, currentColor 55%, transparent);
+  font-weight: 600;
+}
+
+.standings td:last-child {
+  font-weight: 700;
+}

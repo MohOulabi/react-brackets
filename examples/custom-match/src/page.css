@@ -1,77 +1,16 @@
 :root {
   color-scheme: light dark;
   font-family: system-ui, sans-serif;
+  background: light-dark(#f7f8fa, #101114);
+  color: light-dark(#14161a, #e8eaee);
 }
 
 body {
   margin: 0;
-  padding: 2rem 1rem;
+  padding: 2.5rem 1.25rem;
 }
 
-.card {
-  --rb-match-width: 16rem;
-}
-
-.card header {
-  display: flex;
-  justify-content: space-between;
-  padding: 0.5rem 0.75rem;
-  border-bottom: 1px solid var(--rb-border);
-  color: var(--rb-text-muted);
-  font-size: 0.75rem;
-}
-
-.card .live {
-  color: var(--rb-live);
-  font-weight: 600;
-}
-
-.card .live::before {
-  content: "";
-  display: inline-block;
-  width: 0.4rem;
-  height: 0.4rem;
-  margin-inline-end: 0.35rem;
-  border-radius: 50%;
-  background: currentColor;
-  vertical-align: middle;
-  animation: pulse 1.4s ease-in-out infinite;
-}
-
-.team {
-  justify-content: flex-start;
-}
-
-.team .badge {
-  display: grid;
-  place-items: center;
-  width: 1.5rem;
-  height: 1.5rem;
-  border-radius: 6px;
-  color: white;
-  font-size: 0.75rem;
-  font-weight: 700;
-}
-
-.team[data-empty] .badge {
-  opacity: 0.4;
-}
-
-.team .name {
-  flex: 1;
-}
-
-.team .score {
-  font-variant-numeric: tabular-nums;
-}
-
-@keyframes pulse {
-  50% {
-    opacity: 0.3;
-  }
-}
-
-.selection {
-  color: GrayText;
-  font-size: 0.875rem;
+#root {
+  max-width: 72rem;
+  margin: 0 auto;
 }

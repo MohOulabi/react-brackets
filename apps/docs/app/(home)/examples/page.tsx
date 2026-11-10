@@ -5,20 +5,21 @@ import { Tab, Tabs } from 'fumadocs-ui/components/tabs';
 import type { Metadata } from 'next';
 import type { ReactNode } from 'react';
 import {
-  CustomMatchDemo,
-  DoubleEliminationDemo,
-  FullTreeDemo,
-  GroupsToPlayoffsDemo,
-  LiveDemo,
-  MirroredDemo,
-  QuickStartDemo,
-  RoundRobinDemo,
-  RtlDemo,
-  SkeletonDemo,
-  SwissDemo,
-  TailwindDemo,
-  ThemeDemo,
-} from '@/components/demos';
+  Basic,
+  CustomMatch,
+  DoubleElimination,
+  FullBracket,
+  GroupsToPlayoffs,
+  LiveScores,
+  Loading,
+  RoundRobin,
+  Rtl,
+  Swiss,
+  Tailwind,
+  Theme,
+  TwoSided,
+} from '@/components/examples/apps';
+import { OnScreen } from '@/components/examples/on-screen';
 import { repository } from '@/lib/layout.shared';
 
 export const dynamic = 'force-static';
@@ -49,7 +50,7 @@ const groups: { title: string; examples: Example[] }[] = [
         title: 'Basic',
         summary: 'A stage from a list of teams, passed to one component. The whole quick start.',
         files: ['src/app.tsx'],
-        demo: <QuickStartDemo />,
+        demo: <Basic />,
       },
       {
         folder: 'nextjs',
@@ -66,37 +67,40 @@ const groups: { title: string; examples: Example[] }[] = [
       {
         folder: 'double-elimination',
         title: 'Double elimination',
-        summary: 'Winners and losers brackets on one grid, with a grand final that can reset.',
-        files: ['src/app.tsx'],
-        demo: <DoubleEliminationDemo />,
+        summary:
+          'Winners and losers brackets and a grand final that can reset, in tabs built from Bracket.Root and its parts.',
+        files: ['src/app.tsx', 'src/app.module.css'],
+        demo: <DoubleElimination />,
       },
       {
         folder: 'two-sided',
         title: 'Two-sided bracket',
-        summary: 'Sixteen teams split into halves that meet in the final.',
-        files: ['src/app.tsx'],
-        demo: <MirroredDemo />,
+        summary:
+          'Sixteen teams in two halves that meet in the final. Follow a team to light up its path.',
+        files: ['src/app.tsx', 'src/app.module.css'],
+        demo: <TwoSided />,
       },
       {
         folder: 'round-robin',
         title: 'Round robin',
-        summary: 'Everyone plays everyone, with a standings table built from the results.',
-        files: ['src/app.tsx', 'src/standings-table.tsx'],
-        demo: <RoundRobinDemo />,
+        summary:
+          'Everyone plays everyone. Play the season a round at a time and watch the table move.',
+        files: ['src/app.tsx', 'src/app.module.css', 'src/standings-table.tsx'],
+        demo: <RoundRobin />,
       },
       {
         folder: 'swiss',
         title: 'Swiss',
-        summary: 'Each round is paired from the standings so far. Play a round to draw the next.',
-        files: ['src/app.tsx', 'src/standings-table.tsx'],
-        demo: <SwissDemo />,
+        summary: 'Each round is paired from the standings so far. Pair a round, play it, repeat.',
+        files: ['src/app.tsx', 'src/app.module.css', 'src/standings-table.tsx'],
+        demo: <Swiss />,
       },
       {
         folder: 'groups-to-playoffs',
         title: 'Groups to playoffs',
-        summary: 'A group stage whose top teams seed a knockout bracket.',
-        files: ['src/app.tsx', 'src/standings-table.tsx'],
-        demo: <GroupsToPlayoffsDemo />,
+        summary: 'Two groups whose top two teams seed a knockout bracket with a third-place match.',
+        files: ['src/app.tsx', 'src/app.module.css', 'src/standings-table.tsx'],
+        demo: <GroupsToPlayoffs />,
       },
     ],
   },
@@ -106,30 +110,34 @@ const groups: { title: string; examples: Example[] }[] = [
       {
         folder: 'theme',
         title: 'Theme and dark mode',
-        summary: 'The optional stylesheet, recoloured per bracket with a handful of variables.',
-        files: ['src/app.tsx', 'src/page.css'],
-        demo: <ThemeDemo />,
+        summary:
+          'The optional stylesheet, recoloured with a few CSS variables. Pick an accent, the corners, and light or dark.',
+        files: ['src/app.tsx', 'src/app.module.css'],
+        demo: <Theme />,
       },
       {
         folder: 'tailwind',
         title: 'Tailwind CSS',
-        summary: 'No stylesheet at all: utility classes on every part, keyed off its state.',
+        summary:
+          'No stylesheet of ours at all: Tailwind classes on every part, keyed off its state.',
         files: ['src/app.tsx'],
-        demo: <TailwindDemo />,
+        demo: <Tailwind />,
       },
       {
         folder: 'custom-match',
         title: 'Custom match card',
-        summary: 'Your own card with kickoff times, team badges and a live marker. Click a match.',
-        files: ['src/app.tsx', 'src/page.css'],
-        demo: <CustomMatchDemo />,
+        summary:
+          'Your own card with kickoff times, team badges and a live marker. Pick a match to see its details.',
+        files: ['src/app.tsx', 'src/app.module.css'],
+        demo: <CustomMatch />,
       },
       {
         folder: 'rtl',
         title: 'Right to left',
-        summary: 'An Arabic bracket that flows right to left, with translated labels.',
-        files: ['src/app.tsx'],
-        demo: <RtlDemo />,
+        summary:
+          'The same cup in Arabic, right to left, or in English. Round names and labels are yours to translate.',
+        files: ['src/app.tsx', 'src/app.module.css'],
+        demo: <Rtl />,
       },
     ],
   },
@@ -139,29 +147,34 @@ const groups: { title: string; examples: Example[] }[] = [
       {
         folder: 'full-bracket',
         title: 'Full bracket on every screen',
-        summary: 'Keep the whole tree on a phone: scroll it, fit it, or pan and pinch to zoom.',
-        files: ['src/app.tsx'],
-        demo: (
-          <div className="grid gap-8 md:grid-cols-3">
-            <FullTreeDemo mode="scroll" />
-            <FullTreeDemo mode="fit" />
-            <FullTreeDemo mode="pan-zoom" />
-          </div>
-        ),
+        summary:
+          'Keep the whole tree on a phone: scroll it, fit it to the width, or pan and pinch to zoom.',
+        files: ['src/app.tsx', 'src/app.module.css'],
+        demo: <FullBracket />,
       },
       {
         folder: 'live-scores',
         title: 'Live scores',
-        summary: 'Results stream in and winners move on as they land.',
-        files: ['src/app.tsx'],
-        demo: <LiveDemo />,
+        summary:
+          'Results stream in and winners move on as they land. Pause, restart, or click a match to follow it.',
+        files: ['src/app.tsx', 'src/app.module.css'],
+        demo: (
+          <OnScreen minHeight="26rem">
+            <LiveScores />
+          </OnScreen>
+        ),
       },
       {
         folder: 'loading',
         title: 'Loading',
-        summary: 'A skeleton with the real layout while the data is on its way.',
-        files: ['src/app.tsx', 'src/page.css'],
-        demo: <SkeletonDemo />,
+        summary:
+          "A skeleton at the bracket's real size while the draw loads, then the bracket in its place.",
+        files: ['src/app.tsx', 'src/app.module.css'],
+        demo: (
+          <OnScreen minHeight="26rem">
+            <Loading />
+          </OnScreen>
+        ),
       },
     ],
   },
@@ -175,8 +188,8 @@ export default function ExamplesPage() {
       <header className="flex max-w-2xl flex-col gap-5">
         <h1 className="font-display text-balance text-[clamp(2.75rem,6vw,4.5rem)]">Examples.</h1>
         <p className="text-lg leading-relaxed text-muted-foreground">
-          {count} small apps from the repository, each drawn here live with the code it takes. To
-          run them all locally, clone the repository and run{' '}
+          {count} small apps from the repository, each running here exactly as it does on its own,
+          with all of its code. To run them locally, clone the repository and run{' '}
           <code className="text-foreground">bun run examples</code>.
         </p>
       </header>
