@@ -101,7 +101,7 @@ export default function HomePage() {
       <section className="bg-court-deep text-white">
         <div className="mx-auto flex max-w-6xl flex-col items-start gap-8 px-4 py-20 sm:px-6 md:py-24">
           <p className="font-display max-w-4xl text-balance text-[clamp(2.25rem,5vw,4rem)]">
-            Free and open source. React 18 and 19, no other dependencies, under 14 kB gzipped.
+            Free and open source. React 18 and 19, no other dependencies, about 15 kB gzipped.
           </p>
           <div className="flex flex-wrap items-center gap-x-6 gap-y-4">
             <Link
