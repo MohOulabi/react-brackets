@@ -7,6 +7,9 @@ description: A knockout bracket with seeding, byes and an optional third place m
   <QuickStartDemo />
 </Preview>
 
+<Tabs groupId="platform" persist items={['React', 'React Native']}>
+<Tab value="React">
+
 ```tsx
 import { Bracket, singleElimination } from 'react-brackets';
 
@@ -14,6 +17,20 @@ const stage = singleElimination(teams, { thirdPlace: true });
 
 <Bracket stage={stage} />;
 ```
+
+</Tab>
+<Tab value="React Native">
+
+```tsx
+import { Bracket, singleElimination } from '@react-brackets/native';
+
+const stage = singleElimination(teams, { thirdPlace: true });
+
+<Bracket stage={stage} />;
+```
+
+</Tab>
+</Tabs>
 
 Pass participants **in seed order**: the first one is the top seed.
 

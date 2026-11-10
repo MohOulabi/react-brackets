@@ -6,7 +6,6 @@ import defaultMdxComponents from 'fumadocs-ui/mdx';
 import type { MDXComponents } from 'mdx/types';
 import * as demos from '@/components/demos';
 import { Phone, Preview } from '@/components/demos/preview';
-import { NativeExample } from '@/components/native/example';
 import { Recording } from '@/components/native/recording';
 
 const generator = createGenerator({
@@ -32,7 +31,6 @@ export function getMDXComponents(components?: MDXComponents): MDXComponents {
     TypeTable,
     ApiTable,
     Preview,
-    NativeExample,
     Recording,
     Phone,
     ...demos,

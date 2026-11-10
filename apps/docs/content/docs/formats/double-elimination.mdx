@@ -7,11 +7,26 @@ description: Everyone gets two lives. Losers drop into a losers bracket, and the
   <DoubleEliminationDemo />
 </Preview>
 
+<Tabs groupId="platform" persist items={['React', 'React Native']}>
+<Tab value="React">
+
 ```tsx
 import { Bracket, doubleElimination } from 'react-brackets';
 
 <Bracket stage={doubleElimination(teams, { grandFinal: 'reset' })} />;
 ```
+
+</Tab>
+<Tab value="React Native">
+
+```tsx
+import { Bracket, doubleElimination } from '@react-brackets/native';
+
+<Bracket stage={doubleElimination(teams, { grandFinal: 'reset' })} />;
+```
+
+</Tab>
+</Tabs>
 
 `<Bracket>` draws the winners bracket with the grand final continuing on the same row, and the losers bracket below it.
 

@@ -52,9 +52,29 @@ Every part takes a `style`, or a function of its state. `Bracket.Participant` al
 />
 ```
 
-The match state has `live`, `completed` and `highlighted`. The participant state has `participant`, `slot`, `winner`, `loser`, `bye`, `empty` and `highlighted`. The [Nations example](/docs/native/examples#nations) builds a full card this way.
+The match state has `live`, `completed` and `highlighted`. The participant state has `participant`, `slot`, `winner`, `loser`, `bye`, `empty` and `highlighted`. The [Nations example](/examples/native#nations) builds a full card this way.
 
 Tapping a participant highlights their path. Pass `highlighted` and `onHighlightChange` to control it, or `onMatchPress` to make whole matches pressable instead.
+
+### Cards that open
+
+Each card keeps its own height, measured as it lays out. When one grows, say to show a roster, the cards below it make room, the next round re-centres between the matches that feed it, and the lines follow, all gliding into place. Nothing needs setting up: change what the card renders.
+
+```tsx
+<Bracket.Participant slot={slot}>
+  {({ participant }) => (
+    <>
+      <Text>{participant?.name}</Text>
+      <Pressable onPress={() => toggle(participant?.id)}>
+        <Chevron open={open.has(participant?.id)} />
+      </Pressable>
+    </>
+  )}
+</Bracket.Participant>
+{open.has(match.slots[slot].participantId) && <Roster />}
+```
+
+Use Gesture Handler's `Pressable` for buttons inside a card, so a tap on the button wins over the participant's own press. The [Esports example](/examples/native#esports) opens rosters this way.
 
 ## Tailwind, through Uniwind or NativeWind
 
@@ -73,7 +93,7 @@ const Match = withUniwind(Bracket.Match);
 />;
 ```
 
-With NativeWind, wrap the part with `cssInterop` the same way. See the [Tailwind example](/docs/native/examples#tailwind).
+With NativeWind, wrap the part with `cssInterop` the same way. See the [Tailwind example](/examples/native#tailwind).
 
 ## Unistyles
 
@@ -87,4 +107,4 @@ const ThemedBracket = withUnistyles(Bracket, (theme) => ({
 }));
 ```
 
-See the [Unistyles example](/docs/native/examples#unistyles).
+See the [Unistyles example](/examples/native#unistyles).

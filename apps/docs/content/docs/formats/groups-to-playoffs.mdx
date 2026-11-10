@@ -7,6 +7,9 @@ description: Round robin groups whose top finishers seed a knockout bracket.
   <GroupsToPlayoffsDemo />
 </Preview>
 
+<Tabs groupId="platform" persist items={['React', 'React Native']}>
+<Tab value="React">
+
 ```tsx
 import { qualifiers, roundRobin, singleElimination } from 'react-brackets';
 
@@ -14,6 +17,20 @@ const groups = roundRobin(teams, { groups: 2 });
 // …play the group matches…
 const playoffs = singleElimination(qualifiers(groups, 2), { id: 'playoffs' });
 ```
+
+</Tab>
+<Tab value="React Native">
+
+```tsx
+import { qualifiers, roundRobin, singleElimination } from '@react-brackets/native';
+
+const groups = roundRobin(teams, { groups: 2 });
+// …play the group matches…
+const playoffs = singleElimination(qualifiers(groups, 2), { id: 'playoffs' });
+```
+
+</Tab>
+</Tabs>
 
 `qualifiers(stage, perGroup)` takes the top finishers of each group, ordered by placing and then group: A1, B1, A2, B2. Standard seeding then gives the classic crossover, where each group winner meets the other group's runner-up.
 

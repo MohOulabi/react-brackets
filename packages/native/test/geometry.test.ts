@@ -77,6 +77,41 @@ describe('paged geometry', () => {
   });
 });
 
+describe('cards of their own height', () => {
+  // The second first-round match has opened to twice the height.
+  const tall = { ...metrics, heights: new Map([['main.r1.m2', 120]]) };
+
+  test('push the cards below them down, and keep their own height', () => {
+    const tree = treeGeometry(layoutGroup(group()), tall);
+    const second = tree.matches.get('main.r1.m2');
+    const third = tree.matches.get('main.r1.m3');
+    expect(second?.height).toBe(120);
+    expect(third?.y).toBe((second?.y ?? 0) + 120 + metrics.matchGap);
+  });
+
+  test('centre the next match between the two that feed it', () => {
+    const tree = treeGeometry(layoutGroup(group()), tall);
+    const centre = (id: string) => {
+      const box = tree.matches.get(id);
+      return (box?.y ?? 0) + (box?.height ?? 0) / 2;
+    };
+    expect(centre('main.r2.m1')).toBe((centre('main.r1.m1') + centre('main.r1.m2')) / 2);
+  });
+
+  test('make the page taller while that round is in view, and only then', () => {
+    const even = pagedGeometry(group(), metrics, 250);
+    const paged = pagedGeometry(group(), tall, 250);
+    expect(paged.heights[0]).toBe((even.heights[0] ?? 0) + 60);
+    expect(paged.heights[2]).toBe(even.heights[2]);
+  });
+
+  test('stack in a list one under another', () => {
+    const list = listGeometry(group(), tall, 300);
+    const third = list.matches.get('main.r1.m3') ?? [];
+    expect(third[1]).toBe(30 + 60 + 12 + 120 + 12);
+  });
+});
+
 describe('page height', () => {
   const heights = [300, 100, 160];
 

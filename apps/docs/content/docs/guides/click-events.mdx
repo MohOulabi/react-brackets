@@ -11,6 +11,9 @@ Pass `onMatchClick` and every match becomes a button: focusable, and it works wi
   <ClickDemo />
 </Preview>
 
+<Tabs groupId="platform" persist items={['React', 'React Native']}>
+<Tab value="React">
+
 ```tsx
 const [stage, setStage] = useState(() => singleElimination(teams));
 const [selected, setSelected] = useState<Match | null>(null);
@@ -21,6 +24,23 @@ const [selected, setSelected] = useState<Match | null>(null);
   {names.get(selected.slots[0].participantId)?.name} wins
 </Button>
 ```
+
+</Tab>
+<Tab value="React Native">
+
+```tsx
+const [stage, setStage] = useState(() => singleElimination(teams));
+const [selected, setSelected] = useState<Match | null>(null);
+
+<Bracket stage={stage} onMatchPress={setSelected} />
+
+<Pressable onPress={() => setStage(reportResult(stage, selected.id, { scores: [1, 0] }))}>
+  <Text>{names.get(selected.slots[0].participantId)?.name} wins</Text>
+</Pressable>
+```
+
+</Tab>
+</Tabs>
 
 To mark the selected match, render it yourself and add a class:
 

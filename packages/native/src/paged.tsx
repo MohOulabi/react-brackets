@@ -1,4 +1,4 @@
-import type { Group, LayoutEdge, Match } from '@react-brackets/core';
+import type { Group, Id, LayoutEdge, Match } from '@react-brackets/core';
 import { memo, type ReactNode, useEffect, useMemo } from 'react';
 import { View } from 'react-native';
 import { GestureDetector, usePanGesture } from 'react-native-gesture-handler';
@@ -16,12 +16,14 @@ import { MovingConnector } from './connectors';
 import {
   frameAt,
   heightAt,
+  heightOf,
   listGeometry,
   type Metrics,
   mirrorPaged,
   type PageHeight,
   pagedGeometry,
 } from './geometry';
+import { useGlide } from './glide';
 import { Pagination } from './pagination';
 import { RoundTitle } from './parts';
 import type { BracketTheme } from './theme';
@@ -37,7 +39,10 @@ const SPRING = { mass: 1, stiffness: 260, damping: 30 };
 export interface PagedProps {
   group: Group;
   width: number;
+  /** The height of a card not measured yet. */
   matchHeight: number;
+  /** Each card's measured height. */
+  heights: ReadonlyMap<Id, number>;
   theme: BracketTheme;
   page: number;
   onPage: (page: number) => void;
@@ -62,6 +67,7 @@ export function PagedBracket({
   group,
   width,
   matchHeight,
+  heights,
   theme,
   page,
   onPage,
@@ -80,6 +86,7 @@ export function PagedBracket({
   const metrics: Metrics = {
     matchWidth: list ? width : step - theme.pagedColumnGap,
     matchHeight,
+    heights,
     matchGap: theme.matchGap,
     columnGap: theme.pagedColumnGap,
     titleHeight: theme.titleHeight,
@@ -89,7 +96,19 @@ export function PagedBracket({
   const geometry = useMemo(() => {
     const tables = (list ? listGeometry : pagedGeometry)(group, metrics, step);
     return rtl ? mirrorPaged(tables, width) : tables;
-  }, [group, list, rtl, width, step, matchWidth, matchHeight, matchGap, columnGap, titleHeight]);
+  }, [
+    group,
+    list,
+    rtl,
+    width,
+    step,
+    matchWidth,
+    matchHeight,
+    heights,
+    matchGap,
+    columnGap,
+    titleHeight,
+  ]);
   const last = geometry.pages - 1;
   const position = useSharedValue(page);
   const start = useSharedValue(page);
@@ -152,10 +171,6 @@ export function PagedBracket({
     from: geometry.matches.get(edge.from),
     to: geometry.matches.get(edge.to),
   }));
-  const size = useMemo(
-    () => ({ width: matchWidth, height: matchHeight }),
-    [matchWidth, matchHeight],
-  );
   const look = useMemo(
     () => ({ radius: theme.connectorRadius, width: theme.lineWidth, color: theme.colors.line }),
     [theme.connectorRadius, theme.lineWidth, theme.colors.line],
@@ -176,8 +191,11 @@ export function PagedBracket({
                     key={edgeKey(edge)}
                     from={from}
                     to={to}
+                    fromHeight={heightOf(metrics, edge.from)}
+                    toHeight={heightOf(metrics, edge.to)}
+                    width={matchWidth}
                     position={position}
-                    size={size}
+                    duration={duration}
                     look={highlightedEdges.has(edgeKey(edge)) ? lit : look}
                   />
                 ),
@@ -189,6 +207,7 @@ export function PagedBracket({
                 position={position}
                 width={matchWidth}
                 rtl={rtl}
+                duration={duration}
               >
                 <View style={{ height: titleHeight, justifyContent: 'center' }}>
                   <RoundTitle round={round} />
@@ -203,6 +222,7 @@ export function PagedBracket({
                   position={position}
                   width={matchWidth}
                   rtl={rtl}
+                  duration={duration}
                 >
                   {renderMatch(match)}
                 </Placed>
@@ -231,17 +251,21 @@ const Placed = memo(function Placed({
   position,
   width,
   rtl,
+  duration,
   children,
 }: {
   frames: number[];
   position: SharedValue<number>;
   width: number;
   rtl: boolean;
+  duration: number | null;
   children: ReactNode;
 }) {
+  // Moved by a card opening or closing nearby: glide there rather than jump.
+  const moved = useGlide(frames, (shown) => [frameAt(shown, position.value)[1] ?? 0], duration);
   const style = useAnimatedStyle(() => {
     const [x, y, opacity] = frameAt(frames, position.value);
-    return { opacity, transform: [{ translateX: x }, { translateY: y }] };
+    return { opacity, transform: [{ translateX: x }, { translateY: y + (moved.value[0] ?? 0) }] };
   });
   return (
     <Animated.View

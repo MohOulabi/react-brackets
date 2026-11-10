@@ -14,7 +14,7 @@ export function baseOptions(): BaseLayoutProps {
     githubUrl: repository,
     links: [
       { text: 'Docs', url: '/docs', active: 'nested-url' },
-      { text: 'Examples', url: '/examples' },
+      { text: 'Examples', url: '/examples', active: 'nested-url' },
     ],
   };
 }

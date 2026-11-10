@@ -8,7 +8,7 @@ import {
   type Round,
   type Stage,
 } from '@react-brackets/core';
-import { type ReactNode, useCallback, useMemo, useRef, useState } from 'react';
+import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   I18nManager,
   type LayoutChangeEvent,
@@ -177,7 +177,7 @@ function GroupBracket({
   const page = Math.min(controlledPage ?? ownPage, group.rounds.length - 1);
   const highlighted = controlledHighlight === undefined ? ownHighlight : controlledHighlight;
   const participants = useMemo(() => participantMap(stage), [stage]);
-  const matchHeight = useMatchHeight(theme);
+  const cards = useCardHeights(theme);
 
   const setPage = useCallback(
     (next: number) => {
@@ -231,7 +231,7 @@ function GroupBracket({
 
   const drawMatch = (match: Match) => (
     <MatchContext.Provider value={match}>
-      <View onLayout={matchHeight.measure}>
+      <View onLayout={(event) => cards.measure(match.id, event)}>
         {onMatchPress ? (
           <PressableMatch match={match} onPress={onMatchPress}>
             {renderMatch ? renderMatch(match) : <MatchPart />}
@@ -247,7 +247,8 @@ function GroupBracket({
 
   const metrics: Metrics = {
     matchWidth: theme.matchWidth,
-    matchHeight: matchHeight.value,
+    matchHeight: cards.base,
+    heights: cards.heights,
     matchGap: theme.matchGap,
     columnGap: theme.columnGap,
     titleHeight: theme.titleHeight,
@@ -256,7 +257,7 @@ function GroupBracket({
   return (
     <BracketContext.Provider value={context}>
       <View
-        style={[{ opacity: matchHeight.measured ? 1 : 0, direction: dir }, style]}
+        style={[{ opacity: cards.measured ? 1 : 0, direction: dir }, style]}
         onLayout={(event: LayoutChangeEvent) => setWidth(event.nativeEvent.layout.width)}
       >
         {title && (
@@ -278,7 +279,8 @@ function GroupBracket({
             <PagedBracket
               group={group}
               width={width}
-              matchHeight={matchHeight.value}
+              matchHeight={cards.base}
+              heights={cards.heights}
               theme={theme}
               page={page}
               onPage={setPage}
@@ -310,22 +312,41 @@ function GroupBracket({
 }
 
 /**
- * Cards may be any height, so the tallest one sets the spacing for all. Until
- * the first card reports, the bracket stays hidden at a sensible guess.
+ * Every card's height, measured as it lays out, so each keeps its own and a card
+ * that opens or closes moves the ones around it. Reports from one frame are applied
+ * together. Until the first ones arrive, the bracket stays hidden at a sensible guess.
  */
-function useMatchHeight(theme: BracketTheme) {
+function useCardHeights(theme: BracketTheme) {
   const guess = Math.round(2 * (theme.fontSize * 1.3 + 18) + 3);
-  const [value, setValue] = useState(guess);
-  const [measured, setMeasured] = useState(false);
-  const tallest = useRef(0);
-  const measure = useCallback((event: LayoutChangeEvent) => {
-    const height = Math.ceil(event.nativeEvent.layout.height);
-    if (height <= tallest.current) return;
-    tallest.current = height;
-    setValue(height);
-    setMeasured(true);
+  const [heights, setHeights] = useState<ReadonlyMap<Id, number>>(() => new Map());
+  const pending = useRef(new Map<Id, number>());
+  const frame = useRef<number | null>(null);
+
+  useEffect(
+    () => () => {
+      if (frame.current !== null) cancelAnimationFrame(frame.current);
+    },
+    [],
+  );
+
+  const measure = useCallback((id: Id, event: LayoutChangeEvent) => {
+    pending.current.set(id, Math.ceil(event.nativeEvent.layout.height));
+    if (frame.current !== null) return;
+    frame.current = requestAnimationFrame(() => {
+      frame.current = null;
+      const reported = pending.current;
+      pending.current = new Map();
+      setHeights((current) =>
+        [...reported].some(([key, height]) => current.get(key) !== height)
+          ? new Map([...current, ...reported])
+          : current,
+      );
+    });
   }, []);
-  return { value, measured, measure };
+
+  // Rows with no card yet, and cards not measured yet, take the shortest card's height.
+  const base = heights.size > 0 ? Math.min(...heights.values()) : guess;
+  return { heights, base, measured: heights.size > 0, measure };
 }
 
 function PressableMatch({

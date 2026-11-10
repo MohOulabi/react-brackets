@@ -7,12 +7,28 @@ description: Everyone plays everyone, in one or more groups, with a league table
   <RoundRobinDemo />
 </Preview>
 
+<Tabs groupId="platform" persist items={['React', 'React Native']}>
+<Tab value="React">
+
 ```tsx
 import { Bracket, roundRobin, standings } from 'react-brackets';
 
 const stage = roundRobin(teams, { groups: 2, legs: 2 });
 const table = standings(stage, stage.groups[0].id);
 ```
+
+</Tab>
+<Tab value="React Native">
+
+```tsx
+import { Bracket, roundRobin, standings } from '@react-brackets/native';
+
+const stage = roundRobin(teams, { groups: 2, legs: 2 });
+const table = standings(stage, stage.groups[0].id);
+```
+
+</Tab>
+</Tabs>
 
 | Option | Default | Description |
 | --- | --- | --- |
