@@ -2,10 +2,12 @@ import Link from 'next/link';
 import type { ReactNode } from 'react';
 import { CourtHero } from '@/components/home/court-hero';
 import { FormatShowcase, PhoneShowcase, StylingShowcase } from '@/components/home/showcases';
+import { Recording } from '@/components/native/recording';
 import { Playground } from '@/components/playground';
 import { repository } from '@/lib/layout.shared';
 import { site } from '@/lib/site';
 import { cn } from '@/lib/utils';
+import { releases } from '@/lib/versions';
 
 const structuredData = {
   '@context': 'https://schema.org',
@@ -14,7 +16,7 @@ const structuredData = {
   description: site.description,
   url: site.url,
   codeRepository: site.repository,
-  programmingLanguage: ['TypeScript', 'React'],
+  programmingLanguage: ['TypeScript', 'React', 'React Native'],
   license: 'https://opensource.org/licenses/MIT',
   author: { '@type': 'Person', name: site.author.name, url: site.author.url },
   sameAs: [site.npm],
@@ -54,6 +56,53 @@ export default function HomePage() {
           <PhoneShowcase />
         </div>
       </section>
+
+      <Section band="bg-card/60 border-y">
+        <div className="flex flex-col gap-12 md:gap-16">
+          <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(0,0.9fr)] lg:items-end lg:gap-16">
+            <div className="flex flex-col items-start gap-4">
+              {!releases.native.version && (
+                <span className="rounded-full border px-3 py-1 text-sm text-muted-foreground">
+                  React Native, coming to npm soon
+                </span>
+              )}
+              <Heading>In React Native, too.</Heading>
+            </div>
+            <div className="flex max-w-xl flex-col gap-5">
+              <p className="text-lg leading-relaxed text-muted-foreground">
+                <code className="text-foreground">@react-brackets/native</code> draws the same
+                stages in React Native and Expo. Every swipe, zoom and line moves on the UI thread,
+                cards open and the bracket makes room, and it styles with StyleSheet, Uniwind or
+                Unistyles.
+              </p>
+              <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
+                <Link
+                  href="/docs/native"
+                  className="inline-flex h-11 items-center rounded-full bg-primary px-6 font-semibold text-primary-foreground transition-opacity hover:opacity-90"
+                >
+                  React Native docs
+                </Link>
+                <Link
+                  href="/examples/native"
+                  className="font-medium underline-offset-4 hover:underline"
+                >
+                  See it on an iPhone
+                </Link>
+              </div>
+            </div>
+          </div>
+          <div className="-mx-4 flex snap-x snap-mandatory items-start gap-6 overflow-x-auto px-4 pb-4 sm:mx-0 sm:justify-center sm:overflow-visible sm:px-0 md:gap-10">
+            {nativeScreens.map((screen, index) => (
+              <div
+                key={screen.slug}
+                className={cn('w-60 shrink-0 snap-center sm:w-[272px]', index === 1 && 'sm:mt-12')}
+              >
+                <Recording slug={screen.slug} label={screen.label} />
+              </div>
+            ))}
+          </div>
+        </div>
+      </Section>
 
       <Section>
         <div className="flex flex-col gap-10 md:gap-14">
@@ -101,7 +150,8 @@ export default function HomePage() {
       <section className="bg-court-deep text-white">
         <div className="mx-auto flex max-w-6xl flex-col items-start gap-8 px-4 py-20 sm:px-6 md:py-24">
           <p className="font-display max-w-4xl text-balance text-[clamp(2.25rem,5vw,4rem)]">
-            Free and open source. React 18 and 19, no other dependencies, about 15 kB gzipped.
+            Free and open source. React 18 and 19 with no other dependencies, about 15 kB gzipped,
+            and React Native with Expo.
           </p>
           <div className="flex flex-wrap items-center gap-x-6 gap-y-4">
             <Link
@@ -126,6 +176,12 @@ export default function HomePage() {
     </main>
   );
 }
+
+const nativeScreens = [
+  { slug: 'quick-start', label: 'A bracket swiped round by round on an iPhone' },
+  { slug: 'esports', label: 'An esports bracket with rosters that open, played map by map' },
+  { slug: 'right-to-left', label: 'An Arabic cup read and swiped from the right' },
+];
 
 const points = [
   [
