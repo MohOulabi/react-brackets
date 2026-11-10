@@ -33,6 +33,21 @@
   animation: pulse 1.4s ease-in-out infinite;
 }
 
+/* The match being played glows, so the eye finds it first. */
+.bracket [data-part="match"][data-status="live"] {
+  border-color: color-mix(in oklab, #e5484d 60%, transparent);
+  background:
+    linear-gradient(135deg, color-mix(in oklab, #e5484d 14%, transparent), transparent 65%),
+    var(--rb-surface);
+  animation: glow 1.8s ease-in-out infinite;
+}
+
+@keyframes glow {
+  50% {
+    box-shadow: 0 0 0 3px color-mix(in oklab, #e5484d 16%, transparent);
+  }
+}
+
 @keyframes pulse {
   50% {
     opacity: 0.3;
@@ -40,7 +55,8 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .live::before {
+  .live::before,
+  .bracket [data-part="match"][data-status="live"] {
     animation: none;
   }
 }

@@ -56,8 +56,9 @@
       font-weight: 600;
     }
 
-    & :where([data-part="viewport"]) {
-      padding-bottom: 0.5rem;
+    /* A little room inside the clipped edge, so card shadows and focus rings at the edges show whole. */
+    & :where([data-part="viewport"]:not([data-mode="fit"], [data-mode="pan-zoom"])) {
+      padding: 0.25rem 0.25rem 0.5rem;
     }
 
     & :where([data-part="viewport"][data-mode="pan-zoom"]) {
@@ -67,6 +68,11 @@
       &:active {
         cursor: grabbing;
       }
+    }
+
+    /* The bracket starts clear of the frame, and keeps that margin when it is fitted. */
+    & :where([data-part="viewport"][data-mode="pan-zoom"] > [data-part="content"]) {
+      padding: 1rem;
     }
 
     & :where([data-part="content"][data-grid]) {
