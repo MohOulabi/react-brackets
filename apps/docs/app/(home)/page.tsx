@@ -86,7 +86,7 @@ export default function HomePage() {
                   href="/examples/native"
                   className="font-medium underline-offset-4 hover:underline"
                 >
-                  See it on an iPhone
+                  See the examples
                 </Link>
               </div>
             </div>
