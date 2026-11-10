@@ -1,0 +1,124 @@
+---
+title: Examples
+description: Every example from the Expo app, recorded on an iPhone, with its full code.
+---
+
+Each example is one file in [`examples/native`](https://github.com/MohOulabi/react-brackets/tree/main/examples/native), an Expo app you can run on a simulator or your phone. The code below is that file, as it is.
+
+```bash
+cd examples/native && bun run ios
+```
+
+## Showcases
+
+<NativeExample slug="esports" title="Esports">
+
+Best-of-three series with seeds, team colours and regions. **Play series** plays it one map at a time, **Play all** plays the whole bracket, and the view follows each series as it is played.
+
+The bracket only draws what it is given: every map is a `reportResult` with `live: true` until a team has two, and the winner moves on by itself.
+
+</NativeExample>
+
+<NativeExample slug="live-scores" title="Live scores">
+
+Results arrive every few hundred milliseconds. `page` follows the round being played, so the view moves on by itself, and a live match shows a pulsing dot drawn on the UI thread.
+
+</NativeExample>
+
+<NativeExample slug="nations" title="Nations">
+
+Your own cards, from `Bracket.Match` and `Bracket.Participant`: flags, seeds, kick-off times and a live match. `onMatchPress` makes every card pressable.
+
+</NativeExample>
+
+## Start
+
+<NativeExample slug="quick-start" title="Quick start">
+
+One component and a stage. On a phone it pages through one round at a time; swipe, or tap a round below.
+
+</NativeExample>
+
+<NativeExample slug="follow-a-team" title="Follow a team">
+
+Tap a team to light up its path, or pick one from the chips. `highlighted` and `onHighlightChange` keep both in step.
+
+</NativeExample>
+
+## Formats
+
+<NativeExample slug="double-elimination" title="Double elimination">
+
+The winners bracket with its grand final, and the losers bracket below it, each paged on its own.
+
+</NativeExample>
+
+<NativeExample slug="two-sided" title="Two-sided">
+
+`layout="mirrored"` splits the tree into two halves that meet at the final. It applies to the whole tree, so `compactBelow={0}` keeps it whole on a phone, scrolled sideways.
+
+</NativeExample>
+
+<NativeExample slug="swiss" title="Swiss">
+
+Pair a round, play it, and pair the next: players on the same score meet. `standings` ranks the table, and the rounds are swiped as lists.
+
+</NativeExample>
+
+<NativeExample slug="groups-to-playoffs" title="Groups to playoffs">
+
+Two round robin groups, each with its league table, feeding a knockout with a third place match. `qualifiers` picks the top two of each group so group winners meet runners-up.
+
+</NativeExample>
+
+## Customize
+
+<NativeExample slug="round-titles" title="Round titles">
+
+`renderRoundTitle` draws anything above a round: here its date and how many of its matches are played. Raise `titleHeight` in the theme to give the titles room.
+
+</NativeExample>
+
+<NativeExample slug="connector-lines" title="Connector lines">
+
+Lines take their colour, width and corners from the theme, and the accent draws a highlighted path. Lines are plain views moved with the cards, so they never trail behind; dashed or curved lines are on the web only for now.
+
+</NativeExample>
+
+<NativeExample slug="tailwind" title="Tailwind">
+
+Cards styled with classes through [Uniwind](https://uniwind.dev): `withUniwind(Bracket.Match)` gives a card a `className`.
+
+</NativeExample>
+
+<NativeExample slug="unistyles" title="Unistyles">
+
+`withUnistyles` passes your Unistyles theme to the bracket, so it changes with your app's light and dark themes.
+
+</NativeExample>
+
+## Screens and data
+
+<NativeExample slug="fixtures-list" title="Fixtures list">
+
+`compact="list"` shows each round as a plain list of matches, for long draws where the lines matter less than the fixtures.
+
+</NativeExample>
+
+<NativeExample slug="full-tree" title="Full tree">
+
+The whole bracket on a phone with `mode="pan-zoom"`: pinch, drag, or double tap to zoom in and out.
+
+</NativeExample>
+
+<NativeExample slug="right-to-left" title="Right to left">
+
+`dir="rtl"` puts the first round on the right, swipes the other way and lays out every card from the right. It follows the app's own direction by default.
+
+</NativeExample>
+
+<NativeExample slug="loading" title="Loading">
+
+A placeholder bracket of the same size stands in while the draw loads, so nothing jumps when it arrives.
+
+</NativeExample>

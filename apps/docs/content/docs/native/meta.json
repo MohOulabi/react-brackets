@@ -1,0 +1,17 @@
+{
+  "title": "React Native",
+  "description": "For iOS and Android",
+  "root": true,
+  "pages": [
+    "---Getting started---",
+    "index",
+    "installation",
+    "examples",
+    "---Guides---",
+    "layouts",
+    "styling",
+    "performance",
+    "---Reference---",
+    "api"
+  ]
+}

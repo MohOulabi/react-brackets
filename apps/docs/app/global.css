@@ -276,3 +276,10 @@
 .dark .example-stage {
   box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.04);
 }
+
+/* The top bar's search box and theme switch sit side by side: one height for both, whatever the font. */
+[data-search-full].rounded-full,
+[data-theme-toggle].rounded-full {
+  box-sizing: border-box;
+  height: 2.25rem;
+}
