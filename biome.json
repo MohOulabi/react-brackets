@@ -11,7 +11,8 @@
       "!**/out",
       "!apps/docs/components/ui",
       "!.changeset",
-      "!**/CHANGELOG.md"
+      "!**/CHANGELOG.md",
+      "!**/uniwind-types.d.ts"
     ]
   },
   "formatter": { "indentStyle": "space", "indentWidth": 2, "lineWidth": 100 },
