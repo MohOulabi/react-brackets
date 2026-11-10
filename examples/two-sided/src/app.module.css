@@ -33,15 +33,47 @@
   font-weight: 600;
 }
 
-.follow select {
+.picker {
+  position: relative;
+  display: inline-flex;
+}
+
+/* The select draws no arrow of its own, so the chevron is drawn here, in the text colour. */
+.picker::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  right: 0.95rem;
+  width: 0.4rem;
+  height: 0.4rem;
+  border-right: 1.5px solid currentColor;
+  border-bottom: 1.5px solid currentColor;
+  opacity: 0.7;
+  transform: translateY(-70%) rotate(45deg);
+  pointer-events: none;
+}
+
+.picker select {
+  appearance: none;
   height: 2.25rem;
-  padding: 0 0.75rem;
-  border: 1px solid color-mix(in oklab, currentColor 18%, transparent);
+  padding: 0 2.4rem 0 0.95rem;
+  border: 1px solid color-mix(in oklab, currentColor 16%, transparent);
   border-radius: 999px;
-  background: Canvas;
+  background: color-mix(in oklab, currentColor 6%, transparent);
   color: inherit;
   font: inherit;
   font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.picker select:hover {
+  background: color-mix(in oklab, currentColor 11%, transparent);
+}
+
+.picker select:focus-visible {
+  outline: 2px solid color-mix(in oklab, currentColor 45%, transparent);
+  outline-offset: 2px;
 }
 
 /* Two halves side by side need narrower cards to fit. */
