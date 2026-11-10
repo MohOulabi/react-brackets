@@ -7,7 +7,6 @@ import { Playground } from '@/components/playground';
 import { repository } from '@/lib/layout.shared';
 import { site } from '@/lib/site';
 import { cn } from '@/lib/utils';
-import { releases } from '@/lib/versions';
 
 const structuredData = {
   '@context': 'https://schema.org',
@@ -60,14 +59,7 @@ export default function HomePage() {
       <Section band="bg-card/60 border-y">
         <div className="flex flex-col gap-12 md:gap-16">
           <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(0,0.9fr)] lg:items-end lg:gap-16">
-            <div className="flex flex-col items-start gap-4">
-              {!releases.native.version && (
-                <span className="rounded-full border px-3 py-1 text-sm text-muted-foreground">
-                  React Native, coming to npm soon
-                </span>
-              )}
-              <Heading>In React Native, too.</Heading>
-            </div>
+            <Heading>In React Native, too.</Heading>
             <div className="flex max-w-xl flex-col gap-5">
               <p className="text-lg leading-relaxed text-muted-foreground">
                 <code className="text-foreground">@react-brackets/native</code> draws the same
