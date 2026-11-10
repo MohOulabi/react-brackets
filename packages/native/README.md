@@ -1,0 +1,81 @@
+# @react-brackets/native
+
+Tournament brackets for React Native and Expo, from the same core as [react-brackets](https://react-brackets.oulabi.dev).
+
+- **Native feel.** Swipes, the change of round, pinch and zoom all run on the UI thread with Reanimated and Gesture Handler. React re-renders only once a swipe lands.
+- **Lines that never trail.** Connectors are plain views moved by the same transforms as the cards, in the same frame, and stay sharp at any zoom.
+- **Still a bracket on a phone.** Narrow screens page through one round at a time, with the next round and its lines at the edge. Wide screens get the whole tree, scrolled, fitted or zoomed.
+- **Every format.** Single and double elimination, round robin, Swiss and your own data, with results that move winners on.
+- **Styled your way.** A light and dark theme out of the box, and a `style` on every part that can depend on its state, for StyleSheet, Uniwind, NativeWind or Unistyles.
+
+## Install
+
+```bash
+npx expo install @react-brackets/native react-native-reanimated react-native-worklets react-native-gesture-handler
+```
+
+It needs React Native's New Architecture, Reanimated 4 and Gesture Handler 3. Expo Go includes all of them.
+
+## Use
+
+```tsx
+import { Bracket, singleElimination } from '@react-brackets/native';
+
+const stage = singleElimination([
+  { id: 'falcons', name: 'Falcons' },
+  { id: 'wolves', name: 'Wolves' },
+  { id: 'herons', name: 'Herons' },
+  { id: 'lynx', name: 'Lynx' },
+]);
+
+export function Screen() {
+  return <Bracket stage={stage} />;
+}
+```
+
+Wrap your app in `GestureHandlerRootView`, as Gesture Handler asks. Inside a scrolling screen, use Gesture Handler's `ScrollView`, so a swipe across the bracket and a scroll down the page never fight over the same touch.
+
+## Your own cards
+
+```tsx
+<Bracket
+  stage={stage}
+  renderMatch={() => (
+    <Bracket.Match style={({ live }) => [styles.card, live && styles.live]}>
+      <Bracket.Participant slot={0} style={({ winner }) => winner && styles.winner} />
+      <Bracket.Participant slot={1} style={({ winner }) => winner && styles.winner} />
+    </Bracket.Match>
+  )}
+/>;
+```
+
+`Bracket.Participant` also takes a function as its child, to draw anything from the participant's state.
+
+## Theme
+
+```tsx
+<Bracket stage={stage} theme={{ colors: { accent: '#ea580c' }, radius: 14 }} />;
+```
+
+Or set one for every bracket with `BracketThemeProvider` and `createTheme`. With Unistyles, `withUnistyles(Bracket, (theme) => ({ theme: { colors: theme.bracket } }))` keeps the bracket in step with your themes. With Uniwind, `withUniwind(Bracket.Match)` gives a card a `className`.
+
+## Smoothest in a development build
+
+Reanimated can move views without a layout pass. Turn it on in your app's `package.json`, then rebuild:
+
+```json
+{
+  "reanimated": {
+    "staticFeatureFlags": {
+      "IOS_SYNCHRONOUSLY_UPDATE_UI_PROPS": true,
+      "ANDROID_SYNCHRONOUSLY_UPDATE_UI_PROPS": true
+    }
+  }
+}
+```
+
+The bracket only animates transforms and opacity, and its presses use Gesture Handler, so it is ready for this fast path.
+
+## License
+
+MIT
