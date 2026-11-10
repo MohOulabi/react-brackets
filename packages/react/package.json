@@ -16,7 +16,12 @@
     "tournament",
     "headless",
     "single-elimination",
-    "double-elimination"
+    "double-elimination",
+    "tournament-bracket",
+    "round-robin",
+    "swiss",
+    "esports",
+    "react-component"
   ],
   "type": "module",
   "sideEffects": [
