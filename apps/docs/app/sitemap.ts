@@ -10,5 +10,9 @@ export default function sitemap(): MetadataRoute.Sitemap {
     changeFrequency: 'weekly' as const,
     priority: page.url === '/docs' ? 0.9 : 0.7,
   }));
-  return [{ url: site.url, changeFrequency: 'weekly', priority: 1 }, ...docs];
+  return [
+    { url: site.url, changeFrequency: 'weekly', priority: 1 },
+    { url: `${site.url}/examples`, changeFrequency: 'monthly', priority: 0.8 },
+    ...docs,
+  ];
 }
