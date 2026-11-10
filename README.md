@@ -1,6 +1,6 @@
 # react-brackets
 
-Headless, responsive tournament brackets for React.
+Headless, responsive tournament brackets for React, and for React Native with [`@react-brackets/native`](#react-native).
 
 **[Documentation and live examples](https://react-brackets.oulabi.dev)**
 
@@ -9,6 +9,7 @@ Headless, responsive tournament brackets for React.
 - **Accurate lines.** Connectors are measured from your real match cards, so any card size, mirrored layout or right-to-left page just works.
 - **Every format.** Single and double elimination, two-sided brackets, round robin, Swiss and groups to playoffs, with seeding, byes, results and standings.
 - **Small.** No runtime dependencies besides React.
+- **React Native too.** The same stages in React Native and Expo, with every swipe, zoom and line on the UI thread.
 
 > **v2 is a ground-up rewrite.** Upgrading from 0.x? Read the [migration guide](MIGRATION.md). v0.x lives on the [`legacy`](https://github.com/MohOulabi/react-brackets/tree/legacy) branch.
 
@@ -154,13 +155,30 @@ export default function Page() {
 }
 ```
 
+## React Native
+
+```bash
+npx expo install @react-brackets/native react-native-reanimated react-native-worklets react-native-gesture-handler
+```
+
+```tsx
+import { Bracket, singleElimination } from '@react-brackets/native';
+
+export function Screen() {
+  return <Bracket stage={singleElimination(teams)} />;
+}
+```
+
+The formats, results and standings are the same as on the web. On a phone it pages through one round at a time, as a bracket or as plain lists, and wider screens get the whole tree to scroll, fit, or pinch and zoom. Cards may be any height and open in place, and it styles with StyleSheet, Uniwind or Unistyles. See the [React Native docs](https://react-brackets.oulabi.dev/docs/native) and [examples recorded on an iPhone](https://react-brackets.oulabi.dev/examples/native).
+
 ## Packages
 
-| Package                                   | Description                                                 |
-| ----------------------------------------- | ----------------------------------------------------------- |
-| [`react-brackets`](packages/react)        | Headless React components. Re-exports the core.             |
-| [`@react-brackets/core`](packages/core)   | Formats, results and layout. No framework, no dependencies. |
-| [`@react-brackets/theme`](packages/theme) | Optional stylesheet driven by CSS variables.                |
+| Package                                     | Description                                                 |
+| ------------------------------------------- | ----------------------------------------------------------- |
+| [`react-brackets`](packages/react)          | Headless React components. Re-exports the core.             |
+| [`@react-brackets/core`](packages/core)     | Formats, results and layout. No framework, no dependencies. |
+| [`@react-brackets/theme`](packages/theme)   | Optional stylesheet driven by CSS variables.                |
+| [`@react-brackets/native`](packages/native) | React Native and Expo components on the same core.          |
 
 ## Examples
 
@@ -180,6 +198,7 @@ Run them all locally with `bun install && bun run build && bun run examples`. Th
 - [live scores](examples/live-scores)
 - [loading skeleton](examples/loading)
 - [Next.js App Router](examples/nextjs)
+- [React Native](examples/native), an Expo app with every native example
 
 ## Contributing
 

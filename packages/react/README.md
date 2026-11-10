@@ -1,6 +1,6 @@
 # react-brackets
 
-Headless, responsive tournament brackets for React.
+Headless, responsive tournament brackets for React. Building for iOS or Android? Use [`@react-brackets/native`](https://www.npmjs.com/package/@react-brackets/native), on the same core.
 
 **[Documentation and live examples](https://react-brackets.oulabi.dev)**
 

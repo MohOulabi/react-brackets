@@ -36,8 +36,14 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const page = source.getPage(slug);
   if (!page) notFound();
   return {
-    title: page.data.title,
+    title: nativeTitle(page.url, page.data.title),
     description: page.data.description,
     alternates: { canonical: page.url },
   };
+}
+
+/** Native pages share names with web ones, like Installation, so their titles say which they are. */
+function nativeTitle(url: string, title: string): string {
+  if (url === '/docs/native') return 'Tournament brackets for React Native';
+  return url.startsWith('/docs/native/') ? `${title} for React Native` : title;
 }
