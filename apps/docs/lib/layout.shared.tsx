@@ -12,6 +12,9 @@ export function baseOptions(): BaseLayoutProps {
       ),
     },
     githubUrl: repository,
-    links: [{ text: 'Docs', url: '/docs', active: 'nested-url' }],
+    links: [
+      { text: 'Docs', url: '/docs', active: 'nested-url' },
+      { text: 'Examples', url: '/examples' },
+    ],
   };
 }
