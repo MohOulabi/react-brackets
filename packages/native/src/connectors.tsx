@@ -111,6 +111,8 @@ interface MovingConnectorProps {
 export const MovingConnector: NamedExoticComponent<MovingConnectorProps> = memo(
   function MovingConnector({ from, to, position, size, look }: MovingConnectorProps): ReactNode {
     const { width, height } = size;
+    // Which way the line runs never changes as it moves, only whether it bends up or down.
+    const sx = (from[0] ?? 0) < (to[0] ?? 0) ? 1 : -1;
     const state = useDerivedValue(() => {
       const [x1, y1, o1] = frameAt(from, position.value);
       const [x2, y2, o2] = frameAt(to, position.value);
@@ -147,10 +149,10 @@ export const MovingConnector: NamedExoticComponent<MovingConnectorProps> = memo(
         />
         {look.radius > 0 && (
           <>
-            <Turn state={state} piece="turnOut" down look={look} corner="tr" />
-            <Turn state={state} piece="turnOut" down={false} look={look} corner="br" />
-            <Turn state={state} piece="turnIn" down look={look} corner="bl" />
-            <Turn state={state} piece="turnIn" down={false} look={look} corner="tl" />
+            <Turn state={state} piece="turnOut" down look={look} corner={turnOut(sx, 1)} />
+            <Turn state={state} piece="turnOut" down={false} look={look} corner={turnOut(sx, -1)} />
+            <Turn state={state} piece="turnIn" down look={look} corner={turnIn(sx, 1)} />
+            <Turn state={state} piece="turnIn" down={false} look={look} corner={turnIn(sx, -1)} />
           </>
         )}
       </>

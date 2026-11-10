@@ -1,108 +1,109 @@
-import { Bracket, type TreeMode } from '@react-brackets/native';
 import { StatusBar } from 'expo-status-bar';
-import { type ReactNode, useState } from 'react';
-import { Pressable, Text, useColorScheme, View } from 'react-native';
+import { type ReactNode, useEffect, useState } from 'react';
+import { Linking, Pressable, Text, useColorScheme, View } from 'react-native';
 import { GestureHandlerRootView, ScrollView } from 'react-native-gesture-handler';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
-import { CustomDemo } from './custom';
-import { cup } from './data';
-import { TailwindDemo } from './tailwind';
-import { UnistylesDemo } from './unistyles/demo';
-
-const demos = ['Bracket', 'Tree', 'Custom', 'Themes'] as const;
-type Demo = (typeof demos)[number];
+import { type Example, examples } from './catalog';
 
 export function App(): ReactNode {
   const dark = useColorScheme() === 'dark';
-  const [demo, setDemo] = useState<Demo>('Bracket');
-  const ink = dark ? '#fafafa' : '#18181b';
+  const [open, setOpen] = useState<Example | null>(null);
+
+  // A link like dev.oulabi.reactbrackets://example/live-scores opens that example.
+  useEffect(() => {
+    const show = (url?: string | null) => {
+      const slug = url?.match(/example\/([\w-]+)/)?.[1];
+      const example = examples.find((item) => item.slug === slug);
+      if (example) setOpen(example);
+    };
+    Linking.getInitialURL().then(show);
+    const subscription = Linking.addEventListener('url', ({ url }) => show(url));
+    return () => subscription.remove();
+  }, []);
+  const colors = {
+    page: dark ? '#09090b' : '#f8fafc',
+    ink: dark ? '#fafafa' : '#18181b',
+    muted: dark ? '#a1a1aa' : '#71717a',
+    card: dark ? '#18181b' : '#ffffff',
+    line: dark ? '#27272a' : '#e4e4e7',
+  };
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
         <StatusBar style="auto" />
-        <SafeAreaView style={{ flex: 1, backgroundColor: dark ? '#09090b' : '#f8fafc' }}>
-          <ScrollView contentContainerStyle={{ padding: 20, gap: 20 }}>
-            <View style={{ gap: 4 }}>
-              <Text style={{ color: ink, fontSize: 28, fontWeight: '800' }}>react-brackets</Text>
-              <Text style={{ color: dark ? '#a1a1aa' : '#52525b', fontSize: 15 }}>
-                Native gestures, every frame on the UI thread.
-              </Text>
+        <SafeAreaView style={{ flex: 1, backgroundColor: colors.page }}>
+          {open ? (
+            <View style={{ flex: 1 }}>
+              <View
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  gap: 6,
+                  paddingHorizontal: 12,
+                  paddingVertical: 8,
+                }}
+              >
+                <Pressable onPress={() => setOpen(null)} hitSlop={12} accessibilityRole="button">
+                  <Text style={{ fontSize: 17, color: '#2563eb' }}>‹ Examples</Text>
+                </Pressable>
+              </View>
+              <ScrollView contentContainerStyle={{ padding: 20, paddingTop: 4, gap: 20 }}>
+                <Text style={{ fontSize: 30, fontWeight: '800', color: colors.ink }}>
+                  {open.title}
+                </Text>
+                <open.Screen />
+              </ScrollView>
             </View>
-            <Segmented options={demos} value={demo} onChange={setDemo} dark={dark} />
-            {demo === 'Bracket' && <PagedDemo />}
-            {demo === 'Tree' && <TreeDemo dark={dark} />}
-            {demo === 'Custom' && <CustomDemo dark={dark} />}
-            {demo === 'Themes' && <ThemesDemo />}
-          </ScrollView>
+          ) : (
+            <ScrollView contentContainerStyle={{ padding: 20, gap: 24 }}>
+              <View style={{ gap: 6, paddingTop: 12 }}>
+                <Text style={{ fontSize: 34, fontWeight: '800', color: colors.ink }}>
+                  react-brackets
+                </Text>
+                <Text style={{ fontSize: 16, color: colors.muted }}>
+                  Tournament brackets for React Native.
+                </Text>
+              </View>
+              <View
+                style={{
+                  overflow: 'hidden',
+                  borderRadius: 16,
+                  borderWidth: 1,
+                  borderColor: colors.line,
+                  backgroundColor: colors.card,
+                }}
+              >
+                {examples.map((example, index) => (
+                  <Pressable
+                    key={example.slug}
+                    accessibilityRole="button"
+                    onPress={() => setOpen(example)}
+                    style={({ pressed }) => ({
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      gap: 12,
+                      paddingHorizontal: 16,
+                      paddingVertical: 14,
+                      borderTopWidth: index === 0 ? 0 : 1,
+                      borderTopColor: colors.line,
+                      backgroundColor: pressed ? colors.line : 'transparent',
+                    })}
+                  >
+                    <View style={{ flex: 1, gap: 2 }}>
+                      <Text style={{ fontSize: 17, fontWeight: '600', color: colors.ink }}>
+                        {example.title}
+                      </Text>
+                      <Text style={{ fontSize: 14, color: colors.muted }}>{example.summary}</Text>
+                    </View>
+                    <Text style={{ fontSize: 20, color: colors.muted }}>›</Text>
+                  </Pressable>
+                ))}
+              </View>
+            </ScrollView>
+          )}
         </SafeAreaView>
       </SafeAreaProvider>
     </GestureHandlerRootView>
-  );
-}
-
-function PagedDemo(): ReactNode {
-  return <Bracket stage={cup} />;
-}
-
-const modes: TreeMode[] = ['scroll', 'fit', 'pan-zoom'];
-
-function TreeDemo({ dark }: { dark: boolean }): ReactNode {
-  const [mode, setMode] = useState<TreeMode>('pan-zoom');
-  return (
-    <View style={{ gap: 16 }}>
-      <Segmented options={modes} value={mode} onChange={setMode} dark={dark} />
-      <Bracket stage={cup} compactBelow={0} mode={mode} />
-    </View>
-  );
-}
-
-function ThemesDemo(): ReactNode {
-  return (
-    <View style={{ gap: 24 }}>
-      <TailwindDemo />
-      <UnistylesDemo />
-    </View>
-  );
-}
-
-function Segmented<T extends string>({
-  options,
-  value,
-  onChange,
-  dark,
-}: {
-  options: readonly T[];
-  value: T;
-  onChange: (value: T) => void;
-  dark: boolean;
-}): ReactNode {
-  return (
-    <View
-      style={{
-        flexDirection: 'row',
-        alignSelf: 'flex-start',
-        padding: 3,
-        borderRadius: 999,
-        backgroundColor: dark ? '#27272a' : '#e4e4e7',
-      }}
-    >
-      {options.map((option) => (
-        <Pressable
-          key={option}
-          accessibilityRole="button"
-          accessibilityState={{ selected: option === value }}
-          onPress={() => onChange(option)}
-          style={{
-            paddingHorizontal: 14,
-            paddingVertical: 7,
-            borderRadius: 999,
-            backgroundColor: option === value ? (dark ? '#3f3f46' : '#ffffff') : 'transparent',
-          }}
-        >
-          <Text style={{ color: dark ? '#fafafa' : '#18181b', fontWeight: '600' }}>{option}</Text>
-        </Pressable>
-      ))}
-    </View>
   );
 }

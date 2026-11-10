@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { cn } from '@/lib/utils';
 
 interface NavGroup {
@@ -11,6 +11,7 @@ interface NavGroup {
 /** The examples index, marking the example being read. */
 export function ExamplesNav({ groups }: { groups: NavGroup[] }) {
   const [active, setActive] = useState<string | null>(null);
+  const list = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const ids = groups.flatMap((group) => group.links.map((link) => link.id));
@@ -34,9 +35,27 @@ export function ExamplesNav({ groups }: { groups: NavGroup[] }) {
     return () => observer.disconnect();
   }, [groups]);
 
+  // The index scrolls on its own when it is taller than the screen, so keep the current example in sight.
+  useEffect(() => {
+    const box = list.current;
+    const link = active ? box?.querySelector<HTMLElement>(`[href="#${active}"]`) : null;
+    if (!box || !link) return;
+    const margin = 32;
+    if (link.offsetTop - margin < box.scrollTop)
+      box.scrollTo({ top: link.offsetTop - margin, behavior: 'smooth' });
+    else if (link.offsetTop + link.offsetHeight + margin > box.scrollTop + box.clientHeight)
+      box.scrollTo({
+        top: link.offsetTop + link.offsetHeight + margin - box.clientHeight,
+        behavior: 'smooth',
+      });
+  }, [active]);
+
   return (
     <nav aria-label="Examples" className="hidden lg:block">
-      <div className="sticky top-24 flex flex-col gap-6 text-sm">
+      <div
+        ref={list}
+        className="sticky top-24 flex max-h-[calc(100dvh-7rem)] flex-col gap-6 overflow-y-auto overscroll-contain pb-8 text-sm [scrollbar-width:thin]"
+      >
         {groups.map((group) => (
           <div key={group.title} className="flex flex-col gap-1">
             <p className="mb-1 font-semibold">{group.title}</p>

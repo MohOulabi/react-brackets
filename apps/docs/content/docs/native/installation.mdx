@@ -1,0 +1,51 @@
+---
+title: Installation
+description: Add the package and its gesture and animation libraries.
+---
+
+```bash
+npx expo install @react-brackets/native react-native-reanimated react-native-worklets react-native-gesture-handler
+```
+
+It needs React Native's New Architecture, Reanimated 4 and Gesture Handler 3. Expo Go includes all of them, so you can try it without a build. In a bare React Native app, add `react-native-worklets/plugin` to your Babel config as Reanimated asks.
+
+## Set up gestures
+
+Wrap your app once in `GestureHandlerRootView`:
+
+```tsx
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
+
+export default function App() {
+  return <GestureHandlerRootView style={{ flex: 1 }}>{/* your app */}</GestureHandlerRootView>;
+}
+```
+
+Inside a screen that scrolls, use Gesture Handler's `ScrollView`. A swipe across the bracket and a scroll down the page then never fight over the same touch:
+
+```tsx
+import { ScrollView } from 'react-native-gesture-handler';
+
+<ScrollView>
+  <Bracket stage={stage} />
+</ScrollView>;
+```
+
+## Draw a bracket
+
+```tsx
+import { Bracket, singleElimination } from '@react-brackets/native';
+
+const stage = singleElimination([
+  { id: 'falcons', name: 'Falcons' },
+  { id: 'wolves', name: 'Wolves' },
+  { id: 'herons', name: 'Herons' },
+  { id: 'lynx', name: 'Lynx' },
+]);
+
+export function Screen() {
+  return <Bracket stage={stage} />;
+}
+```
+
+Formats, results and standings are the same as on the web: everything in [Formats](/docs/formats/single-elimination) and [Results](/docs/guides/results) applies, imported from `@react-brackets/native`.

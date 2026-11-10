@@ -13,7 +13,15 @@ import Animated, {
 } from 'react-native-reanimated';
 import { scheduleOnRN } from 'react-native-worklets';
 import { MovingConnector } from './connectors';
-import { frameAt, type Metrics, pagedGeometry, valueAt } from './geometry';
+import {
+  frameAt,
+  heightAt,
+  listGeometry,
+  type Metrics,
+  mirrorPaged,
+  type PageHeight,
+  pagedGeometry,
+} from './geometry';
 import { Pagination } from './pagination';
 import { RoundTitle } from './parts';
 import type { BracketTheme } from './theme';
@@ -38,10 +46,14 @@ export interface PagedProps {
   duration: number | null;
   highlightedEdges: Set<string>;
   renderMatch: (match: Match) => ReactNode;
+  /** `bracket` keeps the lines with the next round peeking in; `list` shows each round as a plain list. */
+  variant: 'bracket' | 'list';
+  rtl: boolean;
+  fit: PageHeight;
 }
 
 /**
- * One round at a time, still drawn as a bracket. Every card's place on every
+ * One round at a time, drawn as a bracket or as plain lists. Every card's place on every
  * page is worked out up front; a swipe only moves `position`, a page number,
  * on the UI thread, and cards, titles, lines and height all follow it there.
  * React only hears about the page once a swipe lands.
@@ -57,10 +69,16 @@ export function PagedBracket({
   duration,
   highlightedEdges,
   renderMatch,
+  variant,
+  rtl,
+  fit,
 }: PagedProps): ReactNode {
-  const step = Math.round(width * FOCUS);
+  const list = variant === 'list';
+  const step = list ? width + theme.pagedColumnGap : Math.round(width * FOCUS);
+  // Swipes and stretches run the other way when the rounds read from right to left.
+  const dir = rtl ? -1 : 1;
   const metrics: Metrics = {
-    matchWidth: step - theme.pagedColumnGap,
+    matchWidth: list ? width : step - theme.pagedColumnGap,
     matchHeight,
     matchGap: theme.matchGap,
     columnGap: theme.pagedColumnGap,
@@ -68,10 +86,10 @@ export function PagedBracket({
   };
   const { matchWidth, matchGap, columnGap, titleHeight } = metrics;
   // biome-ignore lint/correctness/useExhaustiveDependencies: the metrics are listed value by value
-  const geometry = useMemo(
-    () => pagedGeometry(group, metrics, step),
-    [group, step, matchWidth, matchHeight, matchGap, columnGap, titleHeight],
-  );
+  const geometry = useMemo(() => {
+    const tables = (list ? listGeometry : pagedGeometry)(group, metrics, step);
+    return rtl ? mirrorPaged(tables, width) : tables;
+  }, [group, list, rtl, width, step, matchWidth, matchHeight, matchGap, columnGap, titleHeight]);
   const last = geometry.pages - 1;
   const position = useSharedValue(page);
   const start = useSharedValue(page);
@@ -99,15 +117,15 @@ export function PagedBracket({
       const from = Math.round(start.value);
       const low = Math.max(0, from - maxSwipeRounds);
       const high = Math.min(last, from + maxSwipeRounds);
-      const raw = start.value - event.translationX / step;
+      const raw = start.value - (dir * event.translationX) / step;
       const held = Math.min(Math.max(raw, low), high);
       position.value = held;
-      stretch.value = rubberBand((held - raw) * step, width);
+      stretch.value = dir * rubberBand((held - raw) * step, width);
     },
     onDeactivate: (event) => {
       'worklet';
       const from = Math.round(start.value);
-      const velocity = -event.velocityX / step;
+      const velocity = (-dir * event.velocityX) / step;
       // Like native paging: where the finger was heading decides, and a fifth of a round is enough.
       const heading = position.value + velocity * GLIDE - from;
       let target = from + Math.round(heading);
@@ -125,7 +143,9 @@ export function PagedBracket({
     },
   });
 
-  const frame = useAnimatedStyle(() => ({ height: valueAt(geometry.heights, position.value) }));
+  const frame = useAnimatedStyle(() => ({
+    height: heightAt(geometry.heights, position.value, fit),
+  }));
   const pulled = useAnimatedStyle(() => ({ transform: [{ translateX: stretch.value }] }));
   const lines = geometry.edges.map((edge) => ({
     edge,
@@ -145,7 +165,8 @@ export function PagedBracket({
   return (
     <View>
       <GestureDetector gesture={pan}>
-        <Animated.View style={[{ overflow: 'hidden' }, frame]}>
+        {/* Places are worked out left to right and mirrored for RTL, so this layer never flips them again. */}
+        <Animated.View style={[{ overflow: 'hidden', direction: 'ltr' }, frame]}>
           <Animated.View style={pulled}>
             {lines.map(
               ({ edge, from, to }) =>
@@ -167,6 +188,7 @@ export function PagedBracket({
                 frames={geometry.titles.get(round.id) ?? []}
                 position={position}
                 width={matchWidth}
+                rtl={rtl}
               >
                 <View style={{ height: titleHeight, justifyContent: 'center' }}>
                   <RoundTitle round={round} />
@@ -180,6 +202,7 @@ export function PagedBracket({
                   frames={geometry.matches.get(match.id) ?? []}
                   position={position}
                   width={matchWidth}
+                  rtl={rtl}
                 >
                   {renderMatch(match)}
                 </Placed>
@@ -193,6 +216,7 @@ export function PagedBracket({
         page={page}
         position={position}
         theme={theme}
+        rtl={rtl}
         onSelect={(next) => onPage(next)}
       />
     </View>
@@ -206,11 +230,13 @@ const Placed = memo(function Placed({
   frames,
   position,
   width,
+  rtl,
   children,
 }: {
   frames: number[];
   position: SharedValue<number>;
   width: number;
+  rtl: boolean;
   children: ReactNode;
 }) {
   const style = useAnimatedStyle(() => {
@@ -218,7 +244,12 @@ const Placed = memo(function Placed({
     return { opacity, transform: [{ translateX: x }, { translateY: y }] };
   });
   return (
-    <Animated.View style={[{ position: 'absolute', left: 0, top: 0, width }, style]}>
+    <Animated.View
+      style={[
+        { position: 'absolute', left: 0, top: 0, width, direction: rtl ? 'rtl' : 'ltr' },
+        style,
+      ]}
+    >
       {children}
     </Animated.View>
   );

@@ -6,6 +6,8 @@ import defaultMdxComponents from 'fumadocs-ui/mdx';
 import type { MDXComponents } from 'mdx/types';
 import * as demos from '@/components/demos';
 import { Phone, Preview } from '@/components/demos/preview';
+import { NativeExample } from '@/components/native/example';
+import { Recording } from '@/components/native/recording';
 
 const generator = createGenerator({
   cache: createFileSystemGeneratorCache('.next/fumadocs-typescript'),
@@ -14,6 +16,7 @@ const generator = createGenerator({
 const sources = {
   core: '../../packages/core/src/index.ts',
   react: '../../packages/react/src/index.ts',
+  native: '../../packages/native/src/index.ts',
 };
 
 /** A props or fields table generated from the library's own TSDoc, so it never drifts from the code. */
@@ -29,6 +32,8 @@ export function getMDXComponents(components?: MDXComponents): MDXComponents {
     TypeTable,
     ApiTable,
     Preview,
+    NativeExample,
+    Recording,
     Phone,
     ...demos,
     ...components,

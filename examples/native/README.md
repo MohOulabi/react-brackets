@@ -1,6 +1,6 @@
 # React Native example
 
-An Expo app showing `@react-brackets/native`: the paged bracket, the full tree in its three modes, custom cards with a live match, and theming with Tailwind (Uniwind) and Unistyles.
+An Expo app with every `@react-brackets/native` example from the docs: the paged bracket and plain lists, the full tree, every format, right to left, custom cards and titles, live scores, an esports bracket you can play, and theming with Tailwind (Uniwind) and Unistyles. Each example is one file in `src/examples`, listed in `src/catalog.ts`.
 
 It reads the library from its source in this repository, so changes show without a build.
 
@@ -20,6 +20,12 @@ That makes a development build, which Unistyles needs and which turns on Reanima
 
 ```bash
 npx expo run:ios --configuration Release
+```
+
+Every example opens straight from a link, which is handy for recording one:
+
+```bash
+xcrun simctl openurl booted "dev.oulabi.reactbrackets://example/esports"
 ```
 
 Without Unistyles, `bun run start` and Expo Go are enough for the other demos.

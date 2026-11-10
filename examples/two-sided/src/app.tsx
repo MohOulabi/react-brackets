@@ -41,12 +41,14 @@ export function App() {
         </div>
         <label className={styles.follow}>
           Follow
-          <select value={team} onChange={(event) => setTeam(event.target.value)}>
-            <option value="">Nobody</option>
-            {teams.map((name) => (
-              <option key={name}>{name}</option>
-            ))}
-          </select>
+          <span className={styles.picker}>
+            <select value={team} onChange={(event) => setTeam(event.target.value)}>
+              <option value="">Nobody</option>
+              {teams.map((name) => (
+                <option key={name}>{name}</option>
+              ))}
+            </select>
+          </span>
         </label>
       </header>
       <Bracket

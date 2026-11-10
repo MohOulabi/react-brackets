@@ -24,6 +24,18 @@ A long or fast swipe crosses several rounds at once, the way a native carousel d
 <Bracket stage={stage} compactBelow={480} />    // switch at a different width
 ```
 
+### Height between rounds
+
+Rounds have different heights: the first round of eight matches is taller than the semifinals. By default (`pageHeight="contain"`), the bracket stays tall enough for both rounds while they move, and settles to the new round's height once the move lands, so a round is never cut off while it is on screen.
+
+`pageHeight="follow"` blends the two heights under your finger instead. The page below moves with the swipe, but the taller round is cut as it slides.
+
+```tsx
+<Bracket stage={stage} pageHeight="follow" />
+```
+
+To keep the page below from moving at all, give the bracket's container a `min-height` of its tallest round.
+
 ## The whole tree, on any screen
 
 Set `compactBelow={0}` to always show the full tree, then choose how it fits with `mode`:

@@ -12,12 +12,14 @@ export function Pagination({
   page,
   position,
   theme,
+  rtl,
   onSelect,
 }: {
   rounds: Round[];
   page: number;
   position: SharedValue<number>;
   theme: BracketTheme;
+  rtl: boolean;
   onSelect: (page: number) => void;
 }): ReactNode {
   const [tabs, setTabs] = useState<LayoutRectangle[]>([]);
@@ -34,16 +36,22 @@ export function Pagination({
     <ScrollView
       horizontal
       showsHorizontalScrollIndicator={false}
-      contentContainerStyle={{ paddingTop: 12 }}
+      style={{ direction: 'ltr' }}
+      contentContainerStyle={{
+        flexGrow: 1,
+        paddingTop: 12,
+        justifyContent: rtl ? 'flex-end' : 'flex-start',
+      }}
       accessibilityRole="tablist"
     >
-      <View style={{ flexDirection: 'row' }}>
+      <View style={{ flexDirection: rtl ? 'row-reverse' : 'row' }}>
         <Animated.View
           style={[
             {
               position: 'absolute',
               top: 0,
               bottom: 0,
+              left: 0,
               borderRadius: 999,
               backgroundColor: theme.colors.accentSoft,
             },

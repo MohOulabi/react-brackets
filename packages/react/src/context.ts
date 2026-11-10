@@ -10,6 +10,7 @@ import type {
   Stage,
 } from '@react-brackets/core';
 import { type Context, createContext, useContext } from 'react';
+import type { PageHeight } from './page-height';
 
 /** The name of every element the bracket renders, set as its `data-part` attribute. */
 export type Part =
@@ -142,6 +143,8 @@ export interface BracketContextValue {
   view: View;
   /** How the paged view draws a round. */
   compact: Compact;
+  /** How the paged view's height moves between rounds. */
+  pageHeight: PageHeight;
   /** The most rounds one swipe can move, at least 1. */
   maxSwipeRounds: number;
   /** `true` when columns share one grid with connector lines: the tree, and the bracket-style paged view. */

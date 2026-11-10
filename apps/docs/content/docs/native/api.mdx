@@ -1,0 +1,88 @@
+---
+title: API
+description: Every prop of the native Bracket, its parts and its theme.
+---
+
+```tsx
+import { Bracket } from '@react-brackets/native';
+
+<Bracket stage={stage} />;
+```
+
+`@react-brackets/native` also exports everything from [`@react-brackets/core`](/docs/api/formats): the formats, `reportResult`, `standings` and the data types work the same way as on the web.
+
+## `<Bracket>`
+
+Draws every group of a stage. A double elimination stage gets its winners bracket, with the grand final, and its losers bracket below it.
+
+<ApiTable from="native" name="BracketProps" />
+
+```tsx
+// Paging and highlighting controlled from outside
+<Bracket stage={stage} page={page} onPageChange={setPage} highlighted={team} onHighlightChange={setTeam} />
+
+// Plain lists, one round per swipe
+<Bracket stage={stage} compact="list" maxSwipeRounds={1} />
+
+// The whole tree on a phone, to pinch and zoom
+<Bracket stage={stage} compactBelow={0} mode="pan-zoom" />
+
+// Right to left, translated
+<Bracket stage={stage} dir="rtl" labels={{ tbd: 'لم يحدد', bye: 'راحة' }} />
+```
+
+## `Bracket.Match`
+
+A match card, used inside `renderMatch`. Its `style` can be a function of the match's state.
+
+<ApiTable from="native" name="MatchProps" />
+
+<ApiTable from="native" name="MatchState" />
+
+## `Bracket.Participant`
+
+One side of a match. Its children can be a function of the participant's state, to draw anything.
+
+<ApiTable from="native" name="ParticipantProps" />
+
+<ApiTable from="native" name="ParticipantState" />
+
+```tsx
+<Bracket
+  stage={stage}
+  renderMatch={() => (
+    <Bracket.Match style={({ live }) => [styles.card, live && styles.live]}>
+      <Bracket.Participant slot={0}>
+        {({ participant, slot, winner }) => (
+          <Text style={winner && styles.winner}>
+            {participant?.name} {slot.score}
+          </Text>
+        )}
+      </Bracket.Participant>
+      <Bracket.Participant slot={1} />
+    </Bracket.Match>
+  )}
+/>
+```
+
+## Theme
+
+`theme` on `<Bracket>` replaces any value of the light or dark theme, picked from the system's appearance. `BracketThemeProvider` sets one theme for every bracket below it, and `createTheme` builds one from a base.
+
+```tsx
+import { BracketThemeProvider, createTheme, darkTheme } from '@react-brackets/native';
+
+const theme = createTheme({ colors: { accent: '#ea580c' }, radius: 14 }, darkTheme);
+
+<BracketThemeProvider theme={theme}>
+  <App />
+</BracketThemeProvider>;
+```
+
+<ApiTable from="native" name="BracketTheme" />
+
+<ApiTable from="native" name="BracketColors" />
+
+## Hooks
+
+`useBracket()` returns the bracket's context inside `renderMatch`, and `useMatch()` the match being drawn, for your own components inside a card.

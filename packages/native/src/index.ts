@@ -3,6 +3,7 @@ export type { BracketLayout, BracketProps } from './bracket';
 export { Bracket } from './bracket';
 export type { BracketContextValue, Labels, StyleOf } from './context';
 export { useBracket, useMatch } from './context';
+export type { PageHeight } from './geometry';
 export type {
   MatchProps,
   MatchState,
