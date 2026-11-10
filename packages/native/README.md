@@ -88,7 +88,7 @@ The bracket only animates transforms and opacity, and its presses use Gesture Ha
 
 ## Examples
 
-[`examples/native`](https://github.com/MohOulabi/react-brackets/tree/main/examples/native) is an Expo app with every example in the docs, from a quick start to an esports bracket you can play. See them recorded on an iPhone, with their code, at [react-brackets.oulabi.dev/docs/native/examples](https://react-brackets.oulabi.dev/docs/native/examples).
+[`examples/native`](https://github.com/MohOulabi/react-brackets/tree/main/examples/native) is an Expo app with every example in the docs, from a quick start to an esports bracket you can play. See them recorded on an iPhone, with their code, at [react-brackets.oulabi.dev/examples/native](https://react-brackets.oulabi.dev/examples/native).
 
 ## License
 

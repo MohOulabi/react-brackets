@@ -54,12 +54,12 @@ export function TreeBracket({
   renderMatch,
   rtl,
 }: TreeProps): ReactNode {
-  const { matchWidth, matchHeight, matchGap, columnGap, titleHeight } = metrics;
+  const { matchWidth, matchHeight, heights, matchGap, columnGap, titleHeight } = metrics;
   // biome-ignore lint/correctness/useExhaustiveDependencies: the metrics are listed value by value
   const geometry = useMemo(() => {
     const tree = treeGeometry(layout, metrics);
     return rtl ? mirrorTree(tree) : tree;
-  }, [layout, rtl, matchWidth, matchHeight, matchGap, columnGap, titleHeight]);
+  }, [layout, rtl, matchWidth, matchHeight, heights, matchGap, columnGap, titleHeight]);
   const scroller = useRef<ComponentRef<typeof ScrollView>>(null);
   const content = (
     <Drawing

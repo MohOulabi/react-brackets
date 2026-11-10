@@ -10,7 +10,10 @@ import {
 /** The sizes a bracket is drawn with, in points. */
 export interface Metrics {
   matchWidth: number;
+  /** The height of a card that has not been measured, and of an empty row. */
   matchHeight: number;
+  /** Each card's own height, measured, by match. Cards may differ, and change as they open or close. */
+  heights?: ReadonlyMap<Id, number>;
   /** Space between two matches stacked in the same round. */
   matchGap: number;
   /** Space between two rounds. */
@@ -45,18 +48,65 @@ export interface TreeGeometry {
 /** The core lays a first-round match over two grid rows. */
 const ROWS_PER_LEAF = 2;
 
-/** Height of one grid row: two of them hold a match and the gap below it. */
-const rowUnit = ({ matchHeight, matchGap }: Metrics) => (matchHeight + matchGap) / ROWS_PER_LEAF;
+/** A match's card height: measured, or the default until it is. */
+export const heightOf = (metrics: Metrics, id: Id): number =>
+  metrics.heights?.get(id) ?? metrics.matchHeight;
 
-/** Top of a match covering `span` rows from `row`, centred between the matches that feed it. */
-function cellTop(row: number, span: number, metrics: Metrics): number {
-  const unit = rowUnit(metrics);
-  return metrics.titleHeight + row * unit + (span * unit - metrics.matchHeight) / 2;
+interface Placement {
+  /** Top of each match. */
+  tops: Map<Id, number>;
+  /** The height the layout needs, titles included. */
+  height: number;
+}
+
+/**
+ * Places a layout's matches top to bottom, each at its own height. A match fed by
+ * others sits centred between them; the rest keep their rows. A taller card pushes
+ * the ones below it in its round down, so nothing overlaps. With every card the same
+ * height, this is the core's grid exactly.
+ */
+function place(layout: GroupLayout, rounds: Round[], metrics: Metrics): Placement {
+  const unit = (metrics.matchHeight + metrics.matchGap) / ROWS_PER_LEAF;
+  const order = new Map(rounds.map((round, index) => [round.id, index]));
+  const feeders = new Map<Id, Id[]>();
+  for (const edge of layout.edges)
+    feeders.set(edge.to, [...(feeders.get(edge.to) ?? []), edge.from]);
+  const tops = new Map<Id, number>();
+  let bottom = metrics.titleHeight;
+  // Rounds in play order, so every match is placed after the ones that feed it, mirrored halves included.
+  const columns = [...layout.columns].sort(
+    (a, b) => (order.get(a.round.id) ?? 0) - (order.get(b.round.id) ?? 0),
+  );
+  for (const column of columns) {
+    let free = metrics.titleHeight + metrics.matchGap / 2;
+    for (const cell of [...column.cells].sort((a, b) => a.row - b.row)) {
+      const id = cell.match.id;
+      const height = heightOf(metrics, id);
+      const centres = (feeders.get(id) ?? []).flatMap((from) => {
+        const top = tops.get(from);
+        return top === undefined ? [] : [top + heightOf(metrics, from) / 2];
+      });
+      const centre =
+        centres.length > 0
+          ? centres.reduce((sum, value) => sum + value, 0) / centres.length
+          : metrics.titleHeight + (cell.row + cell.span / 2) * unit;
+      const top = Math.max(free, centre - height / 2);
+      tops.set(id, top);
+      free = top + height + metrics.matchGap;
+      bottom = Math.max(bottom, top + height);
+    }
+  }
+  return { tops, height: bottom + metrics.matchGap / 2 };
 }
 
 /** Places every match of a layout in points, column by column. */
 export function treeGeometry(layout: GroupLayout, metrics: Metrics): TreeGeometry {
   const step = metrics.matchWidth + metrics.columnGap;
+  const { tops, height } = place(
+    layout,
+    layout.columns.map((column) => column.round),
+    metrics,
+  );
   const matches = new Map<Id, Box>();
   const titles: TreeTitle[] = [];
   layout.columns.forEach((column, index) => {
@@ -64,15 +114,15 @@ export function treeGeometry(layout: GroupLayout, metrics: Metrics): TreeGeometr
     for (const cell of column.cells) {
       matches.set(cell.match.id, {
         x: index * step,
-        y: cellTop(cell.row, cell.span, metrics),
+        y: tops.get(cell.match.id) ?? metrics.titleHeight,
         width: metrics.matchWidth,
-        height: metrics.matchHeight,
+        height: heightOf(metrics, cell.match.id),
       });
     }
   });
   return {
     width: Math.max(0, layout.columns.length * step - metrics.columnGap),
-    height: metrics.titleHeight + layout.rows * rowUnit(metrics),
+    height,
     matchWidth: metrics.matchWidth,
     matches,
     titles,
@@ -104,26 +154,25 @@ export function pagedGeometry(group: Group, metrics: Metrics, step: number): Pag
   const layouts = group.rounds.map((_, page) =>
     layoutGroup({ ...group, rounds: group.rounds.slice(page) }),
   );
-  const unit = rowUnit(metrics);
+  const placements = layouts.map((layout, page) =>
+    place(layout, group.rounds.slice(page), metrics),
+  );
   const matches = new Map<Id, number[]>();
   const titles = new Map<Id, number[]>();
 
   group.rounds.forEach((round, index) => {
     // A round already passed keeps the place it had in focus and slides away to the side.
-    const focused = layouts[index]?.columns[0]?.cells ?? [];
-    const rows = new Map(focused.map((cell) => [cell.match.id, cell]));
+    const focused = placements[index]?.tops ?? new Map<Id, number>();
     const frames = new Map<Id, number[]>(round.matches.map((match) => [match.id, []]));
     const title: number[] = [];
 
     for (let page = 0; page < pages; page++) {
       const offset = index - page;
-      const column = offset >= 0 ? layouts[page]?.columns[offset] : undefined;
-      const cells = column ? new Map(column.cells.map((cell) => [cell.match.id, cell])) : rows;
+      const tops = offset >= 0 ? placements[page]?.tops : focused;
       const opacity = offset >= 0 ? 1 : 0;
       title.push(offset * step, 0, opacity);
       for (const match of round.matches) {
-        const cell = cells.get(match.id);
-        const y = cell ? cellTop(cell.row, cell.span, metrics) : metrics.titleHeight;
+        const y = tops?.get(match.id) ?? metrics.titleHeight;
         frames.get(match.id)?.push(offset * step, y, opacity);
       }
     }
@@ -137,7 +186,7 @@ export function pagedGeometry(group: Group, metrics: Metrics, step: number): Pag
     matchWidth: metrics.matchWidth,
     matches,
     titles,
-    heights: layouts.map((layout) => metrics.titleHeight + layout.rows * unit),
+    heights: placements.map((placement) => placement.height),
     edges: layoutGroup(group).edges,
   };
 }
@@ -149,9 +198,9 @@ export function pagedGeometry(group: Group, metrics: Metrics, step: number): Pag
  */
 export function listGeometry(group: Group, metrics: Metrics, step: number): PagedGeometry {
   const pages = group.rounds.length;
-  const row = metrics.matchHeight + metrics.matchGap;
   const matches = new Map<Id, number[]>();
   const titles = new Map<Id, number[]>();
+  const heights: number[] = [];
   group.rounds.forEach((round, index) => {
     const placeAt = (y: number) => {
       const frames: number[] = [];
@@ -159,9 +208,12 @@ export function listGeometry(group: Group, metrics: Metrics, step: number): Page
       return frames;
     };
     titles.set(round.id, placeAt(0));
-    round.matches.forEach((match, order) => {
-      matches.set(match.id, placeAt(metrics.titleHeight + order * row));
-    });
+    let top = metrics.titleHeight;
+    for (const match of round.matches) {
+      matches.set(match.id, placeAt(top));
+      top += heightOf(metrics, match.id) + metrics.matchGap;
+    }
+    heights.push(round.matches.length > 0 ? top - metrics.matchGap : top);
   });
   return {
     pages,
@@ -169,9 +221,7 @@ export function listGeometry(group: Group, metrics: Metrics, step: number): Page
     matchWidth: metrics.matchWidth,
     matches,
     titles,
-    heights: group.rounds.map(
-      (round) => metrics.titleHeight + Math.max(0, round.matches.length * row - metrics.matchGap),
-    ),
+    heights,
     edges: [],
   };
 }

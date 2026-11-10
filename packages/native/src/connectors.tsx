@@ -1,4 +1,4 @@
-import { memo, type NamedExoticComponent, type ReactNode } from 'react';
+import { memo, type NamedExoticComponent, type ReactNode, useMemo } from 'react';
 import { View, type ViewStyle } from 'react-native';
 import Animated, {
   type SharedValue,
@@ -6,6 +6,7 @@ import Animated, {
   useDerivedValue,
 } from 'react-native-reanimated';
 import { type Box, type ConnectorPieces, connectorPieces, frameAt } from './geometry';
+import { useGlide } from './glide';
 
 /** Which corner of a square a turn rounds: top or bottom, then left or right. */
 type Corner = 'tl' | 'tr' | 'bl' | 'br';
@@ -103,23 +104,57 @@ export const StaticConnector: NamedExoticComponent<StaticConnectorProps> = memo(
 interface MovingConnectorProps {
   from: number[];
   to: number[];
+  fromHeight: number;
+  toHeight: number;
+  width: number;
   position: SharedValue<number>;
-  size: { width: number; height: number };
+  duration: number | null;
   look: LineLook;
 }
 
+interface Ends {
+  from: number[];
+  to: number[];
+  fromHeight: number;
+  toHeight: number;
+}
+
 export const MovingConnector: NamedExoticComponent<MovingConnectorProps> = memo(
-  function MovingConnector({ from, to, position, size, look }: MovingConnectorProps): ReactNode {
-    const { width, height } = size;
+  function MovingConnector({
+    from,
+    to,
+    fromHeight,
+    toHeight,
+    width,
+    position,
+    duration,
+    look,
+  }: MovingConnectorProps): ReactNode {
     // Which way the line runs never changes as it moves, only whether it bends up or down.
     const sx = (from[0] ?? 0) < (to[0] ?? 0) ? 1 : -1;
+    // Its ends glide with their cards when a card nearby opens or closes.
+    const ends = useMemo<Ends>(
+      () => ({ from, to, fromHeight, toHeight }),
+      [from, to, fromHeight, toHeight],
+    );
+    const moved = useGlide(
+      ends,
+      (shown) => [
+        frameAt(shown.from, position.value)[1] ?? 0,
+        shown.fromHeight,
+        frameAt(shown.to, position.value)[1] ?? 0,
+        shown.toHeight,
+      ],
+      duration,
+    );
     const state = useDerivedValue(() => {
       const [x1, y1, o1] = frameAt(from, position.value);
       const [x2, y2, o2] = frameAt(to, position.value);
+      const [dy1 = 0, dh1 = 0, dy2 = 0, dh2 = 0] = moved.value;
       return {
         pieces: connectorPieces(
-          { x: x1, y: y1, width, height },
-          { x: x2, y: y2, width, height },
+          { x: x1, y: y1 + dy1, width, height: fromHeight + dh1 },
+          { x: x2, y: y2 + dy2, width, height: toHeight + dh2 },
           look.radius,
           look.width,
         ),
