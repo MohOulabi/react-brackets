@@ -50,10 +50,10 @@ Set `compactBelow={0}` to always show the full tree, then choose how it fits wit
 | --- | --- |
 | `'scroll'` (default) | Native horizontal scrolling. |
 | `'fit'` | Scaled down to fit the width available. Best for previews and dashboards. |
-| `'pan-zoom'` | Drag, pinch, or Ctrl/⌘ + scroll to zoom, with zoom buttons. Panning stops at the edges. |
+| `'pan-zoom'` | Drag, pinch, Ctrl/⌘ + scroll or double click to zoom, with zoom controls. A flick glides on, and the edges give a little before springing back. |
 
 ```tsx
 <Bracket stage={stage} compactBelow={0} mode="pan-zoom" />
 ```
 
-In `pan-zoom` mode, `minScale`, `maxScale` and `controls` are available on [`<Bracket.Viewport>`](/docs/api/parts#bracketviewport).
+Every pan and zoom behaviour, from the limits to the bounce at the edges, is an option of `zoom`, and the zoom controls are parts you can restyle, move or replace. See [navigation and zoom](/docs/customize/navigation-and-zoom).
