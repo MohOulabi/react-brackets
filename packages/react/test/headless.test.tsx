@@ -22,6 +22,28 @@ const stage = singleElimination(players(8));
 
 afterEach(cleanup);
 
+/** The zoom the last `Readout` saw, for driving it from a test. */
+const seen: { zoom: ZoomState | null | undefined } = { zoom: undefined };
+
+function Readout() {
+  seen.zoom = useZoom();
+  return <output>{seen.zoom ? `${Math.round(seen.zoom.scale * 100)}` : 'none'}</output>;
+}
+
+function Steps() {
+  const pagination = usePagination();
+  return (
+    <p>
+      <button type="button" disabled={!pagination.canNext} onClick={pagination.next}>
+        forward
+      </button>
+      <span data-testid="where">
+        {pagination.page + 1} of {pagination.rounds.length}, {String(pagination.paged)}
+      </span>
+    </p>
+  );
+}
+
 describe('pagination parts', () => {
   test('draw your own navigation from the parts', () => {
     const { container } = render(
@@ -55,19 +77,6 @@ describe('pagination parts', () => {
   });
 
   test('usePagination reads and moves the paged view from anywhere in the root', () => {
-    function Steps() {
-      const pagination = usePagination();
-      return (
-        <p>
-          <button type="button" disabled={!pagination.canNext} onClick={pagination.next}>
-            forward
-          </button>
-          <span data-testid="where">
-            {pagination.page + 1} of {pagination.rounds.length}, {String(pagination.paged)}
-          </span>
-        </p>
-      );
-    }
     render(
       <Bracket.Root stage={stage}>
         <Steps />
@@ -146,11 +155,6 @@ describe('zoom parts', () => {
   });
 
   test('controls={false} leaves the corner empty, for controls of your own anywhere', () => {
-    let zoom: ZoomState | null = null;
-    function Readout() {
-      zoom = useZoom();
-      return <output>{zoom ? `${Math.round(zoom.scale * 100)}` : 'none'}</output>;
-    }
     const { container } = render(
       <Bracket.Root stage={stage} compactBelow={0} zoom={{ step: 2 }}>
         <Bracket.Viewport mode="pan-zoom" controls={false}>
@@ -168,25 +172,21 @@ describe('zoom parts', () => {
     fireEvent.click(screen.getByText('in from 50'));
     expect(screen.getByText('100')).toBeDefined();
 
-    act(() => zoom?.zoomTo(10));
+    act(() => seen.zoom?.zoomTo(10));
     expect(screen.getByText('200')).toBeDefined();
-    act(() => zoom?.reset());
+    act(() => seen.zoom?.reset());
     expect(screen.getByText('50')).toBeDefined();
   });
 
   test('useZoom is null outside a pan and zoom viewport', () => {
-    let seen: ZoomState | null | undefined;
-    function Probe() {
-      seen = useZoom();
-      return null;
-    }
+    seen.zoom = undefined;
     render(
       <Bracket.Root stage={stage} compactBelow={0}>
         <Bracket.Viewport mode="fit" />
-        <Probe />
+        <Readout />
       </Bracket.Root>,
     );
-    expect(seen).toBeNull();
+    expect(seen.zoom).toBeNull();
   });
 
   test('starts where `initial` says, and reports changes', () => {
