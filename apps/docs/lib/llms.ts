@@ -2,6 +2,7 @@ import type { Node } from 'fumadocs-core/page-tree';
 import type { InferPageType } from 'fumadocs-core/source';
 import { site } from '@/lib/site';
 import { source } from '@/lib/source';
+import { archivedMajor } from '@/lib/versions';
 
 type Page = InferPageType<typeof source>;
 
@@ -72,9 +73,14 @@ export function orderedPages(): Page[] {
       }
     }
   };
-  walk(source.getPageTree().children);
+  // The native docs are a section of their own, kept in the tree's fallback.
+  const tree = source.getPageTree();
+  walk([...tree.children, ...(tree.fallback?.children ?? [])]);
   const byUrl = new Map(source.getPages().map((page) => [page.url, page]));
-  const ordered = [...new Set(urls)].flatMap((url) => byUrl.get(url) ?? []);
+  // Older versions' copies are left out: assistants should read the latest docs.
+  const ordered = [...new Set(urls)]
+    .filter((url) => !archivedMajor(url))
+    .flatMap((url) => byUrl.get(url) ?? []);
   const native = (page: Page) => page.url.startsWith('/docs/native');
   return [...ordered.filter((page) => !native(page)), ...ordered.filter(native)];
 }

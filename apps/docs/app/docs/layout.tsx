@@ -2,7 +2,7 @@ import { DocsLayout } from 'fumadocs-ui/layouts/docs';
 import type { ReactNode } from 'react';
 import { VersionMenu } from '@/components/version-menu';
 import { baseOptions } from '@/lib/layout.shared';
-import { source } from '@/lib/source';
+import { docsTree, source } from '@/lib/source';
 import { releases } from '@/lib/versions';
 
 const native = '/docs/native';
@@ -27,7 +27,7 @@ const tabs = [
 export default function Layout({ children }: { children: ReactNode }) {
   return (
     <DocsLayout
-      tree={source.getPageTree()}
+      tree={docsTree()}
       sidebar={{
         tabs,
         banner: <VersionMenu react={releases.react} native={releases.native} />,

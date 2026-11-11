@@ -1,0 +1,40 @@
+---
+title: Performance
+description: What runs where, and how to make it smoother still.
+---
+
+The bracket is built so that nothing waits on JavaScript while a finger is down:
+
+- Every card's place on every round is worked out once, when the stage or its size changes.
+- A swipe, a pinch or a drag only moves shared values on the UI thread, with Reanimated and Gesture Handler. Cards, titles, lines and height are placed from them there.
+- React re-renders once, when a swipe lands, to tell you the new round.
+- Connector lines are views moved with the cards, not a canvas drawn on its own schedule, so they cannot fall behind.
+
+## Turn on the fast path
+
+Reanimated can apply transforms and opacity without a layout pass, up to several times faster when many views move at once. The bracket only animates those two, and its presses use Gesture Handler's `Pressable`, so it is ready for it. Add this to your app's `package.json` and rebuild:
+
+```json
+{
+  "reanimated": {
+    "staticFeatureFlags": {
+      "IOS_SYNCHRONOUSLY_UPDATE_UI_PROPS": true,
+      "ANDROID_SYNCHRONOUSLY_UPDATE_UI_PROPS": true
+    }
+  }
+}
+```
+
+Static flags need a development build: Expo Go keeps its own.
+
+## Judge it in a release build
+
+Development builds run extra checks on every frame. To feel how smooth it really is, build the release configuration:
+
+```bash
+npx expo run:ios --configuration Release
+```
+
+## Keep gestures apart
+
+Use Gesture Handler's `ScrollView` around a bracket, so the page scroll and the bracket's swipe each know whose touch it is. The paged bracket only takes horizontal moves, so scrolling down a page with a finger on the bracket still scrolls the page.

@@ -3,7 +3,7 @@
   "framework": "nextjs",
   "installCommand": "cd ../.. && bun install --frozen-lockfile",
   "buildCommand": "cd ../.. && bun run build && cd apps/docs && bun run build",
-  "ignoreCommand": "case \"$VERCEL_GIT_COMMIT_REF\" in main|archive/*) exit 1 ;; *) exit 0 ;; esac",
+  "ignoreCommand": "[ \"$VERCEL_GIT_COMMIT_REF\" != \"main\" ]",
   "redirects": [
     {
       "source": "/docs/guides/custom-match",

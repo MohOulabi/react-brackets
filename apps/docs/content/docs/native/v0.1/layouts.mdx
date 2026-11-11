@@ -1,0 +1,68 @@
+---
+title: Layouts
+description: A bracket a round at a time, plain lists, the whole tree, and right to left.
+---
+
+The bracket measures its own width. Below `compactBelow` (600 points by default) it pages through one round at a time; above it, it shows the whole tree.
+
+## A round at a time
+
+<div className="not-prose my-6 flex justify-center">
+  <Recording slug="quick-start" label="A bracket swiped round by round" />
+</div>
+
+The round in focus stacks tightly, and the next one waits at the edge with its lines. A swipe moves under the finger and lands like native paging: a fifth of a round is enough, and a quick flick can cross several rounds.
+
+```tsx
+<Bracket stage={stage} />
+<Bracket stage={stage} maxSwipeRounds={1} />  // one round per swipe
+<Bracket stage={stage} page={page} onPageChange={setPage} />  // control the round yourself
+```
+
+### Height between rounds
+
+The first round is taller than the semifinals. By default (`pageHeight="contain"`) the bracket stays tall enough for both rounds while they move, and settles to the new round's height as the swipe lands, so a round is never cut off while it is on screen. `pageHeight="follow"` blends the two heights under your finger instead: the screen below moves with the swipe, and the taller round is cut as it slides.
+
+```tsx
+<Bracket stage={stage} pageHeight="follow" />
+```
+
+## Plain lists
+
+<div className="not-prose my-6 flex justify-center">
+  <Recording slug="fixtures-list" label="Rounds shown as plain lists" />
+</div>
+
+`compact="list"` shows each round as a full-width list of matches, swiped the same way.
+
+```tsx
+<Bracket stage={stage} compact="list" />
+```
+
+## The whole tree
+
+<div className="not-prose my-6 flex justify-center">
+  <Recording slug="full-tree" label="The whole tree, pinched and zoomed" />
+</div>
+
+On wide screens, or with `compactBelow={0}`, you get the full tree. `mode` sets how it fits:
+
+| `mode` | |
+| --- | --- |
+| `scroll` | A native horizontal scroll. The default. |
+| `fit` | Scaled down to fit the width. |
+| `pan-zoom` | Pinch, drag with momentum, double tap to zoom, and on-screen controls. `maxScale` sets the largest zoom. |
+
+`layout="mirrored"` splits the tree into two halves that meet at the final. Like on the web, it applies to the whole tree; a phone pages through it a round at a time.
+
+## Right to left
+
+<div className="not-prose my-6 flex justify-center">
+  <Recording slug="right-to-left" label="An Arabic bracket that reads from the right" />
+</div>
+
+When your app is set to right to left, the bracket follows it: the first round sits on the right, swipes run the other way, and every card reads from the right. Set `dir` to choose for one bracket:
+
+```tsx
+<Bracket stage={stage} dir="rtl" labels={{ tbd: 'لم يحدد', bye: 'تأهل مباشر' }} />
+```
