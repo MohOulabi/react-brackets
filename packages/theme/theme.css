@@ -214,6 +214,8 @@
     /* Controls */
 
     & :where([data-part="pagination"]) {
+      position: relative;
+      isolation: isolate;
       display: flex;
       align-items: center;
       gap: 0.25rem;
@@ -222,12 +224,31 @@
       scrollbar-width: none;
     }
 
+    /* Zoom out, the level and zoom in share one pill; fitting sits apart, as its own round button. */
     & :where([data-part="zoom-controls"]) {
-      overflow: hidden;
+      display: flex;
+      align-items: center;
+      gap: 0.375rem;
+    }
+
+    & :where([data-part="zoom-steps"]) {
       border: 1px solid var(--rb-border);
-      border-radius: calc(var(--rb-radius) - 2px);
       background: var(--rb-surface);
       box-shadow: var(--rb-shadow);
+      display: inline-flex;
+      align-items: center;
+      border-radius: 999px;
+      padding: 0.125rem;
+    }
+
+    & :where([data-part="zoom-level"]) {
+      min-width: 3.25rem;
+      padding-inline: 0.25rem;
+      color: var(--rb-text);
+      font-size: 0.75rem;
+      font-weight: 600;
+      font-variant-numeric: tabular-nums;
+      text-align: center;
     }
 
     & :where([data-part="pagination"], [data-part="zoom-controls"]) :where(button) {
@@ -236,19 +257,29 @@
       color: var(--rb-text-muted);
       font: inherit;
       cursor: pointer;
+      transition:
+        background-color var(--rb-duration),
+        color var(--rb-duration),
+        opacity var(--rb-duration);
 
       &:hover:not(:disabled) {
         background: var(--rb-surface-hover);
         color: var(--rb-text);
       }
 
+      &:focus-visible {
+        outline: 2px solid var(--rb-accent);
+        outline-offset: 1px;
+      }
+
       &:disabled {
-        opacity: 0.4;
+        opacity: 0.35;
         cursor: default;
       }
     }
 
     & :where([data-part="pagination"]) :where(button) {
+      position: relative;
       flex: none;
       padding: 0.375rem 0.75rem;
       border-radius: 999px;
@@ -256,10 +287,22 @@
     }
 
     & :where([data-part="zoom-controls"]) :where(button) {
+      display: inline-grid;
+      place-items: center;
       width: 2rem;
       height: 2rem;
-      border: 0;
+      padding: 0;
+      border-radius: 999px;
       font-size: 1rem;
+    }
+
+    /* After the shared button reset, so the fit button keeps its own round surface. */
+    & :where([data-part="zoom-reset"]) {
+      width: 2.25rem;
+      height: 2.25rem;
+      border-color: var(--rb-border);
+      background: var(--rb-surface);
+      box-shadow: var(--rb-shadow);
     }
 
     & :where([data-part="page"][data-active]) {
@@ -267,6 +310,15 @@
       background: var(--rb-surface);
       color: var(--rb-text);
       font-weight: 600;
+    }
+
+    /* An opt-in mark that slides under the round in focus, drawn behind the buttons. */
+    & :where([data-part="page-indicator"]) {
+      top: 0;
+      bottom: 0;
+      z-index: -1;
+      border-radius: 999px;
+      background: var(--rb-accent-soft);
     }
 
     & :where([data-part="page-previous"], [data-part="page-next"]):dir(rtl) {

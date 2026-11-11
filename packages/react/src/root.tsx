@@ -24,7 +24,9 @@ import {
 } from './context';
 import { useElementWidth } from './hooks/use-element-width';
 import { useReducedMotion } from './hooks/use-reduced-motion';
+import { resolveSwipe, resolveZoom, type SwipeOptions, type ZoomOptions } from './options';
 import type { PageHeight } from './page-height';
+import { createZoomStore, ZoomContext } from './zoom';
 
 /** `standard` flows in one direction; `mirrored` splits the bracket into halves that meet at the final. */
 export type BracketLayout = 'standard' | 'mirrored';
@@ -78,6 +80,10 @@ export interface RootOwnProps {
    * @defaultValue Infinity
    */
   maxSwipeRounds?: number;
+  /** How the pan and zoom viewport behaves: its limits, step, edges, momentum, double tap and where it starts. */
+  zoom?: ZoomOptions;
+  /** How a swipe between rounds feels in the paged view. */
+  swipe?: SwipeOptions;
   /**
    * Timing for paging, swiping, zooming and the `data-updated` / `data-entered`
    * flags, or `false` to turn all of it off. Off anyway for people who prefer
@@ -153,6 +159,8 @@ export function Root({
   compact = 'bracket',
   pageHeight = 'contain',
   maxSwipeRounds = Number.POSITIVE_INFINITY,
+  zoom,
+  swipe,
   motion,
   page: controlledPage,
   onPageChange,
@@ -175,6 +183,7 @@ export function Root({
   const requestedPage = controlledPage ?? ownPage;
   const highlighted = controlledHighlight === undefined ? ownHighlight : controlledHighlight;
   const cells = useRef(new Map<Id, HTMLElement>()).current;
+  const [zoomStore] = useState(createZoomStore);
   const reducedMotion = useReducedMotion();
 
   const groupKey = groupIds === undefined ? '' : [groupIds].flat().join('\n');
@@ -282,6 +291,8 @@ export function Root({
     compact,
     pageHeight,
     maxSwipeRounds: Math.max(1, maxSwipeRounds),
+    zoom: resolveZoom(zoom),
+    swipe: resolveSwipe(swipe),
     grid,
     width,
     motion: animated ? { ...defaultMotion, ...motion } : null,
@@ -311,19 +322,21 @@ export function Root({
   return (
     <BracketContext.Provider value={value}>
       <PagingContext.Provider value={paging}>
-        <div
-          {...props}
-          ref={ref}
-          data-scope="bracket"
-          data-part="root"
-          data-view={view}
-          data-compact={view === 'paged' ? compact : undefined}
-          data-layout={layout}
-          data-unstyled={unstyled ? '' : undefined}
-          className={cx(classNames.root, ownClassName)}
-        >
-          {children}
-        </div>
+        <ZoomContext.Provider value={zoomStore}>
+          <div
+            {...props}
+            ref={ref}
+            data-scope="bracket"
+            data-part="root"
+            data-view={view}
+            data-compact={view === 'paged' ? compact : undefined}
+            data-layout={layout}
+            data-unstyled={unstyled ? '' : undefined}
+            className={cx(classNames.root, ownClassName)}
+          >
+            {children}
+          </div>
+        </ZoomContext.Provider>
       </PagingContext.Provider>
     </BracketContext.Provider>
   );

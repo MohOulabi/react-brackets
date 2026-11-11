@@ -2,7 +2,7 @@
 // the budget. The docs quote this number, so it has to stay true.
 import { gzipSync } from 'node:zlib';
 
-const BUDGET = 16 * 1024;
+const BUDGET = 19 * 1024;
 
 const result = await Bun.build({
   entrypoints: [`${import.meta.dir}/../packages/react/dist/index.js`],

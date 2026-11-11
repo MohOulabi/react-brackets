@@ -2,10 +2,11 @@ import type { GroupKind, Id, Match as MatchData, Stage } from '@react-brackets/c
 import type { ReactNode } from 'react';
 import { ConnectorPart, type ConnectorState, Connectors } from './connectors';
 import { MatchPart, ParticipantPart } from './match';
-import { Pagination } from './pagination';
+import { NextPage, PageButton, PageIndicator, Pagination, PreviousPage } from './pagination';
 import { Root, type RootProps } from './root';
 import { GroupTitle, Matches, RoundPart, Rounds, RoundTitle } from './rounds';
 import { Viewport, type ViewportMode } from './viewport';
+import { ZoomControls, ZoomIn, ZoomLevel, ZoomOut, ZoomReset } from './zoom-controls';
 
 /** The props `<Bracket>` adds to `Bracket.Root`'s, which it also takes, except `group` and `children`. */
 export interface BracketOwnProps {
@@ -31,6 +32,16 @@ export interface BracketOwnProps {
   renderConnector?: (connector: ConnectorState) => ReactNode;
   /** SVG definitions your lines refer to, such as arrowhead markers or gradients. */
   connectorDefs?: ReactNode;
+  /**
+   * Draws your own round navigation for the paged view, in place of the default one. Build it from
+   * `Bracket.Pagination` and its parts, or `usePagination()`.
+   */
+  renderPagination?: () => ReactNode;
+  /**
+   * Draws your own zoom controls in `pan-zoom` mode, after the viewport, in place of the default ones in its
+   * corner. Build them from `Bracket.ZoomControls` and its parts, or `useZoom()`.
+   */
+  renderZoomControls?: () => ReactNode;
 }
 
 /** Every `BracketOwnProps` prop, plus every `Bracket.Root` prop except `group` and `children`. */
@@ -65,12 +76,14 @@ function DefaultBracket({
   renderConnector,
   connectorDefs,
   mode,
+  renderPagination,
+  renderZoomControls,
   ...props
 }: BracketProps): ReactNode {
   return sections(stage).map(({ ids, titled }) => (
     <Root {...props} key={ids.join('+')} stage={stage} group={ids}>
       {titled && <GroupTitle />}
-      <Viewport mode={mode}>
+      <Viewport mode={mode} controls={!renderZoomControls}>
         <Rounds>
           {() => (
             <RoundPart>
@@ -83,7 +96,8 @@ function DefaultBracket({
           {renderConnector}
         </Connectors>
       </Viewport>
-      <Pagination />
+      {renderZoomControls?.()}
+      {renderPagination ? renderPagination() : <Pagination />}
     </Root>
   ));
 }
@@ -101,6 +115,15 @@ type BracketComponent = typeof DefaultBracket & {
   Connectors: typeof Connectors;
   Connector: typeof ConnectorPart;
   Pagination: typeof Pagination;
+  PageButton: typeof PageButton;
+  PreviousPage: typeof PreviousPage;
+  NextPage: typeof NextPage;
+  PageIndicator: typeof PageIndicator;
+  ZoomControls: typeof ZoomControls;
+  ZoomIn: typeof ZoomIn;
+  ZoomOut: typeof ZoomOut;
+  ZoomReset: typeof ZoomReset;
+  ZoomLevel: typeof ZoomLevel;
 };
 
 export const Bracket: BracketComponent = Object.assign(DefaultBracket, {
@@ -116,4 +139,13 @@ export const Bracket: BracketComponent = Object.assign(DefaultBracket, {
   Connectors,
   Connector: ConnectorPart,
   Pagination,
+  PageButton,
+  PreviousPage,
+  NextPage,
+  PageIndicator,
+  ZoomControls,
+  ZoomIn,
+  ZoomOut,
+  ZoomReset,
+  ZoomLevel,
 });

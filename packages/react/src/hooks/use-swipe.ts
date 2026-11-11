@@ -22,6 +22,8 @@ interface SwipeOptions {
   onSwipe?: (direction: -1 | 1) => void;
   /** Fraction of the element width a release must be heading past to count as a swipe. */
   threshold?: number;
+  /** How far ahead a release is projected on its speed, in seconds. */
+  projection?: number;
 }
 
 interface Gesture {
@@ -34,8 +36,6 @@ interface Gesture {
   locked: boolean;
 }
 
-/** How far a release glides on its speed when judging where the finger was heading, in milliseconds. */
-const GLIDE = 180;
 /** Shorter drags never page, however fast: they are taps that slipped. */
 const MIN_DISTANCE = 16;
 const SLOP = 8;
@@ -45,7 +45,14 @@ const SLOP = 8;
  * re-render, flicks page on speed as well as distance, and vertical drags are
  * left to the browser so the page keeps scrolling normally.
  */
-export function useSwipe({ target, onDrag, onRelease, onSwipe, threshold = 0.2 }: SwipeOptions): {
+export function useSwipe({
+  target,
+  onDrag,
+  onRelease,
+  onSwipe,
+  threshold = 0.2,
+  projection = 0.18,
+}: SwipeOptions): {
   dragging: boolean;
   handlers: SwipeHandlers;
 } {
@@ -64,7 +71,7 @@ export function useSwipe({ target, onDrag, onRelease, onSwipe, threshold = 0.2 }
     // Judge where the finger was heading as it lifted, like native paging: a flick carries a short drag over,
     // and a pause before lifting leaves only the distance.
     current.samples.push({ x: clientX, t: time });
-    const heading = distance + velocity(current.samples) * GLIDE;
+    const heading = distance + velocity(current.samples) * projection * 1000;
     const pages =
       !cancelled &&
       Math.abs(distance) >= MIN_DISTANCE &&
@@ -162,10 +169,13 @@ function velocity(samples: { x: number; t: number }[]): number {
   return time > 0 ? (last.x - first.x) / time : 0;
 }
 
-/** iOS-style resistance: the further you pull past an edge, the less it follows. */
-export function rubberBand(distance: number, dimension: number): number {
-  if (dimension <= 0) return 0;
-  const stretch = 1 - 1 / ((Math.abs(distance) * 0.55) / dimension + 1);
+/**
+ * iOS-style resistance: the further you pull past an edge, the less it follows. `elasticity` sets how much it
+ * gives, from `0`, a hard stop, upwards; iOS uses 0.55.
+ */
+export function rubberBand(distance: number, dimension: number, elasticity = 0.55): number {
+  if (dimension <= 0 || elasticity <= 0) return 0;
+  const stretch = 1 - 1 / ((Math.abs(distance) * elasticity) / dimension + 1);
   return Math.sign(distance) * stretch * dimension;
 }
 
