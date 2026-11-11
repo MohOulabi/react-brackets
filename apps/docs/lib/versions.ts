@@ -12,8 +12,9 @@ export interface Release {
   /** `null` until the package's first release. */
   version: string | null;
   /**
-   * Newest first. When a new major ships, deploy the docs from the last commit of the one before it
-   * as their own site (a `v2` subdomain, say) and add it here with that address.
+   * Newest first. To archive a version's docs when the next one ships: branch `archive/<name>` from the last
+   * commit of that version and push it (Vercel builds `main` and `archive/*` only), give the branch its own
+   * subdomain in the Vercel project's domains, and add it here with that address.
    */
   majors: Major[];
 }
