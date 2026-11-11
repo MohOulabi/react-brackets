@@ -1,6 +1,6 @@
 'use client';
 
-import { Check, ChevronRight, Copy } from 'lucide-react';
+import { Check, Copy } from 'lucide-react';
 import Link from 'next/link';
 import { useState } from 'react';
 import {
@@ -53,18 +53,6 @@ export function CourtHero() {
 
       <div className="mx-auto flex max-w-6xl flex-col px-4 pt-16 sm:px-6 md:pt-24">
         <div className="flex max-w-3xl flex-col gap-6">
-          <Link
-            href="/docs/native"
-            className="group inline-flex h-8 max-w-full items-center gap-2.5 self-start rounded-full bg-white/8 py-1 ps-1 pe-3.5 text-sm text-white/80 ring-1 ring-white/12 backdrop-blur-sm transition-colors hover:bg-white/14 hover:text-white focus-visible:outline-white"
-          >
-            <span className="rounded-full bg-optic px-2 py-0.5 text-xs font-semibold text-[#10213f]">
-              New
-            </span>
-            <span className="truncate">
-              Now on React Native<span className="hidden sm:inline">, for iOS and Android</span>
-            </span>
-            <ChevronRight className="size-3.5 shrink-0 opacity-60 transition-transform group-hover:translate-x-0.5 group-hover:opacity-100 rtl:rotate-180" />
-          </Link>
           <h1 className="font-display text-balance text-[clamp(3.25rem,8.5vw,6rem)]">
             Brackets that keep up with the tournament.
           </h1>
