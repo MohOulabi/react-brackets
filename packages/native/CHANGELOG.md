@@ -1,5 +1,12 @@
 # @react-brackets/native
 
+## 0.3.0
+
+### Minor Changes
+
+- cd9957b: Custom connector lines. `renderConnector` draws each line with `Bracket.Connector`, which takes a colour, width and turns per line as a style or a function of the line's state, `dash` for dashed and dotted lines, `arrow` for an arrowhead and `flow` to move the pattern along the line. The lines still move by transforms alone, in the same frame as the cards. Anything else you return is drawn as your own line, from `points`, a shared value with where it starts and ends, and `connectorPath` gives the default elbow as SVG path data.
+- cd9957b: Closer to the web parts. `Bracket.RoundTitle` takes a style and children as functions of `{ round, index, current }`, and draws itself when rendered inside `renderRoundTitle` instead of calling it again. `Bracket.Pagination`, `Bracket.PageIndicator` and `Bracket.ZoomControls` take a style function too, and `usePagination()` returns `paged`. A card built from `Bracket.Match` now takes `colors.surfacePressed` while pressed with `onMatchPress`, as the theme says, with `pressed` in its state; other cards still fade. A controlled `page` now holds: a swipe or tab that `onPageChange` doesn't follow goes back to it. Highlighted lines are drawn over the others in the paged view, as in the tree.
+
 ## 0.2.0
 
 ### Minor Changes
