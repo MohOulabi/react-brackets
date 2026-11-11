@@ -87,15 +87,48 @@ function Title({ round }: { round: Round }) {
 
 ## The default title
 
-Without `renderRoundTitle`, a round's title is its name in one line, centred, in `colors.textMuted`, the theme's `fontFamily` and `titleFontSize` (12 by default), at weight 600. It takes no style. Change it through the theme:
+Without `renderRoundTitle`, a round's title is its name in one line, centred, in `colors.textMuted`, the theme's `fontFamily` and `titleFontSize` (12 by default), at weight 600. Change it through the theme:
 
 ```tsx
 <Bracket stage={stage} theme={{ titleFontSize: 14, titleHeight: 40 }} />
 ```
 
-`textMuted` also colours losers and slots still to be decided, so to colour the titles alone, draw them with `renderRoundTitle`.
+`textMuted` also colours losers and slots still to be decided, so to colour the titles alone, restyle the title part.
 
-`Bracket.RoundTitle` is the part the bracket draws for each round. It takes the `round` and draws your `renderRoundTitle` if there is one, or the default title. You can use it in your own elements inside `Bracket.Root`, like a header that names the round in focus:
+### Restyling the title
+
+`Bracket.RoundTitle` is the part the bracket draws for each round. Return it from `renderRoundTitle` to keep the default title with a `style` of your own, a text style or a function of `{ round, index, current }`. `index` is the round's place in its group, and `current` is `true` for the round in focus in the paged view:
+
+```tsx
+<Bracket
+  stage={stage}
+  renderRoundTitle={(round) => (
+    <Bracket.RoundTitle
+      round={round}
+      style={({ current }) => ({ color: current ? '#2563eb' : '#a1a1aa', fontSize: 13 })}
+    />
+  )}
+/>
+```
+
+Its children replace the title, or draw from the same state:
+
+```tsx
+<Bracket
+  stage={stage}
+  renderRoundTitle={(round) => (
+    <Bracket.RoundTitle round={round}>
+      {({ index, round }) => (
+        <Text accessibilityRole="header" style={{ fontWeight: '700' }}>
+          {index + 1}. {round.name}
+        </Text>
+      )}
+    </Bracket.RoundTitle>
+  )}
+/>
+```
+
+Inside `renderRoundTitle`, the part always draws itself, so it can sit next to something of your own. Elsewhere inside `Bracket.Root`, given no style or children, it draws your `renderRoundTitle` if there is one, or the default title. That makes it handy in your own elements, like a header that names the round in focus:
 
 ```tsx
 import { Bracket, usePagination } from '@react-brackets/native';
@@ -107,7 +140,6 @@ function CurrentRound() {
 }
 ```
 
-Don't draw `Bracket.RoundTitle` from `renderRoundTitle` itself: it would call your function again, and again.
 
 ## Group titles
 
@@ -172,6 +204,10 @@ Inside the root, `useBracket().group` is the group being drawn, with its `kind`,
 Every built-in string, like `TBD`, `Bye` and the names of the round tabs and zoom buttons read by screen readers, can be changed through `labels`. See [Right to left and languages](/docs/native/right-to-left#translate-the-built-in-strings).
 
 ## Reference
+
+<ApiTable from="native" name="RoundTitleProps" />
+
+<ApiTable from="native" name="RoundTitleState" />
 
 <ApiTable from="native" name="GroupTitleProps" />
 

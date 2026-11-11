@@ -1,11 +1,21 @@
 ---
 title: Connector lines
-description: The colour, width and corners of the lines between rounds, and the highlighted path.
+description: Dashed, dotted, coloured, arrowed, flowing or curved lines, each moving with the cards as you swipe.
 ---
 
 <div className="not-prose my-6 flex justify-center">
-  <Recording slug="connector-lines" label="Three line styles, with a team's path highlighted" />
+  <Recording slug="connector-lines" label="Dashed, flowing, arrowed and curved lines, with a team's path highlighted" />
 </div>
+
+The lines between matches are drawn by the bracket from plain views, and moved by the same transforms as the cards, in the same frame. However you style or replace a line, it still follows the cards when they resize, glide or page, and a swipe never leaves it behind.
+
+There are three levels of control:
+
+1. **The theme** for the colour, width and turns of every line.
+2. **`Bracket.Connector`** from `renderConnector`, for a look per line: colour, width, dashes, dots, an arrowhead, a flowing pattern.
+3. **Anything you draw** from the line's points, like a curve in `react-native-svg`.
+
+## Styling every line
 
 Lines take their colour from `colors.line`, their width from `lineWidth` and their rounded turns from `connectorRadius`. The path of a highlighted participant, every line they travelled by winning, is drawn in `colors.accent`:
 
@@ -18,18 +28,137 @@ const rounded: ThemeOverrides = {
   colors: { line: '#c4b5fd', accent: '#7c3aed', accentSoft: 'rgba(124, 58, 237, 0.12)' },
 };
 
-const square: ThemeOverrides = {
-  lineWidth: 1,
-  connectorRadius: 0,
-  radius: 2,
-  colors: { line: '#a1a1aa', accent: '#0f766e', accentSoft: 'rgba(15, 118, 110, 0.12)' },
-};
-
 <Bracket stage={stage} theme={rounded} highlighted="falcons" />;
 ```
 
-A turn is never rounder than half the gap between rounds, so a large `connectorRadius` with a small `columnGap` or `pagedColumnGap` gives the roundest turn that fits. In the paged view, line widths and turns are rounded to whole pixels, so the lines stay sharp as they move.
+A turn is never rounder than half the gap between rounds, so a large `connectorRadius` with a small `columnGap` or `pagedColumnGap` gives the roundest turn that fits. In the paged view, line widths and turns are rounded to whole pixels, so the lines stay sharp as they move, Android included.
 
-Lines are drawn by the bracket, as views that move with the cards. Unlike the web package, you can't replace them with your own drawing, so dashed lines, curves and arrows aren't available on native. To hide them, set `colors.line` to `'transparent'`. A highlighted path still draws in `accent`.
+## Styling each line
+
+`renderConnector` draws each line. Return a `Bracket.Connector` to keep the bracket's line, and give it a `style`: an object with `color`, `width` and `radius`, or a function of the line's state. Anything you leave out comes from the theme, so a highlighted line keeps `accent` unless you say otherwise:
+
+```tsx
+<Bracket
+  stage={stage}
+  renderConnector={() => (
+    <Bracket.Connector
+      style={({ from, highlighted }) => ({
+        color: highlighted ? '#ea580c' : from.status === 'live' ? '#ef4444' : '#a1a1aa',
+        width: highlighted ? 3 : 1.5,
+      })}
+    />
+  )}
+/>
+```
+
+Everything about the line and both matches is in its state: `from` and `to`, the `slot` of `to` it feeds, `status` and `bye` of `from`, and whether it is `highlighted`.
+
+## Dashed and dotted lines
+
+`dash` breaks a line up: `'dashed'`, `'dotted'`, or `[dash, gap]` in points, where a dash of `0` draws round dots. The pattern runs on unbroken through the rounded turns, and scales with the line's width. Here, lines are dashed until their match is decided:
+
+```tsx
+<Bracket
+  stage={stage}
+  renderConnector={({ status }) => (
+    <Bracket.Connector dash={status === 'completed' ? undefined : 'dashed'} />
+  )}
+/>
+```
+
+`renderConnector` is a function of the line, so you can decide anything per line, like a different `dash` for the highlighted path.
+
+## Arrows
+
+`arrow` draws an arrowhead where the line enters the next match, in the line's colour. `true` sizes it from the line's width; a number sets its length in points:
+
+```tsx
+<Bracket
+  stage={stage}
+  renderConnector={() => (
+    <Bracket.Connector
+      arrow
+      style={({ status }) => ({ color: status === 'completed' ? '#16a34a' : '#a1a1aa' })}
+    />
+  )}
+/>
+```
+
+## Animated lines
+
+`flow` moves a dashed or dotted line's pattern along it, from one match to the next. `true` moves it at 24 points a second; a number sets the speed, and a negative one runs it backwards. This one flows along the highlighted path, and dots the rest:
+
+```tsx
+<Bracket
+  stage={stage}
+  highlighted="falcons"
+  renderConnector={({ highlighted }) =>
+    highlighted ? (
+      <Bracket.Connector dash={[6, 4]} flow style={{ width: 3 }} />
+    ) : (
+      <Bracket.Connector dash="dotted" />
+    )
+  }
+/>
+```
+
+The pattern runs on the UI thread, and holds still while motion is off with `motion={false}`, or when the device asks for reduced motion.
+
+## Drawing lines from scratch
+
+Return anything else to draw the line yourself. Every line has `points`, a shared value with where it `start`s and `end`s in the bracket's own points, and its `opacity` while a round fades away. In the paged view they move under the finger, so read them in `useAnimatedProps` or `useAnimatedStyle`, and your line moves with the cards.
+
+With `react-native-svg` installed, this draws each line as a curve:
+
+```tsx
+import { Bracket, useConnector } from '@react-brackets/native';
+import { StyleSheet } from 'react-native';
+import Animated, { useAnimatedProps } from 'react-native-reanimated';
+import Svg, { Path } from 'react-native-svg';
+
+const AnimatedPath = Animated.createAnimatedComponent(Path);
+
+function Curve() {
+  const { points, highlighted } = useConnector();
+  const animated = useAnimatedProps(() => {
+    const { start, end, opacity } = points.value;
+    const mid = (start.x + end.x) / 2;
+    return {
+      d: `M${start.x},${start.y} C${mid},${start.y} ${mid},${end.y} ${end.x},${end.y}`,
+      opacity,
+    };
+  });
+  return (
+    <Svg style={StyleSheet.absoluteFill}>
+      <AnimatedPath
+        animatedProps={animated}
+        fill="none"
+        stroke={highlighted ? '#0284c7' : '#7dd3fc'}
+        strokeWidth={2}
+      />
+    </Svg>
+  );
+}
+
+<Bracket stage={stage} renderConnector={() => <Curve />} />;
+```
+
+Lines you draw share a layer as big as the bracket, so `StyleSheet.absoluteFill` gives an `Svg` the bracket's own coordinates. `useConnector()` returns the line's state inside your own component, and `connectorPath(start, end, radius)` returns the bracket's own elbow as SVG path data, worked out on the UI thread too, for a gradient or a marker along the usual shape.
+
+`react-native-svg` isn't needed for anything else. Lines you draw this way are as fast as what you draw: `Bracket.Connector` moves with transforms alone, like the cards.
+
+## Hiding lines
+
+Return `null` from `renderConnector` to leave some lines out, like the ones leaving a bye. To hide every line, set `colors.line` to `'transparent'`; a highlighted path still draws in `accent`.
 
 See [press and highlight](/docs/native/press-and-highlight) for how a path gets highlighted.
+
+## Reference
+
+<ApiTable from="native" name="ConnectorProps" />
+
+<ApiTable from="native" name="ConnectorStyle" />
+
+<ApiTable from="native" name="ConnectorState" />
+
+<ApiTable from="native" name="ConnectorPoints" />

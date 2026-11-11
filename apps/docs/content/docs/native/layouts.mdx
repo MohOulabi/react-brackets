@@ -52,7 +52,7 @@ function Draw({ stage }: { stage: Stage }) {
 }
 ```
 
-`onPageChange` is called once a swipe lands or a tab is pressed, not during the swipe. Setting `page` from outside moves the bracket to that round. The [Live scores example](/examples/native#live-scores) moves on to the next round as results arrive.
+`onPageChange` is called once a swipe lands or a tab is pressed, not during the swipe. Setting `page` from outside moves the bracket to that round. Like a controlled input, a controlled `page` wins: if `onPageChange` doesn't set it to the new round, or there is no `onPageChange`, a swipe springs back to `page`. The [Live scores example](/examples/native#live-scores) moves on to the next round as results arrive.
 
 ### Height between rounds
 

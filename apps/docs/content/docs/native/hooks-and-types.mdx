@@ -10,7 +10,22 @@ Everything here is exported from `@react-brackets/native`. The data types, like 
 Paging for your own round tabs, dots or buttons. Works anywhere inside `Bracket.Root`. `position` is a Reanimated shared value that moves under the finger during a swipe, so an indicator built from it in `useAnimatedStyle` moves on the UI thread. See [Navigation and zoom](/docs/native/navigation-and-zoom#round-tabs).
 
 ```tsx
-const { rounds, page, setPage, previous, next, canPrevious, canNext, position } = usePagination();
+const { paged, rounds, page, setPage, previous, next, canPrevious, canNext, position } =
+  usePagination();
+```
+
+`paged` is `true` while the bracket shows one round at a time, and `false` while it shows the whole tree, so controls placed outside the viewport can hide themselves on a wide screen:
+
+```tsx
+function RoundDots() {
+  const { paged, rounds, page, setPage } = usePagination();
+  if (!paged) return null;
+  return rounds.map((round, index) => (
+    <Pressable key={round.id} onPress={() => setPage(index)}>
+      <Text>{index === page ? '●' : '○'}</Text>
+    </Pressable>
+  ));
+}
 ```
 
 <ApiTable from="native" name="PaginationState" />
@@ -26,6 +41,44 @@ zoom.zoomTo(zoom.maxScale);
 ```
 
 <ApiTable from="native" name="ZoomState" />
+
+## `useConnector()`
+
+The line being drawn, inside `renderConnector`: its matches, whether it is highlighted, and `points`, a shared value with where it starts and ends. Use it in a component of your own that draws the line from scratch. See [Connector lines](/docs/native/connectors#drawing-lines-from-scratch).
+
+```tsx
+function Straight() {
+  const { points } = useConnector();
+  const line = useAnimatedStyle(() => {
+    const { start, end, opacity } = points.value;
+    // A view one point long, stretched with a transform, moves in the same frame as the cards.
+    return {
+      opacity,
+      transform: [
+        { translateX: start.x },
+        { translateY: start.y },
+        { rotate: `${Math.atan2(end.y - start.y, end.x - start.x)}rad` },
+        { scaleX: Math.hypot(end.x - start.x, end.y - start.y) },
+      ],
+    };
+  });
+  return (
+    <Animated.View
+      style={[
+        { position: 'absolute', width: 1, height: 2, backgroundColor: '#a1a1aa' },
+        { transformOrigin: 'left center' },
+        line,
+      ]}
+    />
+  );
+}
+```
+
+`connectorPath(start, end, radius)` returns the bracket's own elbow as SVG path data. It runs on the UI thread too, so it works in `useAnimatedProps`.
+
+<ApiTable from="native" name="ConnectorState" />
+
+<ApiTable from="native" name="ConnectorPoints" />
 
 ## `useBracket()`
 

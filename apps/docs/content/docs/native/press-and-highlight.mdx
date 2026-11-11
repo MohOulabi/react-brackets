@@ -65,7 +65,7 @@ A double elimination stage is drawn as one bracket per group: the winners bracke
 
 ## Press a match
 
-Pass `onMatchPress` and every match becomes a button. It is called with the match that was pressed, and the card dims slightly while a finger is on it.
+Pass `onMatchPress` and every match becomes a button. It is called with the match that was pressed. While a finger is on it, a card built from `Bracket.Match` takes `colors.surfacePressed`, with `pressed` in its state for a style of your own, and a card you draw without it fades a little.
 
 ```tsx
 <Bracket stage={stage} onMatchPress={(match) => console.log(match.id, match.status)} />

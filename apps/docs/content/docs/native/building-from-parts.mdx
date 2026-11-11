@@ -71,7 +71,7 @@ Most of what you'd set on `<Bracket>` goes on the root:
 
 <ApiTable from="native" name="ViewportProps" />
 
-There are no parts inside the viewport. On the web you compose rounds, matches and lines one by one; on native the viewport draws them all, because every card's place is worked out up front so a swipe or a pinch can move them on the UI thread. Change the cards with `renderMatch`, the titles with `renderRoundTitle`, and the lines with the [theme](/docs/native/theme#connector-lines).
+There are no parts inside the viewport. On the web you compose rounds, matches and lines one by one; on native the viewport draws them all, because every card's place is worked out up front so a swipe or a pinch can move them on the UI thread. Change the cards with `renderMatch`, the titles with `renderRoundTitle`, and the lines with [`renderConnector`](/docs/native/connectors).
 
 ## Adding your own elements
 

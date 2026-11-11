@@ -1,12 +1,16 @@
 import {
   Bracket,
+  type ConnectorState,
   reportResult,
   type Stage,
   singleElimination,
   type ThemeOverrides,
+  useConnector,
 } from '@react-brackets/native';
 import { type ReactNode, useState } from 'react';
-import { Pressable, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
+import Animated, { useAnimatedProps } from 'react-native-reanimated';
+import Svg, { Path } from 'react-native-svg';
 
 const teams = ['Falcons', 'Wolves', 'Herons', 'Lynx', 'Orcas', 'Ravens', 'Bison', 'Cobras'];
 
@@ -23,29 +27,92 @@ const stage = (
   singleElimination(teams.map((name) => ({ id: name, name }))),
 );
 
-/** Lines take their colour, width and corners from the theme; the accent draws a highlighted path. */
-const looks: Record<string, ThemeOverrides> = {
-  Rounded: {
-    lineWidth: 2,
-    connectorRadius: 14,
-    colors: { line: '#c4b5fd', accent: '#7c3aed', accentSoft: 'rgba(124, 58, 237, 0.12)' },
+interface Look {
+  theme: ThemeOverrides;
+  renderConnector: (line: ConnectorState) => ReactNode;
+}
+
+const looks: Record<string, Look> = {
+  // Dashed until the match it leaves is decided.
+  Dashed: {
+    theme: {
+      lineWidth: 2,
+      connectorRadius: 10,
+      colors: { line: '#a78bfa', accent: '#7c3aed', accentSoft: 'rgba(124, 58, 237, 0.12)' },
+    },
+    renderConnector: ({ status }) => (
+      <Bracket.Connector dash={status === 'completed' ? undefined : 'dashed'} />
+    ),
   },
-  Square: {
-    lineWidth: 1,
-    connectorRadius: 0,
-    radius: 2,
-    colors: { line: '#a1a1aa', accent: '#0f766e', accentSoft: 'rgba(15, 118, 110, 0.12)' },
+  // Dotted lines, and the highlighted path flowing towards the final.
+  Flow: {
+    theme: {
+      lineWidth: 2,
+      connectorRadius: 8,
+      colors: { line: '#94a3b8', accent: '#ea580c', accentSoft: 'rgba(234, 88, 12, 0.12)' },
+    },
+    renderConnector: ({ highlighted }) =>
+      highlighted ? (
+        <Bracket.Connector dash={[6, 4]} flow style={{ width: 3 }} />
+      ) : (
+        <Bracket.Connector dash="dotted" />
+      ),
   },
-  Bold: {
-    lineWidth: 3.5,
-    connectorRadius: 6,
-    colors: { line: '#fed7aa', accent: '#ea580c', accentSoft: 'rgba(234, 88, 12, 0.12)' },
+  // An arrow into every match, green once the winner has gone through.
+  Arrows: {
+    theme: {
+      lineWidth: 1.5,
+      connectorRadius: 0,
+      radius: 4,
+      colors: { line: '#a1a1aa', accent: '#0f766e', accentSoft: 'rgba(15, 118, 110, 0.12)' },
+    },
+    renderConnector: () => (
+      <Bracket.Connector
+        arrow
+        style={({ status, highlighted }) => ({
+          color: highlighted ? '#0f766e' : status === 'completed' ? '#4ade80' : '#a1a1aa',
+        })}
+      />
+    ),
+  },
+  // Drawn from scratch: a curve in react-native-svg, following the cards as you swipe.
+  Curved: {
+    theme: {
+      lineWidth: 2,
+      colors: { line: '#7dd3fc', accent: '#0284c7', accentSoft: 'rgba(2, 132, 199, 0.12)' },
+    },
+    renderConnector: () => <Curve />,
   },
 };
 
+const AnimatedPath = Animated.createAnimatedComponent(Path);
+
+function Curve(): ReactNode {
+  const { points, highlighted } = useConnector();
+  const animated = useAnimatedProps(() => {
+    const { start, end, opacity } = points.value;
+    const mid = (start.x + end.x) / 2;
+    return {
+      d: `M${start.x},${start.y} C${mid},${start.y} ${mid},${end.y} ${end.x},${end.y}`,
+      opacity,
+    };
+  });
+  return (
+    <Svg style={StyleSheet.absoluteFill}>
+      <AnimatedPath
+        animatedProps={animated}
+        fill="none"
+        stroke={highlighted ? '#0284c7' : '#7dd3fc'}
+        strokeWidth={highlighted ? 2.5 : 2}
+      />
+    </Svg>
+  );
+}
+
 export default function ConnectorLines(): ReactNode {
-  const [look, setLook] = useState('Rounded');
+  const [name, setName] = useState('Dashed');
   const [team, setTeam] = useState<string | null>('Falcons');
+  const look = looks[name] ?? looks.Dashed;
   return (
     <View style={{ gap: 16 }}>
       <View
@@ -57,25 +124,31 @@ export default function ConnectorLines(): ReactNode {
           backgroundColor: 'rgba(127, 127, 127, 0.14)',
         }}
       >
-        {Object.keys(looks).map((name) => (
+        {Object.keys(looks).map((option) => (
           <Pressable
-            key={name}
-            onPress={() => setLook(name)}
+            key={option}
+            onPress={() => setName(option)}
             style={{
-              paddingHorizontal: 14,
+              paddingHorizontal: 12,
               paddingVertical: 7,
               borderRadius: 999,
-              backgroundColor: name === look ? '#ffffff' : 'transparent',
+              backgroundColor: option === name ? '#ffffff' : 'transparent',
             }}
           >
-            <Text style={{ fontWeight: '600', color: name === look ? '#18181b' : '#71717a' }}>
-              {name}
+            <Text style={{ fontWeight: '600', color: option === name ? '#18181b' : '#71717a' }}>
+              {option}
             </Text>
           </Pressable>
         ))}
       </View>
       {/* Falcons' path starts highlighted; tap any team to follow theirs. */}
-      <Bracket stage={stage} theme={looks[look]} highlighted={team} onHighlightChange={setTeam} />
+      <Bracket
+        stage={stage}
+        theme={look?.theme}
+        renderConnector={look?.renderConnector}
+        highlighted={team}
+        onHighlightChange={setTeam}
+      />
     </View>
   );
 }

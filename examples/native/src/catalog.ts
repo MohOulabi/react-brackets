@@ -65,7 +65,7 @@ export const examples: Example[] = [
   {
     slug: 'connector-lines',
     title: 'Connector lines',
-    summary: 'Colour, width and corners of the lines.',
+    summary: 'Dashed, flowing, arrowed and curved lines.',
     Screen: ConnectorLines,
   },
   {
