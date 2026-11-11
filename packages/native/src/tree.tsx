@@ -1,9 +1,15 @@
 import type { GroupLayout, Match } from '@react-brackets/core';
-import { type ComponentRef, type ReactNode, useMemo, useRef } from 'react';
-import { Text, View } from 'react-native';
+import {
+  type ComponentRef,
+  type ReactNode,
+  useContext,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+} from 'react';
+import { View } from 'react-native';
 import {
   GestureDetector,
-  Pressable,
   ScrollView,
   usePanGesture,
   usePinchGesture,
@@ -12,17 +18,19 @@ import {
 } from 'react-native-gesture-handler';
 import Animated, {
   cancelAnimation,
-  type SharedValue,
   useAnimatedStyle,
   useSharedValue,
   withDecay,
   withTiming,
 } from 'react-native-reanimated';
 import { StaticConnector } from './connectors';
+import { ZoomContext, type ZoomStore } from './context';
 import { type Metrics, mirrorTree, type TreeGeometry, treeGeometry } from './geometry';
+import { clamp, doubleTapScale } from './motion';
 import { edgeKey } from './paged';
 import { RoundTitle } from './parts';
 import type { BracketTheme } from './theme';
+import { ZoomControls } from './zoom-controls';
 
 /** How the full tree fits its width. */
 export type TreeMode = 'scroll' | 'fit' | 'pan-zoom';
@@ -33,11 +41,11 @@ export interface TreeProps {
   width: number;
   mode: TreeMode;
   theme: BracketTheme;
-  maxScale: number;
-  duration: number | null;
   highlightedEdges: Set<string>;
   renderMatch: (match: Match) => ReactNode;
   rtl: boolean;
+  /** The zoom controls in the pan-zoom frame: the default ones, your own, or none. */
+  controls: boolean | ReactNode;
 }
 
 /** The whole bracket at once: scrolled sideways, scaled to fit, or panned and zoomed. */
@@ -47,11 +55,10 @@ export function TreeBracket({
   width,
   mode,
   theme,
-  maxScale,
-  duration,
   highlightedEdges,
   renderMatch,
   rtl,
+  controls,
 }: TreeProps): ReactNode {
   const { matchWidth, matchHeight, heights, matchGap, columnGap, titleHeight } = metrics;
   // biome-ignore lint/correctness/useExhaustiveDependencies: the metrics are listed value by value
@@ -60,6 +67,7 @@ export function TreeBracket({
     return rtl ? mirrorTree(tree) : tree;
   }, [layout, rtl, matchWidth, matchHeight, heights, matchGap, columnGap, titleHeight]);
   const scroller = useRef<ComponentRef<typeof ScrollView>>(null);
+  const store = useContext(ZoomContext);
   const content = (
     <Drawing
       geometry={geometry}
@@ -78,7 +86,7 @@ export function TreeBracket({
       </View>
     );
   }
-  if (mode === 'pan-zoom') {
+  if (mode === 'pan-zoom' && store) {
     // The tree starts clear of the frame, and keeps that margin when fitted.
     const size = { width: geometry.width + 2 * INSET, height: geometry.height + 2 * INSET };
     return (
@@ -86,9 +94,15 @@ export function TreeBracket({
         size={size}
         width={width - 2 * FRAME}
         fit={Math.min(1, (width - 2 * FRAME) / size.width)}
-        maxScale={maxScale}
-        duration={duration}
+        store={store}
         theme={theme}
+        controls={
+          controls === true ? (
+            <ZoomControls style={{ position: 'absolute', right: 10, bottom: 10 }} />
+          ) : (
+            controls || null
+          )
+        }
       >
         <View style={{ padding: INSET }}>{content}</View>
       </Zoomable>
@@ -194,68 +208,55 @@ function Drawing({
   );
 }
 
-const ZOOM_STEP = 1.5;
 const INSET = 12;
 /** The border around a zoomable tree. */
 const FRAME = 1;
 
-/** Pinch and drag the tree, with a double tap to zoom in or back out to fit. */
+/**
+ * Pinch and drag the tree, with a double tap to zoom in or back out to fit. The transform
+ * lives in the root's zoom store, so controls and `useZoom` anywhere in the root can drive it.
+ */
 function Zoomable({
   size,
   width,
   fit,
-  maxScale,
-  duration,
+  store,
   theme,
+  controls,
   children,
 }: {
   size: { width: number; height: number };
   width: number;
   fit: number;
-  maxScale: number;
-  duration: number | null;
+  store: ZoomStore;
   theme: BracketTheme;
+  controls: ReactNode;
   children: ReactNode;
 }): ReactNode {
   const height = size.height * fit;
-  const scale = useSharedValue(fit);
-  const x = useSharedValue(0);
-  const y = useSharedValue(0);
+  const { scale, x, y, options, limits, register, bounds, zoomTo } = store;
+  const { overshoot, elasticity, deceleration, doubleTap: tap } = options;
   const saved = useSharedValue({ scale: fit, x: 0, y: 0 });
 
-  // The tree can't be dragged out of view: it stays against the edges, or centred when smaller.
-  const bounds = (zoom: number) => {
-    'worklet';
-    const extraX = width - size.width * zoom;
-    const extraY = height - size.height * zoom;
-    return {
-      minX: Math.min(0, extraX),
-      maxX: Math.max(0, extraX),
-      minY: Math.min(0, extraY),
-      maxY: Math.max(0, extraY),
-    };
-  };
-  const zoomTo = (zoom: number, focusX: number, focusY: number) => {
-    'worklet';
-    const next = Math.min(Math.max(zoom, fit), maxScale);
-    const ratio = next / scale.value;
-    const b = bounds(next);
-    const nextX = Math.min(Math.max(focusX - (focusX - x.value) * ratio, b.minX), b.maxX);
-    const nextY = Math.min(Math.max(focusY - (focusY - y.value) * ratio, b.minY), b.maxY);
-    const timing = { duration: duration ?? 0 };
-    scale.value = withTiming(next, timing);
-    x.value = withTiming(nextX, timing);
-    y.value = withTiming(nextY, timing);
-  };
+  const { width: contentWidth, height: contentHeight } = size;
+  useLayoutEffect(() => {
+    register({ width, height, content: { width: contentWidth, height: contentHeight }, fit });
+  }, [register, width, height, contentWidth, contentHeight, fit]);
+  useLayoutEffect(() => () => register(null), [register]);
 
   const pinch = usePinchGesture({
+    enabled: options.pinch,
     onActivate: () => {
       'worklet';
       saved.value = { scale: scale.value, x: x.value, y: y.value };
     },
     onUpdate: (event) => {
       'worklet';
-      const zoom = Math.min(Math.max(saved.value.scale * event.scale, fit * 0.85), maxScale * 1.15);
+      const zoom = clamp(
+        saved.value.scale * event.scale,
+        limits.min * (1 - overshoot),
+        limits.max * (1 + overshoot),
+      );
       const ratio = zoom / saved.value.scale;
       scale.value = zoom;
       x.value = event.focalX - (event.focalX - saved.value.x) * ratio;
@@ -263,10 +264,11 @@ function Zoomable({
     },
     onDeactivate: (event) => {
       'worklet';
-      zoomTo(scale.value, event.focalX, event.focalY);
+      zoomTo(scale.value, { x: event.focalX, y: event.focalY });
     },
   });
   const pan = usePanGesture({
+    enabled: options.pan,
     onActivate: () => {
       'worklet';
       cancelAnimation(x);
@@ -275,29 +277,37 @@ function Zoomable({
     },
     onUpdate: (event) => {
       'worklet';
-      x.value = saved.value.x + event.translationX;
-      y.value = saved.value.y + event.translationY;
+      const b = bounds(scale.value);
+      const toX = saved.value.x + event.translationX;
+      const toY = saved.value.y + event.translationY;
+      // With no give at the edges, the tree stops at them under the finger too.
+      x.value = elasticity > 0 ? toX : clamp(toX, b.minX, b.maxX);
+      y.value = elasticity > 0 ? toY : clamp(toY, b.minY, b.maxY);
     },
     onDeactivate: (event) => {
       'worklet';
       const b = bounds(scale.value);
-      x.value = withDecay({
-        velocity: event.velocityX,
-        clamp: [b.minX, b.maxX],
-        rubberBandEffect: true,
-      });
-      y.value = withDecay({
-        velocity: event.velocityY,
-        clamp: [b.minY, b.maxY],
-        rubberBandEffect: true,
-      });
+      if (deceleration === null) {
+        x.value = withTiming(clamp(x.value, b.minX, b.maxX), { duration: options.duration });
+        y.value = withTiming(clamp(y.value, b.minY, b.maxY), { duration: options.duration });
+        return;
+      }
+      const decay = {
+        deceleration,
+        rubberBandEffect: elasticity > 0,
+        rubberBandFactor: elasticity,
+      };
+      x.value = withDecay({ ...decay, velocity: event.velocityX, clamp: [b.minX, b.maxX] });
+      y.value = withDecay({ ...decay, velocity: event.velocityY, clamp: [b.minY, b.maxY] });
     },
   });
   const doubleTap = useTapGesture({
+    enabled: tap !== false,
     numberOfTaps: 2,
     onDeactivate: (event) => {
       'worklet';
-      zoomTo(scale.value > fit * 1.05 ? fit : scale.value * 2, event.x, event.y);
+      if (tap === false) return;
+      zoomTo(doubleTapScale(scale.value, fit, limits, tap), { x: event.x, y: event.y });
     },
   });
   // Side by side rather than one waiting on another: a drag starts the moment the finger moves, instead
@@ -325,60 +335,7 @@ function Zoomable({
           </Animated.View>
         </Animated.View>
       </GestureDetector>
-      <ZoomControls
-        theme={theme}
-        onZoom={(by) => zoomTo(scale.value * by, width / 2, height / 2)}
-        onReset={() => zoomTo(fit, 0, 0)}
-        scale={scale}
-      />
-    </View>
-  );
-}
-
-function ZoomControls({
-  theme,
-  onZoom,
-  onReset,
-}: {
-  theme: BracketTheme;
-  onZoom: (by: number) => void;
-  onReset: () => void;
-  scale: SharedValue<number>;
-}): ReactNode {
-  const button = (label: string, name: string, onPress: () => void) => (
-    <Pressable
-      key={name}
-      accessibilityRole="button"
-      accessibilityLabel={name}
-      onPress={onPress}
-      hitSlop={6}
-      style={({ pressed }) => ({
-        width: 36,
-        height: 36,
-        alignItems: 'center',
-        justifyContent: 'center',
-        backgroundColor: pressed ? theme.colors.surfacePressed : theme.colors.surface,
-      })}
-    >
-      <Text style={{ color: theme.colors.text, fontSize: 18 }}>{label}</Text>
-    </Pressable>
-  );
-  return (
-    <View
-      style={{
-        position: 'absolute',
-        right: 10,
-        bottom: 10,
-        flexDirection: 'row',
-        overflow: 'hidden',
-        borderWidth: 1,
-        borderColor: theme.colors.border,
-        borderRadius: theme.radius - 2,
-      }}
-    >
-      {button('−', 'Zoom out', () => onZoom(1 / ZOOM_STEP))}
-      {button('⤢', 'Fit to view', onReset)}
-      {button('+', 'Zoom in', () => onZoom(ZOOM_STEP))}
+      {controls}
     </View>
   );
 }

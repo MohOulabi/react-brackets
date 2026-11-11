@@ -61,6 +61,25 @@ Wrap your app in `GestureHandlerRootView`, as Gesture Handler asks. Inside a scr
 
 `Bracket.Participant` also takes a function as its child, to draw anything from the participant's state.
 
+## Your own controls
+
+```tsx
+<Bracket.Root stage={stage} zoom={{ maxScale: 3 }} swipe={{ elasticity: 0 }}>
+  <Bracket.Viewport mode="pan-zoom" controls={false} />
+  <Bracket.Pagination>
+    <Bracket.PreviousPage />
+    <Bracket.PageIndicator />
+    {stage.groups[0].rounds.map((round, index) => (
+      <Bracket.PageButton key={round.id} index={index} />
+    ))}
+    <Bracket.NextPage />
+  </Bracket.Pagination>
+  <Bracket.ZoomControls />
+</Bracket.Root>;
+```
+
+`usePagination()` and `useZoom()` drive your own buttons from anywhere inside `Bracket.Root`; `position` and `scale` are shared values, so what you draw follows a swipe or a pinch on the UI thread. On `<Bracket>`, `renderPagination` and `renderZoomControls` swap just those.
+
 ## Theme
 
 ```tsx
