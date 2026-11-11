@@ -1,5 +1,6 @@
 import type { ComponentType } from 'react';
 import ConnectorLines from './examples/connector-lines';
+import CustomControls from './examples/custom-controls';
 import DoubleElimination from './examples/double-elimination';
 import Esports from './examples/esports';
 import FixturesList from './examples/fixtures-list';
@@ -78,6 +79,12 @@ export const examples: Example[] = [
     title: 'Full tree',
     summary: 'The whole bracket, to pinch, drag and zoom.',
     Screen: FullTree,
+  },
+  {
+    slug: 'custom-controls',
+    title: 'Custom controls',
+    summary: 'Your own round pills and zoom buttons, anywhere.',
+    Screen: CustomControls,
   },
   {
     slug: 'two-sided',
