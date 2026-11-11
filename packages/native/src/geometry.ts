@@ -350,12 +350,18 @@ export function connectorPieces(
   const half = lineWidth / 2;
   const turn =
     radius > 0 ? Math.max(0, Math.min(radius, Math.abs(dy) / 2, Math.abs(midX - x1))) : 0;
-  const bend = midX - sx * turn;
   const scale = radius > 0 ? turn / radius : 0;
+  // The lines run right up to the outer edge of each corner, so they meet edge to edge, never leaving a gap.
+  const outEnd = midX - sx * (turn - half);
+  const inStart = midX + sx * (turn - half);
   return {
-    out: [Math.min(x1, bend), y1 - half, Math.abs(bend - x1)],
-    across: [midX - half, Math.min(y1, y2) + turn, Math.max(0, Math.abs(dy) - 2 * turn)],
-    into: [Math.min(midX + sx * turn, x2), y2 - half, Math.abs(x2 - (midX + sx * turn))],
+    out: [Math.min(x1, outEnd), y1 - half, Math.abs(outEnd - x1)],
+    across: [
+      midX - half,
+      Math.min(y1, y2) - half + turn,
+      Math.max(0, Math.abs(dy) + lineWidth - 2 * turn),
+    ],
+    into: [Math.min(inStart, x2), y2 - half, Math.abs(x2 - inStart)],
     turnOut: [
       sx > 0 ? midX + half - turn : midX - half,
       sy > 0 ? y1 - half : y1 + half - turn,

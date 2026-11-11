@@ -5,7 +5,6 @@ import {
   GestureDetector,
   Pressable,
   ScrollView,
-  useExclusiveGestures,
   usePanGesture,
   usePinchGesture,
   useSimultaneousGestures,
@@ -301,7 +300,9 @@ function Zoomable({
       zoomTo(scale.value > fit * 1.05 ? fit : scale.value * 2, event.x, event.y);
     },
   });
-  const gesture = useExclusiveGestures(doubleTap, useSimultaneousGestures(pinch, pan));
+  // Side by side rather than one waiting on another: a drag starts the moment the finger moves, instead
+  // of after the double tap gives up, and before the page around it can take the touch to scroll.
+  const gesture = useSimultaneousGestures(doubleTap, pinch, pan);
 
   const transform = useAnimatedStyle(() => ({
     transform: [{ translateX: x.value }, { translateY: y.value }, { scale: scale.value }],

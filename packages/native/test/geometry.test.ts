@@ -170,28 +170,43 @@ describe('right to left', () => {
 describe('connector pieces', () => {
   const from = { x: 0, y: 0, width: 100, height: 40 };
 
-  test('runs straight between matches at the same height', () => {
+  test('runs straight between matches at the same height, with no gap in the middle', () => {
     const line = connectorPieces(from, { x: 140, y: 0, width: 100, height: 40 }, 6, 2);
-    expect(line.out).toEqual([100, 19, 20]);
-    expect(line.across[2]).toBe(0);
-    expect(line.into).toEqual([120, 19, 20]);
+    expect(line.out).toEqual([100, 19, 21]);
+    expect(line.into).toEqual([119, 19, 21]);
     expect(line.turnOut[2]).toBe(0);
   });
 
   test('turns halfway with rounded corners, going down', () => {
     const line = connectorPieces(from, { x: 140, y: 60, width: 100, height: 40 }, 6, 2);
     expect([line.sx, line.sy]).toEqual([1, 1]);
-    expect(line.out).toEqual([100, 19, 14]);
-    expect(line.across).toEqual([119, 26, 48]);
-    expect(line.into).toEqual([126, 79, 14]);
+    expect(line.out).toEqual([100, 19, 15]);
+    expect(line.across).toEqual([119, 25, 50]);
+    expect(line.into).toEqual([125, 79, 15]);
     expect(line.turnOut).toEqual([115, 19, 1]);
     expect(line.turnIn).toEqual([119, 75, 1]);
   });
 
-  test('turns up, and leaves from the side facing the next match', () => {
-    const up = connectorPieces({ ...from, y: 60 }, { x: 140, y: 0, width: 100, height: 40 }, 6, 2);
-    expect(up.sy).toBe(-1);
-    expect(up.across).toEqual([119, 26, 48]);
+  test('meets every corner edge to edge, whichever way it runs', () => {
+    const size = 6;
+    for (const to of [
+      { x: 140, y: 60, width: 100, height: 40 },
+      { x: 140, y: -60, width: 100, height: 40 },
+      { x: -140, y: 60, width: 100, height: 40 },
+      { x: -140, y: -60, width: 100, height: 40 },
+    ]) {
+      const { out, across, into, turnOut, turnIn, sx, sy } = connectorPieces(from, to, size, 2);
+      // The line out ends where the first corner starts, and the line in starts where the second one ends.
+      expect(sx > 0 ? out[0] + out[2] : out[0]).toBe(sx > 0 ? turnOut[0] : turnOut[0] + size);
+      expect(sx > 0 ? into[0] : into[0] + into[2]).toBe(sx > 0 ? turnIn[0] + size : turnIn[0]);
+      // The line across starts where one corner ends, and stops where the other begins.
+      const [first, last] = sy > 0 ? [turnOut, turnIn] : [turnIn, turnOut];
+      expect(across[1]).toBe(first[1] + size);
+      expect(across[1] + across[2]).toBe(last[1]);
+    }
+  });
+
+  test('leaves from the side facing the next match', () => {
     const back = connectorPieces(
       { ...from, x: 300 },
       { x: 140, y: 0, width: 100, height: 40 },
@@ -199,12 +214,12 @@ describe('connector pieces', () => {
       2,
     );
     expect(back.sx).toBe(-1);
-    expect(back.out).toEqual([270, 19, 30]);
+    expect(back.out).toEqual([269, 19, 31]);
   });
 
   test('tightens the turns when the matches are almost level', () => {
     const line = connectorPieces(from, { x: 140, y: 4, width: 100, height: 40 }, 6, 2);
     expect(line.turnOut[2]).toBeCloseTo(1 / 3);
-    expect(line.across[2]).toBe(0);
+    expect(line.across[2]).toBe(2);
   });
 });

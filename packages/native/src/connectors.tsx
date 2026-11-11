@@ -1,5 +1,5 @@
 import { memo, type NamedExoticComponent, type ReactNode, useMemo } from 'react';
-import { View, type ViewStyle } from 'react-native';
+import { PixelRatio, View, type ViewStyle } from 'react-native';
 import Animated, {
   type SharedValue,
   useAnimatedStyle,
@@ -26,24 +26,40 @@ interface LineLook {
 
 const origin = { position: 'absolute', left: 0, top: 0, transformOrigin: 'left top' } as const;
 
-/** A square with two borders meeting in one rounded corner. */
-function cornerStyle(corner: Corner, size: number, { width, color }: LineLook): ViewStyle {
-  const top = corner[0] === 't';
-  const right = corner[1] === 'r';
-  return {
-    ...origin,
-    width: size,
-    height: size,
-    borderColor: color,
-    borderTopWidth: top ? width : 0,
-    borderBottomWidth: top ? 0 : width,
-    borderLeftWidth: right ? 0 : width,
-    borderRightWidth: right ? width : 0,
-    borderTopLeftRadius: corner === 'tl' ? size : 0,
-    borderTopRightRadius: corner === 'tr' ? size : 0,
-    borderBottomLeftRadius: corner === 'bl' ? size : 0,
-    borderBottomRightRadius: corner === 'br' ? size : 0,
-  };
+/**
+ * The length a moving line is drawn at before it is stretched. It is a whole number of pixels, so
+ * layout never rounds it: a line stretched from one point would be snapped to two or three pixels,
+ * and come out a quarter short or long on screens with fractional pixel ratios.
+ */
+const SPAN = PixelRatio.roundToNearestPixel(100);
+
+/** The square a rounded corner is drawn in; it clips the ring inside it to one quarter. */
+const cornerBox = (size: number): ViewStyle => ({
+  ...origin,
+  width: size,
+  height: size,
+  overflow: 'hidden',
+});
+
+/**
+ * A rounded corner: a quarter of a ring, cut from a whole circle with one even stroke. A square with
+ * two of its four borders drawn would do the same, but Android draws hairlines along the other two.
+ */
+function Ring({ corner, size, look }: { corner: Corner; size: number; look: LineLook }): ReactNode {
+  return (
+    <View
+      style={{
+        position: 'absolute',
+        left: corner[1] === 'r' ? -size : 0,
+        top: corner[0] === 't' ? 0 : -size,
+        width: size * 2,
+        height: size * 2,
+        borderRadius: size,
+        borderWidth: look.width,
+        borderColor: look.color,
+      }}
+    />
+  );
 }
 
 /** A connector that stays put: placed once, with real sizes, so it is sharp at any zoom. */
@@ -77,18 +93,16 @@ export const StaticConnector: NamedExoticComponent<StaticConnectorProps> = memo(
           <>
             <View
               pointerEvents="none"
-              style={[
-                cornerStyle(turnOut(sx, sy), turn, look),
-                { left: pieces.turnOut[0], top: pieces.turnOut[1] },
-              ]}
-            />
+              style={[cornerBox(turn), { left: pieces.turnOut[0], top: pieces.turnOut[1] }]}
+            >
+              <Ring corner={turnOut(sx, sy)} size={turn} look={look} />
+            </View>
             <View
               pointerEvents="none"
-              style={[
-                cornerStyle(turnIn(sx, sy), turn, look),
-                { left: pieces.turnIn[0], top: pieces.turnIn[1] },
-              ]}
-            />
+              style={[cornerBox(turn), { left: pieces.turnIn[0], top: pieces.turnIn[1] }]}
+            >
+              <Ring corner={turnIn(sx, sy)} size={turn} look={look} />
+            </View>
           </>
         )}
       </>
@@ -168,19 +182,19 @@ export const MovingConnector: NamedExoticComponent<MovingConnectorProps> = memo(
           state={state}
           piece="out"
           axis="x"
-          style={[line, { width: 1, height: look.width }]}
+          style={[line, { width: SPAN, height: look.width }]}
         />
         <Stretched
           state={state}
           piece="across"
           axis="y"
-          style={[line, { width: look.width, height: 1 }]}
+          style={[line, { width: look.width, height: SPAN }]}
         />
         <Stretched
           state={state}
           piece="into"
           axis="x"
-          style={[line, { width: 1, height: look.width }]}
+          style={[line, { width: SPAN, height: look.width }]}
         />
         {look.radius > 0 && (
           <>
@@ -218,7 +232,7 @@ function Stretched({
       transform: [
         { translateX: x },
         { translateY: y },
-        axis === 'x' ? { scaleX: length } : { scaleY: length },
+        axis === 'x' ? { scaleX: length / SPAN } : { scaleY: length / SPAN },
       ],
     };
   });
@@ -248,9 +262,8 @@ function Turn({
     };
   });
   return (
-    <Animated.View
-      pointerEvents="none"
-      style={[cornerStyle(corner, look.radius, look), animated]}
-    />
+    <Animated.View pointerEvents="none" style={[cornerBox(look.radius), animated]}>
+      <Ring corner={corner} size={look.radius} look={look} />
+    </Animated.View>
   );
 }
