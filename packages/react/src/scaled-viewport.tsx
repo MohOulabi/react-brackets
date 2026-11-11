@@ -150,6 +150,7 @@ export function ScaledViewport({
       canZoomIn: current.scale < maxScale - 0.001,
       canZoomOut: current.scale > minScale + 0.001,
       fitted: isFitted,
+      canReset: !isFitted,
       zoomIn: (step) =>
         actions.current.zoomTo(actions.current.current.scale * (step ?? actions.current.step)),
       zoomOut: (step) =>

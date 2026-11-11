@@ -172,7 +172,7 @@ export function ZoomReset({ step: _step, ...props }: ZoomButtonProps): ReactNode
       part="zoom-reset"
       label={labels.zoomReset}
       icon="fit"
-      disabled={zoom.fitted}
+      disabled={!zoom.canReset}
       onPress={zoom.reset}
     />
   );

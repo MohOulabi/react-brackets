@@ -17,6 +17,8 @@ export interface ZoomState {
   canZoomOut: boolean;
   /** `true` while the tree is fitted to the viewport, as it starts. */
   fitted: boolean;
+  /** `false` while fitting would change nothing: the tree is already fitted. */
+  canReset: boolean;
   /** Zooms in around the centre by `step`, or by the `zoom.step` option. */
   zoomIn: (step?: number) => void;
   /** Zooms out around the centre by `step`, or by the `zoom.step` option. */
