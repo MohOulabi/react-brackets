@@ -35,6 +35,27 @@ A stage with one group gets one root. A stage with several, like double eliminat
 
 The root also measures its own width, and decides from it whether to page through one round at a time or show the whole tree. It's the root's width that counts, not the screen's, so a bracket in a narrow column of a tablet pages too.
 
+### Only the parts you place
+
+Give the root children and it draws those and nothing else. Leave a part out and it isn't there: no `Bracket.Pagination`, no round tabs; no `Bracket.GroupTitle`, no group title. With no children at all, the root draws the defaults, the same as `<Bracket>` for one group.
+
+```tsx
+// The defaults: group title, rounds, round tabs
+<Bracket.Root stage={stage} />
+
+// Rounds only
+<Bracket.Root stage={stage}>
+  <Bracket.Viewport />
+</Bracket.Root>
+
+// Round tabs on top, and the group title
+<Bracket.Root stage={stage}>
+  <Bracket.GroupTitle />
+  <Bracket.Pagination style={{ paddingTop: 0, paddingBottom: 12 }} />
+  <Bracket.Viewport />
+</Bracket.Root>
+```
+
 Most of what you'd set on `<Bracket>` goes on the root:
 
 - **What to draw:** `stage`, `group`, and `renderMatch` and `renderRoundTitle` for your own [cards](/docs/native/match-cards) and [titles](/docs/native/round-titles).

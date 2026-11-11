@@ -51,12 +51,14 @@ This is what `<Bracket>` renders, written out. The shortcut props map onto it:
 | `Bracket.Participant` | one side of a match | a function of its state, or anything |
 | `Bracket.Connectors` | the SVG with every line | a function of the line |
 | `Bracket.Connector` | one line | none |
-| `Bracket.Pagination` | round navigation on narrow containers | none |
+| `Bracket.Pagination` | round navigation on narrow containers | your own buttons, or none for the defaults |
+| `Bracket.ZoomControls` | the zoom buttons of a pan and zoom tree | your own buttons, or none for the defaults |
 
 Each one's props are in the [parts reference](/docs/api/parts).
 
 ## Rules of thumb
 
+- Only the parts you place are drawn. Leave out `Bracket.Pagination` and there is no round navigation; leave out `Bracket.GroupTitle` and there is no group title.
 - Keep `Bracket.Rounds` and `Bracket.Connectors` inside `Bracket.Viewport`. Lines are measured within it.
 - Keep `Bracket.Match` around each card. Lines attach to it, and paging and clicks go through it.
 - Anything else can go anywhere inside `Bracket.Root`: a header above the viewport, a legend below it, a sidebar beside it.
