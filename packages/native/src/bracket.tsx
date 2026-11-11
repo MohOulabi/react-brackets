@@ -1,6 +1,7 @@
 import type { Id } from '@react-brackets/core';
 import { type ReactNode, useMemo } from 'react';
 import { View } from 'react-native';
+import { ConnectorPart } from './connectors';
 import { type PaginationState, usePagination, useRoot, useZoom, type ZoomState } from './context';
 import { NextPage, PageButton, PageIndicator, Pagination, PreviousPage } from './pagination';
 import { MatchPart, ParticipantPart, RoundTitle } from './parts';
@@ -89,6 +90,7 @@ type BracketComponent = typeof DefaultBracket & {
   Match: typeof MatchPart;
   Participant: typeof ParticipantPart;
   RoundTitle: typeof RoundTitle;
+  Connector: typeof ConnectorPart;
   Root: typeof Root;
   Viewport: typeof Viewport;
   GroupTitle: typeof GroupTitle;
@@ -107,13 +109,14 @@ type BracketComponent = typeof DefaultBracket & {
 /**
  * Tournament brackets for React Native. `<Bracket stage={stage} />` draws the
  * whole stage; `renderMatch` with `Bracket.Match` and `Bracket.Participant`
- * restyles or replaces the cards. `Bracket.Root` and the parts inside it arrange
+ * restyles or replaces the cards, and `renderConnector` with `Bracket.Connector` the lines. `Bracket.Root` and the parts inside it arrange
  * the viewport, round tabs and zoom controls your own way.
  */
 export const Bracket: BracketComponent = Object.assign(DefaultBracket, {
   Match: MatchPart,
   Participant: ParticipantPart,
   RoundTitle,
+  Connector: ConnectorPart,
   Root,
   Viewport,
   GroupTitle,

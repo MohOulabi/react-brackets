@@ -63,9 +63,13 @@
     "react-native-worklets": ">=0.5.0"
   },
   "devDependencies": {
+    "@happy-dom/global-registrator": "^21.0.4",
+    "@testing-library/dom": "^10.4.2",
+    "@testing-library/react": "^16.3.3",
     "@types/react": "~19.3.0",
     "publint": "^0.3.25",
     "react": "19.3.0",
+    "react-dom": "19.3.0",
     "react-native": "0.88.1",
     "react-native-builder-bob": "^0.44.1",
     "react-native-gesture-handler": "3.3.0",

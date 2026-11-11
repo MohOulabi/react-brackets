@@ -1,7 +1,12 @@
 import { describe, expect, test } from 'bun:test';
 import { layoutGroup, singleElimination } from '@react-brackets/core';
 import {
+  arcDashes,
+  connectorAnchors,
+  connectorPath,
   connectorPieces,
+  dashPattern,
+  dashStarts,
   frameAt,
   heightAt,
   listGeometry,
@@ -9,8 +14,11 @@ import {
   mirrorPaged,
   mirrorTree,
   pagedGeometry,
+  piecesBetween,
+  stripShift,
   treeGeometry,
   valueAt,
+  wrap,
 } from '../src/geometry';
 
 const metrics: Metrics = {
@@ -221,5 +229,102 @@ describe('connector pieces', () => {
     const line = connectorPieces(from, { x: 140, y: 4, width: 100, height: 40 }, 6, 2);
     expect(line.turnOut[2]).toBeCloseTo(1 / 3);
     expect(line.across[2]).toBe(2);
+  });
+});
+
+describe('lines drawn your way', () => {
+  const from = { x: 0, y: 0, width: 100, height: 40 };
+  const down = { x: 140, y: 60, width: 100, height: 40 };
+
+  test('anchors at the middle of the sides that face each other, either way', () => {
+    expect(connectorAnchors(from, down)).toEqual([
+      { x: 100, y: 20 },
+      { x: 140, y: 80 },
+    ]);
+    expect(connectorAnchors(down, from)).toEqual([
+      { x: 140, y: 80 },
+      { x: 100, y: 20 },
+    ]);
+  });
+
+  test('pieces between two points are the pieces between the boxes', () => {
+    const [start, end] = connectorAnchors(from, down);
+    expect(piecesBetween(start, end, 1, 6, 2)).toEqual(connectorPieces(from, down, 6, 2));
+  });
+
+  test('a path is the elbow the web package draws', () => {
+    expect(connectorPath({ x: 0, y: 10 }, { x: 40, y: 10 })).toBe('M0,10H40');
+    expect(connectorPath({ x: 0, y: 0 }, { x: 40, y: 60 })).toBe('M0,0H20V60H40');
+    expect(connectorPath({ x: 0, y: 0 }, { x: 40, y: 60 }, 6)).toBe(
+      'M0,0H14Q20,0 20,6V54Q20,60 26,60H40',
+    );
+  });
+});
+
+describe('dashes', () => {
+  test('dashed and dotted scale with the line', () => {
+    expect(dashPattern('dashed', 2)).toEqual({ dash: 6, period: 10, dots: false });
+    expect(dashPattern('dotted', 2)).toEqual({ dash: 0, period: 6, dots: true });
+    expect(dashPattern([4, 4], 2)).toEqual({ dash: 4, period: 8, dots: false });
+    expect(dashPattern(undefined, 2)).toBeNull();
+  });
+
+  test('a dash with no gap is a solid line, and dots never run together', () => {
+    expect(dashPattern([4, 0], 2)).toBeNull();
+    expect(dashPattern([0, 1], 3)?.period).toBe(4);
+  });
+
+  test('each piece starts where the one before it ends, through rounded turns', () => {
+    const pieces = connectorPieces(
+      { x: 0, y: 0, width: 100, height: 40 },
+      { x: 140, y: 100, width: 100, height: 40 },
+      8,
+      2,
+    );
+    const starts = dashStarts(pieces, 8, 2);
+    const quarter = (Math.PI / 2) * 7;
+    expect(starts.turnOut).toBeCloseTo(pieces.out[2]);
+    expect(starts.across).toBeCloseTo(starts.turnOut + quarter);
+    expect(starts.turnIn).toBeCloseTo(starts.across + pieces.across[2]);
+    expect(starts.into).toBeCloseTo(starts.turnIn + quarter);
+    // Down the middle, the whole line is its runs across and down, less what the turns cut, plus the turns.
+    const length = starts.into + pieces.into[2];
+    expect(length).toBeCloseTo(40 + 100 - 4 * 7 + 2 * quarter);
+  });
+
+  test('with square corners, pieces start half a line width before the corner', () => {
+    const pieces = connectorPieces(
+      { x: 0, y: 0, width: 100, height: 40 },
+      { x: 140, y: 100, width: 100, height: 40 },
+      0,
+      2,
+    );
+    const starts = dashStarts(pieces, 0, 2);
+    expect(starts.turnOut).toBe(20);
+    expect(starts.across).toBe(19);
+    expect(starts.turnIn).toBe(120);
+    expect(starts.into).toBe(119);
+  });
+
+  test('a strip shows the pattern from the phase the piece starts at, whichever way it runs', () => {
+    const pattern = { dash: 4, period: 10, dots: false };
+    // Running from the low end, 3 into the pattern: the strip starts 3 behind.
+    expect(stripShift(3, 50, 1, pattern)).toBe(3);
+    expect(stripShift(23, 50, 1, pattern)).toBe(3);
+    // Running from the high end of a piece 50 long, 3 into the pattern: a dash ends 3 past the
+    // high end, so its start is 1 before it, at 49, and the strip's dashes start at 9, 19, 29...
+    const shift = stripShift(3, 50, -1, pattern);
+    expect(wrap(49 + shift, 10)).toBe(0);
+  });
+
+  test('a turn lays dashes round its quarter and a period more, long ones cut to bend', () => {
+    const pattern = { dash: 6, period: 10, dots: false };
+    const dashes = arcDashes(8, 8, 7, -Math.PI / 2, 1, pattern);
+    // A quarter of radius 7 is 11 long; with a period more, three dashes, each cut in three.
+    expect(dashes.length).toBe(3 * 3);
+    for (const dash of dashes) {
+      expect(Math.hypot(dash.x - 8, dash.y - 8)).toBeCloseTo(7);
+    }
+    expect(arcDashes(8, 8, 0, 0, 1, pattern)).toEqual([]);
   });
 });

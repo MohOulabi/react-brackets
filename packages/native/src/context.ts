@@ -2,6 +2,7 @@ import type { Group, Id, Match, Participant, Round, Stage } from '@react-bracket
 import { type Context, createContext, type ReactNode, useContext } from 'react';
 import type { StyleProp } from 'react-native';
 import type { SharedValue } from 'react-native-reanimated';
+import type { ConnectorState } from './connectors';
 import type { Bounds, Size, Transform } from './motion';
 import type { ResolvedSwipe, ResolvedZoom } from './options';
 import type { BracketTheme } from './theme';
@@ -60,6 +61,7 @@ export interface BracketContextValue {
   /** Set when matches can be pressed; participants then leave presses to the match. */
   onMatchPress?: (match: Match) => void;
   renderRoundTitle?: (round: Round) => ReactNode;
+  renderConnector?: (connector: ConnectorState) => ReactNode;
 }
 
 export const BracketContext: Context<BracketContextValue | null> =
@@ -71,6 +73,14 @@ export function useBracket(): BracketContextValue {
   if (!value) throw new Error('Bracket parts must be rendered inside a <Bracket>.');
   return value;
 }
+
+/** A pressable match: whether it is pressed, and how its card says it shows that itself. */
+export interface PressState {
+  pressed: boolean;
+  claim: () => () => void;
+}
+
+export const PressContext: Context<PressState | null> = createContext<PressState | null>(null);
 
 export const MatchContext: Context<Match | null> = createContext<Match | null>(null);
 
@@ -115,6 +125,8 @@ export function useRoot(part: string): RootContextValue {
 
 /** Paging, for your own round tabs or buttons. */
 export interface PaginationState {
+  /** `true` while the bracket pages through one round at a time, `false` while it shows the whole tree. */
+  paged: boolean;
   rounds: Round[];
   /** The round in focus, counting from 0. */
   page: number;
@@ -129,9 +141,10 @@ export interface PaginationState {
 
 /** Paging state for anything inside `Bracket.Root`. */
 export function usePagination(): PaginationState {
-  const { group, page, setPage, position } = useRoot('usePagination');
+  const { group, paged, page, setPage, position } = useRoot('usePagination');
   const last = group.rounds.length - 1;
   return {
+    paged,
     rounds: group.rounds,
     page,
     setPage,

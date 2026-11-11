@@ -331,19 +331,36 @@ export interface ConnectorPieces {
   sy: 1 | -1;
 }
 
-export function connectorPieces(
-  from: Box,
-  to: Box,
+/** A point in the bracket's own coordinates, in points. */
+export interface Point {
+  x: number;
+  y: number;
+}
+
+/** Where a line leaves `from` and enters `to`: the middle of the sides that face each other. */
+export function connectorAnchors(from: Box, to: Box): [Point, Point] {
+  'worklet';
+  const forward = from.x + from.width / 2 < to.x + to.width / 2;
+  return [
+    { x: forward ? from.x + from.width : from.x, y: from.y + from.height / 2 },
+    { x: forward ? to.x : to.x + to.width, y: to.y + to.height / 2 },
+  ];
+}
+
+/**
+ * The pieces of a line from `start` to `end`, turning halfway. `sx` is the way it runs: the two
+ * points alone can't say, when there is no gap between the rounds.
+ */
+export function piecesBetween(
+  start: Point,
+  end: Point,
+  sx: 1 | -1,
   radius: number,
   lineWidth: number,
 ): ConnectorPieces {
   'worklet';
-  const forward = from.x + from.width / 2 < to.x + to.width / 2;
-  const sx = forward ? 1 : -1;
-  const x1 = forward ? from.x + from.width : from.x;
-  const y1 = from.y + from.height / 2;
-  const x2 = forward ? to.x : to.x + to.width;
-  const y2 = to.y + to.height / 2;
+  const { x: x1, y: y1 } = start;
+  const { x: x2, y: y2 } = end;
   const midX = (x1 + x2) / 2;
   const dy = y2 - y1;
   const sy = dy < 0 ? -1 : 1;
@@ -375,4 +392,180 @@ export function connectorPieces(
     sx,
     sy,
   };
+}
+
+/**
+ * The pieces of a line between two boxes. Worklets capture what they call when they are defined,
+ * so this comes after the two it calls.
+ */
+export function connectorPieces(
+  from: Box,
+  to: Box,
+  radius: number,
+  lineWidth: number,
+): ConnectorPieces {
+  'worklet';
+  const [start, end] = connectorAnchors(from, to);
+  const sx = from.x + from.width / 2 < to.x + to.width / 2 ? 1 : -1;
+  return piecesBetween(start, end, sx, radius, lineWidth);
+}
+
+/**
+ * SVG path data for the default line from `start` to `end`: an elbow that turns halfway, its
+ * corners rounded by `radius`. The same shape the web package draws. It runs on the UI thread too,
+ * so an animated path can follow a swipe.
+ */
+export function connectorPath(start: Point, end: Point, radius = 0): string {
+  'worklet';
+  const round = (value: number) => Math.round(value * 100) / 100;
+  const midX = round((start.x + end.x) / 2);
+  const dy = end.y - start.y;
+  const from = `M${round(start.x)},${round(start.y)}`;
+  if (Math.abs(dy) < 1) return `${from}H${round(end.x)}`;
+  const corner = Math.min(radius, Math.abs(dy) / 2, Math.abs(midX - start.x));
+  if (corner <= 0) return `${from}H${midX}V${round(end.y)}H${round(end.x)}`;
+  const sx = Math.sign(end.x - start.x);
+  const sy = Math.sign(dy);
+  return [
+    from,
+    `H${round(midX - sx * corner)}`,
+    `Q${midX},${round(start.y)} ${midX},${round(start.y + sy * corner)}`,
+    `V${round(end.y - sy * corner)}`,
+    `Q${midX},${round(end.y)} ${round(midX + sx * corner)},${round(end.y)}`,
+    `H${round(end.x)}`,
+  ].join('');
+}
+
+/** How a line is broken up: `dashed`, `dotted`, or `[dash, gap]` in points, where a dash of `0` is a dot. */
+export type ConnectorDash = 'dashed' | 'dotted' | readonly [dash: number, gap: number];
+
+/** A dash pattern worked out for a line width: each dash's length, and how far apart they start. */
+export interface DashPattern {
+  dash: number;
+  period: number;
+  /** Round dots as wide as the line, in place of dashes. */
+  dots: boolean;
+}
+
+/** The pattern a `dash` option draws at a line width, or `null` for a solid line. */
+export function dashPattern(
+  dash: ConnectorDash | undefined,
+  lineWidth: number,
+): DashPattern | null {
+  if (dash === undefined) return null;
+  const [length, gap] =
+    dash === 'dashed'
+      ? [Math.max(3, 3 * lineWidth), Math.max(3, 2 * lineWidth)]
+      : dash === 'dotted'
+        ? [0, Math.max(3, 3 * lineWidth)]
+        : dash;
+  const dots = length <= 0;
+  // A dot is as wide as the line, so dots closer than that would run together.
+  const period = Math.max(dots ? lineWidth + 1 : 1, length + gap);
+  if (!dots && length >= period) return null;
+  return { dash: dots ? 0 : length, period, dots };
+}
+
+/**
+ * How far along the line each piece starts, measured down its middle from where it leaves `from`.
+ * A pattern laid from these runs on unbroken through the turns. Lines start where their view
+ * starts, the end that comes first along the line; turns start where the line enters them.
+ */
+export interface DashStarts {
+  out: number;
+  turnOut: number;
+  across: number;
+  turnIn: number;
+  into: number;
+  /** The radius the turns are drawn at, down the middle of the line, before scaling. */
+  arc: number;
+}
+
+export function dashStarts(pieces: ConnectorPieces, radius: number, lineWidth: number): DashStarts {
+  'worklet';
+  const half = lineWidth / 2;
+  const arc = Math.max(0, radius - half);
+  const scale = pieces.turnOut[2];
+  if (radius > 0 && scale > 0) {
+    // The lines meet each turn where it runs level or upright, so each piece starts where the last ends.
+    // A turn is drawn at the full radius and scaled down to fit, so its middle is scaled too.
+    const quarter = (Math.PI / 2) * arc * scale;
+    const across = pieces.out[2] + quarter;
+    const turnIn = across + pieces.across[2];
+    return { out: 0, turnOut: pieces.out[2], across, turnIn, into: turnIn + quarter, arc };
+  }
+  // Square corners: each line runs half a line width past the corner, under the next one.
+  const corner = pieces.out[2] - half;
+  const next = corner + pieces.across[2] - lineWidth;
+  return { out: 0, turnOut: corner, across: corner - half, turnIn: next, into: next - half, arc };
+}
+
+/** `value` wrapped into `[0, period)`. */
+export function wrap(value: number, period: number): number {
+  'worklet';
+  return ((value % period) + period) % period;
+}
+
+/**
+ * Where a strip of dashes starts, behind the low end (left or top) of the piece it fills, so the
+ * piece shows the pattern from `phase`, the distance along the line where the piece starts.
+ * The strip's dashes start every `period` from its own start. `travel` is the way the line runs
+ * along the piece: `1` from the low end, `-1` from the high end.
+ */
+export function stripShift(
+  phase: number,
+  length: number,
+  travel: number,
+  pattern: DashPattern,
+): number {
+  'worklet';
+  return travel > 0
+    ? wrap(phase, pattern.period)
+    : wrap(-(length + phase - pattern.dash), pattern.period);
+}
+
+/** One dash of a turn, before the turn is rotated into step: its middle and angle, on a circle. */
+export interface ArcDash {
+  x: number;
+  y: number;
+  length: number;
+  angle: number;
+}
+
+/**
+ * The dashes of a turn, laid round a circle of radius `arc` centred at `(cx, cy)` from the angle
+ * where the line enters it, `entry`, the way it turns, `turn`. They cover a quarter and one period
+ * more, so the turn can be rotated back by up to a period to bring them in step with the line.
+ * Long dashes are cut into short ones, so they bend with the turn.
+ */
+export function arcDashes(
+  cx: number,
+  cy: number,
+  arc: number,
+  entry: number,
+  turn: 1 | -1,
+  pattern: DashPattern,
+): ArcDash[] {
+  if (arc <= 0) return [];
+  const dashes: ArcDash[] = [];
+  const reach = (Math.PI / 2) * arc + pattern.period;
+  const at = (distance: number, length: number) => {
+    const angle = entry + (turn * distance) / arc;
+    dashes.push({
+      x: cx + arc * Math.cos(angle),
+      y: cy + arc * Math.sin(angle),
+      length,
+      angle: angle + Math.PI / 2,
+    });
+  };
+  const cuts = pattern.dots ? 1 : Math.max(1, Math.ceil(pattern.dash / (arc * 0.35)));
+  const piece = pattern.dash / cuts;
+  for (let start = 0; start <= reach; start += pattern.period) {
+    if (pattern.dots) at(start, 0);
+    // Cut pieces overlap a little, so their outer corners leave no notch where they meet.
+    else
+      for (let cut = 0; cut < cuts; cut++)
+        at(start + (cut + 0.5) * piece, cuts > 1 ? piece + 0.5 : piece);
+  }
+  return dashes;
 }

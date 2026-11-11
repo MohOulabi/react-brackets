@@ -2,6 +2,13 @@ export * from '@react-brackets/core';
 export type { BracketLayout, BracketProps } from './bracket';
 export { Bracket } from './bracket';
 export type {
+  ConnectorPoints,
+  ConnectorProps,
+  ConnectorState,
+  ConnectorStyle,
+} from './connectors';
+export { useConnector } from './connectors';
+export type {
   BracketContextValue,
   Labels,
   PaginationState,
@@ -9,13 +16,15 @@ export type {
   ZoomState,
 } from './context';
 export { useBracket, useMatch, usePagination, useZoom } from './context';
-export type { PageHeight } from './geometry';
+export type { ConnectorDash, PageHeight, Point } from './geometry';
+export { connectorPath } from './geometry';
 export type { Transform } from './motion';
 export type { SwipeOptions, ZoomOptions } from './options';
 export type {
   PageButtonProps,
   PageButtonState,
   PageIndicatorProps,
+  PaginationPartState,
   PaginationProps,
   StepButtonProps,
   StepButtonState,
@@ -25,6 +34,8 @@ export type {
   MatchState,
   ParticipantProps,
   ParticipantState,
+  RoundTitleProps,
+  RoundTitleState,
 } from './parts';
 export type { GroupTitleProps, GroupTitleState, RootProps } from './root';
 export type { BracketColors, BracketTheme, ThemeOverrides } from './theme';
@@ -41,6 +52,7 @@ export type {
   ZoomButtonProps,
   ZoomButtonState,
   ZoomControlsProps,
+  ZoomControlsState,
   ZoomLevelProps,
   ZoomLevelState,
 } from './zoom-controls';

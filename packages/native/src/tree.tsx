@@ -23,8 +23,8 @@ import Animated, {
   withDecay,
   withTiming,
 } from 'react-native-reanimated';
-import { StaticConnector } from './connectors';
-import { ZoomContext, type ZoomStore } from './context';
+import { LineLayer, type LineLook, lineState, StaticConnector, StaticLine } from './connectors';
+import { useBracket, useRoot, ZoomContext, type ZoomStore } from './context';
 import { type Metrics, mirrorTree, type TreeGeometry, treeGeometry } from './geometry';
 import { clamp, doubleTapScale } from './motion';
 import { edgeKey } from './paged';
@@ -147,28 +147,53 @@ function Drawing({
   const edges = [...geometry.edges].sort(
     (a, b) => Number(highlightedEdges.has(edgeKey(a))) - Number(highlightedEdges.has(edgeKey(b))),
   );
+  const { renderConnector } = useBracket();
+  const { duration } = useRoot('Viewport');
+  const look = useMemo<LineLook>(
+    () => ({ radius: theme.connectorRadius, width: theme.lineWidth, color: theme.colors.line }),
+    [theme.connectorRadius, theme.lineWidth, theme.colors.line],
+  );
+  const lit = useMemo(() => ({ ...look, color: theme.colors.accent }), [look, theme.colors.accent]);
+
+  const lines = edges.map((edge) => {
+    const from = geometry.matches.get(edge.from);
+    const to = geometry.matches.get(edge.to);
+    if (!from || !to) return null;
+    const highlighted = highlightedEdges.has(edgeKey(edge));
+    if (renderConnector) {
+      const state = lineState(edge, matches, highlighted);
+      return (
+        state && (
+          <StaticLine
+            key={edgeKey(edge)}
+            from={from}
+            to={to}
+            info={{
+              ...state,
+              look: highlighted ? lit : look,
+              fit: asIs,
+              animate: duration !== null,
+              render: renderConnector,
+            }}
+          />
+        )
+      );
+    }
+    return (
+      <StaticConnector key={edgeKey(edge)} from={from} to={to} look={highlighted ? lit : look} />
+    );
+  });
 
   return (
     // Places are worked out left to right and mirrored for RTL, so this layer never flips them again.
     <View style={{ width: geometry.width, height: geometry.height, direction: 'ltr' }}>
-      {edges.map((edge) => {
-        const from = geometry.matches.get(edge.from);
-        const to = geometry.matches.get(edge.to);
-        if (!from || !to) return null;
-        const lit = highlightedEdges.has(edgeKey(edge));
-        return (
-          <StaticConnector
-            key={edgeKey(edge)}
-            from={from}
-            to={to}
-            look={{
-              radius: theme.connectorRadius,
-              width: theme.lineWidth,
-              color: lit ? theme.colors.accent : theme.colors.line,
-            }}
-          />
-        );
-      })}
+      {renderConnector ? (
+        <LineLayer width={geometry.width} height={geometry.height}>
+          {lines}
+        </LineLayer>
+      ) : (
+        lines
+      )}
       {geometry.titles.map((title) => (
         <View
           key={title.key}
@@ -207,6 +232,9 @@ function Drawing({
     </View>
   );
 }
+
+/** The full tree draws lines at the sizes they are given. */
+const asIs = (look: LineLook): LineLook => look;
 
 const INSET = 12;
 /** The border around a zoomable tree. */
