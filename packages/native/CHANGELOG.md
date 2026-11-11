@@ -1,5 +1,18 @@
 # @react-brackets/native
 
+## 0.2.0
+
+### Minor Changes
+
+- a5ebef6: Headless navigation and zoom. `Bracket.Root` with `Bracket.Viewport`, `Bracket.GroupTitle`, `Bracket.Pagination` (`PageButton`, `PreviousPage`, `NextPage`, `PageIndicator`) and `Bracket.ZoomControls` (`ZoomIn`, `ZoomOut`, `ZoomLevel`, `ZoomReset`) arrange the bracket your own way; each part draws a default look without children, and takes children, a function of its state, or a style. `usePagination()` and `useZoom()` drive your own controls from anywhere inside the root, with the swipe position and zoom scale as shared values. New `zoom` options (limits, step, where it starts, alignment, pinch, pan, double tap, momentum, elasticity, overshoot, animation, `onZoomChange`) and `swipe` options (focus, commit, projection, elasticity, spring) replace the fixed values, with defaults that keep today's behaviour. `<Bracket>` gains `renderPagination` and `renderZoomControls`, and `labels` gains the strings for the round tabs and zoom buttons. The default zoom controls are a pill of zoom out, the zoom level and zoom in, with a round fit button beside it; each is disabled where it would do nothing.
+  
+  The default round tabs keep their gap from the bracket on the row's own style, so `style={{ paddingTop: 0, paddingBottom: 12 }}` puts them above it.
+
+### Patch Changes
+
+- ffcb41f: A card that opens or closes moves the cards around it a frame sooner, so it no longer slips under the card below for a moment.
+- 1d1b118: Connector lines are drawn whole on every screen: lines meet their rounded corners edge to edge, keep their length on Android screens with fractional pixel ratios, and corners keep the line's full width without Android's hairlines. The full tree no longer shakes on Android, and a drag pans a zoomed tree the moment the finger moves.
+
 ## 0.1.0
 
 ### Minor Changes
