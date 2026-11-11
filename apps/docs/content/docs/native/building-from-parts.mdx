@@ -1,0 +1,212 @@
+---
+title: Building from parts
+description: Compose the bracket yourself from Bracket.Root and its parts, and add your own elements with hooks.
+---
+
+`<Bracket>` is a shortcut for a handful of parts. Writing them out yourself lets you put your own header, legend or buttons inside the bracket, move the round tabs, leave a part out, or draw the groups of a stage one by one.
+
+## What `<Bracket>` renders
+
+For each group of the stage, `<Bracket>` renders a root with three parts in it:
+
+```tsx
+<Bracket.Root stage={stage} group={group.id}>
+  <Bracket.GroupTitle />
+  <Bracket.Viewport />
+  <Bracket.Pagination />
+</Bracket.Root>
+```
+
+A stage with one group gets one root. A stage with several, like double elimination, gets one root per group, stacked 28 points apart. `Bracket.Root` with no children draws the same three parts, so `<Bracket.Root stage={stage} />` on its own looks the same as `<Bracket stage={stage} />` for a one-group stage.
+
+`<Bracket>`'s props split between the parts:
+
+| `<Bracket>` prop | When you compose |
+| --- | --- |
+| `layout`, `compact`, `pageHeight`, `mode`, `maxSwipeRounds` | the same prop on `Bracket.Viewport` |
+| `renderZoomControls` | `controls` on `Bracket.Viewport`, or your own buttons anywhere in the root |
+| `renderPagination` | children of `Bracket.Pagination`, or your own element |
+| `maxScale` | `zoom={{ maxScale }}` on `Bracket.Root` |
+| everything else | the same prop on `Bracket.Root` |
+
+## What the root holds
+
+`Bracket.Root` draws one group of a stage and holds the state its parts share: the round in focus and the swipe as it happens, pan and zoom, the highlighted participant, the theme, and every card's measured height. Parts and hooks inside it read that state, so they stay in step without you passing anything between them.
+
+The root also measures its own width, and decides from it whether to page through one round at a time or show the whole tree. It's the root's width that counts, not the screen's, so a bracket in a narrow column of a tablet pages too.
+
+Most of what you'd set on `<Bracket>` goes on the root:
+
+- **What to draw:** `stage`, `group`, and `renderMatch` and `renderRoundTitle` for your own [cards](/docs/native/match-cards) and [titles](/docs/native/round-titles).
+- **How it lays out:** `compactBelow` and `dir`.
+- **What it does:** `page` and `onPageChange`, `highlighted` and `onHighlightChange`, and `onMatchPress`.
+- **How it looks and feels:** `theme`, `motion`, `zoom`, `swipe`, `labels` and `style`.
+
+<ApiTable from="native" name="RootProps" />
+
+## The viewport
+
+`Bracket.Viewport` is the bracket itself: one round at a time below `compactBelow`, and the whole tree above it, scrolled, fitted or panned and zoomed. Put one in each root.
+
+<ApiTable from="native" name="ViewportProps" />
+
+There are no parts inside the viewport. On the web you compose rounds, matches and lines one by one; on native the viewport draws them all, because every card's place is worked out up front so a swipe or a pinch can move them on the UI thread. Change the cards with `renderMatch`, the titles with `renderRoundTitle`, and the lines with the [theme](/docs/native/theme#connector-lines).
+
+## Adding your own elements
+
+Anything can go inside the root, above the viewport or below it. Four hooks give your components the state the parts use:
+
+| Hook | Where | Returns |
+| --- | --- | --- |
+| `useBracket()` | anywhere inside `Bracket.Root` | the stage, the group being drawn, participants by id, the theme, labels, and the highlighted participant with `highlight` to change it |
+| `usePagination()` | anywhere inside `Bracket.Root` | the rounds, the round in focus, `setPage`, `previous` and `next`, and the swipe's position on the UI thread |
+| `useZoom()` | anywhere inside `Bracket.Root` | the zoom and everything to change it, or `null` when the tree isn't panned and zoomed |
+| `useMatch()` | inside `renderMatch` | the match being drawn |
+
+A line above the bracket that names the team being followed, for example:
+
+```tsx
+import { Bracket, useBracket } from '@react-brackets/native';
+import { Text, View } from 'react-native';
+import { Pressable } from 'react-native-gesture-handler';
+
+function Following() {
+  const { highlighted, participants, highlight, theme } = useBracket();
+  const team = highlighted ? participants.get(highlighted) : undefined;
+  if (!team) return null;
+  return (
+    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 12 }}>
+      <Text style={{ flex: 1, color: theme.colors.text }}>Following {team.name}</Text>
+      <Pressable onPress={() => highlight(null)} accessibilityRole="button">
+        <Text style={{ color: theme.colors.accent }}>Clear</Text>
+      </Pressable>
+    </View>
+  );
+}
+
+<Bracket.Root stage={stage}>
+  <Following />
+  <Bracket.Viewport />
+  <Bracket.Pagination />
+</Bracket.Root>;
+```
+
+### Elements for the paged view only
+
+`usePagination()` works in both views. In the whole tree nothing is in focus, but `page` still holds the last round paged to. An element about the round in focus, like a `2 of 3` counter, only makes sense while the bracket pages. Put it inside `Bracket.Pagination`, which draws its children only then:
+
+```tsx
+import { Bracket, usePagination } from '@react-brackets/native';
+import { Text } from 'react-native';
+
+function Counter() {
+  const { rounds, page } = usePagination();
+  return (
+    <Text style={{ flex: 1, textAlign: 'center' }}>
+      {rounds[page]?.name}, {page + 1} of {rounds.length}
+    </Text>
+  );
+}
+
+<Bracket.Root stage={stage}>
+  <Bracket.Viewport />
+  <Bracket.Pagination>
+    <Bracket.PreviousPage />
+    <Counter />
+    <Bracket.NextPage />
+  </Bracket.Pagination>
+</Bracket.Root>;
+```
+
+With children, `Bracket.Pagination` lays them out in a row, with 12 points above it. Zoom controls work the same way: `useZoom()` returns `null` unless the tree is panned and zoomed, and `Bracket.ZoomControls` draws nothing then, so both can sit in a layout that changes with the screen.
+
+### Moving the round tabs
+
+Parts can go in any order. Round tabs above the bracket:
+
+```tsx
+<Bracket.Root stage={stage}>
+  <Bracket.Pagination style={{ marginBottom: 8 }} />
+  <Bracket.Viewport />
+</Bracket.Root>
+```
+
+Every part for round navigation and zoom, and building your own from `usePagination` and `useZoom`, is in [navigation and zoom](/docs/native/navigation-and-zoom).
+
+## Several groups
+
+`Bracket.Root` draws one group. For a stage with several, render one root per group and name it with `group`. Group ids come from the format: `doubleElimination` makes `main.wb` for the winners bracket, `main.lb` for the losers bracket and `main.gf` for the grand final, and `roundRobin` makes `main.g1`, `main.g2` and so on.
+
+The grand final is drawn with the winners bracket, on the same grid, so a double elimination stage takes two roots:
+
+```tsx
+import { Bracket, doubleElimination, type Id } from '@react-brackets/native';
+import { useState } from 'react';
+import { View } from 'react-native';
+
+const stage = doubleElimination(teams);
+
+export function DoubleElimination() {
+  const [team, setTeam] = useState<Id | null>(null);
+  return (
+    <View style={{ gap: 28 }}>
+      <Bracket.Root stage={stage} group="main.wb" highlighted={team} onHighlightChange={setTeam} />
+      <Bracket.Root stage={stage} group="main.lb" highlighted={team} onHighlightChange={setTeam} />
+    </View>
+  );
+}
+```
+
+Each root keeps its own state: its own round in focus, its own zoom, its own highlighted participant. Passing both the same `highlighted`, as here, follows a team from one bracket into the other. `<Bracket>` doesn't do that by itself: unless you pass `highlighted`, each group highlights on its own.
+
+The root falls back to the first group when `group` doesn't match one it draws on its own, and that includes the grand final's id. To draw every group the way `<Bracket>` does, leave the grand final out:
+
+```tsx
+<View style={{ gap: 28 }}>
+  {stage.groups
+    .filter((group) => group.kind !== 'grand-final')
+    .map((group) => (
+      <Bracket.Root key={group.id} stage={stage} group={group.id}>
+        <Bracket.GroupTitle />
+        <Bracket.Viewport />
+        <Bracket.Pagination />
+      </Bracket.Root>
+    ))}
+</View>
+```
+
+### One group at a time
+
+Since each group is its own root, you can show one and switch between them, with tabs of your own:
+
+```tsx
+import { Bracket, type Stage } from '@react-brackets/native';
+import { useState } from 'react';
+import { Pressable, Text, View } from 'react-native';
+
+export function GroupSwitcher({ stage }: { stage: Stage }) {
+  const groups = stage.groups.filter((group) => group.kind !== 'grand-final');
+  const [shown, setShown] = useState(groups[0]?.id);
+  return (
+    <View style={{ gap: 16 }}>
+      <View style={{ flexDirection: 'row', gap: 8 }}>
+        {groups.map((group) => (
+          <Pressable key={group.id} onPress={() => setShown(group.id)}>
+            <Text style={{ fontWeight: group.id === shown ? '700' : '400' }}>{group.name}</Text>
+          </Pressable>
+        ))}
+      </View>
+      <Bracket.Root key={shown} stage={stage} group={shown}>
+        <Bracket.Viewport />
+        <Bracket.Pagination />
+      </Bracket.Root>
+    </View>
+  );
+}
+```
+
+The `key` gives each group a fresh root, so it starts at its first round. Without it, the round in focus would carry over from the group before. The group title is left out here, since the tabs already name the group.
+
+## Reference
+
+The hooks and the types they return are in [hooks and types](/docs/native/hooks-and-types), and every part's props in the [API](/docs/native/api).

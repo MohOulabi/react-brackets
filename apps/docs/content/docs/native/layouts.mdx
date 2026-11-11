@@ -1,9 +1,19 @@
 ---
 title: Layouts
-description: A bracket a round at a time, plain lists, the whole tree, and right to left.
+description: A bracket a round at a time, plain lists, the whole tree, two sides, and every group of a stage.
 ---
 
-The bracket measures its own width. Below `compactBelow` (600 points by default) it pages through one round at a time; above it, it shows the whole tree.
+The same `<Bracket>` fits a phone held upright, a tablet, and anything in between. This page covers how it chooses between paging and the whole tree, how to steer each one, and how stages with several groups are drawn.
+
+## When it pages
+
+The bracket measures its own width, not the screen's. Below `compactBelow`, 600 points by default, it pages through one round at a time. At or above it, it shows the whole tree. A bracket in a narrow column of an iPad split view pages, and the same bracket full screen on that iPad shows the tree.
+
+```tsx
+<Bracket stage={stage} />                       // pages below 600 points
+<Bracket stage={stage} compactBelow={900} />    // pages on most tablets in portrait too
+<Bracket stage={stage} compactBelow={0} />      // always the whole tree, even on a phone
+```
 
 ## A round at a time
 
@@ -11,21 +21,50 @@ The bracket measures its own width. Below `compactBelow` (600 points by default)
   <Recording slug="quick-start" label="A bracket swiped round by round" />
 </div>
 
-The round in focus stacks tightly, and the next one waits at the edge with its lines. A swipe moves under the finger and lands like native paging: a fifth of a round is enough, and a quick flick can cross several rounds.
+The round in focus stacks its matches tightly, and the next round waits at the edge with its lines, so it's clear there's more to swipe to. A swipe moves under your finger on the UI thread and lands like native paging: a fifth of a round is enough to move on, and a quick flick can cross several rounds.
+
+Below the bracket, a tab for each round shows where you are and moves with the swipe. Tap a tab to go to that round. You can restyle, move or replace the tabs, as [Navigation and zoom](/docs/native/navigation-and-zoom) shows.
+
+### One round per swipe
+
+`maxSwipeRounds` limits how far a single swipe can go. `1` moves exactly one round, however hard the flick:
 
 ```tsx
-<Bracket stage={stage} />
-<Bracket stage={stage} maxSwipeRounds={1} />  // one round per swipe
-<Bracket stage={stage} page={page} onPageChange={setPage} />  // control the round yourself
+<Bracket stage={stage} maxSwipeRounds={1} />
 ```
+
+How much of the width the round in focus takes, how far a slow drag has to go, and the spring a swipe lands with are all in the [`swipe` option](/docs/native/navigation-and-zoom#swipe).
+
+### Start on a round, or follow one
+
+Pass `page` and `onPageChange` to hold the round in your own state. Rounds count from 0. Here the bracket opens on the round being played and keeps it in sync with a header elsewhere on the screen:
+
+```tsx
+import { Bracket, type Stage } from '@react-brackets/native';
+import { useState } from 'react';
+
+function Draw({ stage }: { stage: Stage }) {
+  const rounds = stage.groups[0]?.rounds ?? [];
+  const current = rounds.findIndex((round) => round.matches.some((match) => match.winner === null));
+  const [page, setPage] = useState(Math.max(0, current));
+
+  return <Bracket stage={stage} page={page} onPageChange={setPage} />;
+}
+```
+
+`onPageChange` is called once a swipe lands or a tab is pressed, not during the swipe. Setting `page` from outside moves the bracket to that round. The [Live scores example](/examples/native#live-scores) moves on to the next round as results arrive.
 
 ### Height between rounds
 
-The first round is taller than the semifinals. By default (`pageHeight="contain"`) the bracket stays tall enough for both rounds while they move, and settles to the new round's height as the swipe lands, so a round is never cut off while it is on screen. `pageHeight="follow"` blends the two heights under your finger instead: the screen below moves with the swipe, and the taller round is cut as it slides.
+The first round is taller than the semifinals. By default, `pageHeight="contain"`, the bracket stays tall enough for both rounds while they move and settles to the new round's height as the swipe lands. A round is never cut off while it's on screen.
+
+`pageHeight="follow"` blends the two heights under your finger instead. The content below the bracket moves with the swipe, and the taller round is cut as it slides away.
 
 ```tsx
 <Bracket stage={stage} pageHeight="follow" />
 ```
+
+Use `contain` when the bracket is in a scrolling screen, so nothing below it jumps while you swipe. `follow` suits a bracket that fills the screen.
 
 ## Plain lists
 
@@ -33,7 +72,7 @@ The first round is taller than the semifinals. By default (`pageHeight="contain"
   <Recording slug="fixtures-list" label="Rounds shown as plain lists" />
 </div>
 
-`compact="list"` shows each round as a full-width list of matches, swiped the same way.
+`compact="list"` shows each round as a full-width list of matches, swiped the same way, with no lines. It suits long draws where the fixtures matter more than the shape of the bracket.
 
 ```tsx
 <Bracket stage={stage} compact="list" />
@@ -45,24 +84,47 @@ The first round is taller than the semifinals. By default (`pageHeight="contain"
   <Recording slug="full-tree" label="The whole tree, pinched and zoomed" />
 </div>
 
-On wide screens, or with `compactBelow={0}`, you get the full tree. `mode` sets how it fits:
+On wide screens, or with `compactBelow={0}`, you get the full tree. `mode` sets how it fits the width:
 
-| `mode` | |
-| --- | --- |
-| `scroll` | A native horizontal scroll. The default. |
-| `fit` | Scaled down to fit the width. |
-| `pan-zoom` | Pinch, drag with momentum, double tap to zoom, and on-screen controls. `maxScale` sets the largest zoom. |
+| `mode` | What you get | Use it for |
+| --- | --- | --- |
+| `scroll` | The tree at full size in a native horizontal scroll. The default. | Tablets, and brackets a few rounds wide |
+| `fit` | The tree scaled down to fit the width. Nothing moves. | A summary or thumbnail of the whole draw |
+| `pan-zoom` | A frame you can pinch, drag with momentum and double tap, with zoom buttons in its corner. | Big draws on a phone, where you want to see the shape and then look closer |
 
-`layout="mirrored"` splits the tree into two halves that meet at the final. Like on the web, it applies to the whole tree; a phone pages through it a round at a time.
+```tsx
+<Bracket stage={stage} compactBelow={0} mode="pan-zoom" />
+```
+
+In `pan-zoom` mode the limits, the zoom step, where the tree starts, the bounce at the edges and the glide after a drag are all options, and the zoom buttons are parts you can move or replace. Both are in [Navigation and zoom](/docs/native/navigation-and-zoom).
+
+## Two sides
+
+<div className="not-prose my-6 flex justify-center">
+  <Recording slug="two-sided" label="A bracket in two halves that meet at the final" />
+</div>
+
+`layout="mirrored"` splits the tree into two halves that meet at the final, the way a World Cup draw is printed. It applies to the whole tree. A phone below `compactBelow` still pages through it a round at a time, since two halves side by side don't fit a narrow screen.
+
+```tsx
+<Bracket stage={stage} layout="mirrored" compactBelow={0} mode="pan-zoom" />
+```
+
+## Stages with several groups
+
+`<Bracket>` draws every group of a stage, one after another, each with its own title and its own round tabs:
+
+- **Double elimination**: the winners bracket with the grand final, then the losers bracket below it.
+- **Groups to playoffs**: each group's rounds, then the playoff bracket.
+- **Round robin and Swiss**: each group, or the whole field, as columns of rounds.
+
+<div className="not-prose my-6 flex flex-wrap justify-center gap-6">
+  <Recording slug="double-elimination" label="A winners bracket above its losers bracket" />
+  <Recording slug="groups-to-playoffs" label="Groups, then the playoff bracket" />
+</div>
+
+To draw one group on its own, for example the losers bracket on a tab of its own, compose the bracket from parts and pass `group` to `Bracket.Root`. [Building from parts](/docs/native/building-from-parts) shows how. The formats themselves, and how to build each stage, are the same as on the web: see [Formats](/docs/formats/single-elimination).
 
 ## Right to left
 
-<div className="not-prose my-6 flex justify-center">
-  <Recording slug="right-to-left" label="An Arabic bracket that reads from the right" />
-</div>
-
-When your app is set to right to left, the bracket follows it: the first round sits on the right, swipes run the other way, and every card reads from the right. Set `dir` to choose for one bracket:
-
-```tsx
-<Bracket stage={stage} dir="rtl" labels={{ tbd: 'لم يحدد', bye: 'تأهل مباشر' }} />
-```
+When your app is set to right to left, the bracket follows it: the first round sits on the right, swipes run the other way, and every card reads from the right. [Right to left](/docs/native/right-to-left) covers `dir` and translating the built-in labels.

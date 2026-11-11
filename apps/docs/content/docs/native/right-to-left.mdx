@@ -1,0 +1,158 @@
+---
+title: Right to left and languages
+description: Draw brackets that read from the right for Arabic, Hebrew and Persian, and translate every built-in string.
+---
+
+This page shows how a bracket follows your app's direction, how to set it for one bracket, and how to translate the few words the bracket draws itself, including the labels screen readers announce.
+
+<div className="not-prose my-6 flex justify-center">
+  <Recording slug="right-to-left" label="An Arabic bracket that starts on the right and swipes the other way" />
+</div>
+
+## Your app's direction
+
+React Native keeps one layout direction for the whole app, in `I18nManager`. When your app runs right to left, every bracket does too, with nothing to pass. The bracket reads `I18nManager.isRTL` for its default.
+
+React Native sets the direction at launch. Turning it on with `I18nManager.forceRTL(true)`, or through your Expo config, takes effect the next time the app starts, so plan a reload when someone switches language in your settings.
+
+## One bracket, one direction
+
+Set `dir` to choose the direction of a single bracket, whatever the app's own direction is:
+
+```tsx
+<Bracket stage={stage} dir="rtl" />
+```
+
+This is useful when the app stays left to right but some content does not, like an Arabic league inside an English app. It works the other way too: `dir="ltr"` keeps a bracket left to right in an app that runs right to left.
+
+When the bracket reads right to left:
+
+- The first round sits on the right, and later rounds follow to the left, with the connector lines turned to match.
+- A swipe to the right moves on to the next round, as a page turns in a right-to-left book.
+- Each card reads from the right: the name first, then the score on the far side.
+- The round tabs run from the right, with the first round on the right.
+- `Bracket.PreviousPage` and `Bracket.NextPage` swap their arrows, so each still points the way it goes.
+
+Your own cards follow the same direction, because the bracket sets `direction` on its view. A row with `flexDirection: 'row'` inside `renderMatch` lays out from the right without any change. Use `start` and `end` in your styles, like `paddingStart` and `marginEnd`, rather than `left` and `right`, so they flip with it.
+
+## An Arabic bracket
+
+A bracket in another language needs three things: participant names in that language, round names in it, and the bracket's own few words translated with `labels`.
+
+```tsx
+import { Bracket, reportResult, type Stage, singleElimination } from '@react-brackets/native';
+
+const clubs = ['الصقور', 'الذئاب', 'البلشون', 'الوشق', 'الحيتان', 'الغربان', 'الثيران', 'الكوبرا'];
+const roundNames = ['ربع النهائي', 'نصف النهائي', 'النهائي'];
+
+const draw = singleElimination(
+  clubs.map((name, index) => ({ id: `club-${index + 1}`, name })),
+  { roundName: (index) => roundNames[index] ?? `الدور ${index + 1}` },
+);
+
+const stage: Stage = reportResult(draw, 'main.r1.m1', { scores: [2, 1] });
+
+export function ArabicCup() {
+  return (
+    <Bracket
+      stage={stage}
+      dir="rtl"
+      labels={{
+        tbd: 'لم يحدد',
+        bye: 'تأهل مباشر',
+        rounds: 'الأدوار',
+        previous: 'الدور السابق',
+        next: 'الدور التالي',
+        zoomIn: 'تكبير',
+        zoomOut: 'تصغير',
+        zoomReset: 'ملاءمة العرض',
+      }}
+    />
+  );
+}
+```
+
+`roundName` is called with each round's index, counting from 0, and the number of rounds, so you can name rounds from either end. The [Right to left example](/examples/native#right-to-left) is this bracket, with a few results in.
+
+Hebrew and Persian work the same way. Only the strings change.
+
+## Translate the built-in strings
+
+The bracket draws very little text of its own: the name of an empty slot, a bye, and the labels on its controls. `labels` replaces any of them. Pass only the ones you need, and the rest keep their English defaults.
+
+| Label | Default | Where it appears |
+| --- | --- | --- |
+| `tbd` | `TBD` | A slot whose participant is still to be decided |
+| `bye` | `Bye` | A slot with no opponent |
+| `rounds` | `Rounds` | Read out for the row of round tabs |
+| `previous` | `Previous round` | Read out for `Bracket.PreviousPage` |
+| `next` | `Next round` | Read out for `Bracket.NextPage` |
+| `zoomIn` | `Zoom in` | Read out for the zoom in button in `pan-zoom` mode |
+| `zoomOut` | `Zoom out` | Read out for the zoom out button |
+| `zoomReset` | `Fit to view` | Read out for the button that zooms back to the start |
+
+`tbd` and `bye` are shown on the cards. The others are never drawn as text: they are the accessibility labels VoiceOver and TalkBack read for the controls, so they matter as much as the visible strings. Translate them even if your controls only show arrows.
+
+<ApiTable from="native" name="Labels" />
+
+With an i18n library, build `labels` from your translations, the same way you build the rest of the screen:
+
+```tsx
+import { Bracket, type Labels, type Stage } from '@react-brackets/native';
+
+function useBracketLabels(t: (key: string) => string): Partial<Labels> {
+  return {
+    tbd: t('bracket.tbd'),
+    bye: t('bracket.bye'),
+    rounds: t('bracket.rounds'),
+    previous: t('bracket.previous'),
+    next: t('bracket.next'),
+    zoomIn: t('bracket.zoomIn'),
+    zoomOut: t('bracket.zoomOut'),
+    zoomReset: t('bracket.zoomReset'),
+  };
+}
+
+export function TranslatedBracket({ stage, t }: { stage: Stage; t: (key: string) => string }) {
+  return <Bracket stage={stage} labels={useBracketLabels(t)} />;
+}
+```
+
+Labels are also how you change the English wording. `labels={{ tbd: 'To be decided' }}` spells it out on every empty slot.
+
+## Round and group names
+
+Round and group names are part of the stage, not the bracket, so they are set when you build it:
+
+- `roundName` on `singleElimination` and `doubleElimination` names the knockout rounds, as in the Arabic example.
+- `groupName` on `roundRobin` names the groups, and is called with each group's index.
+- Other names, like Swiss rounds (`Round 1`, `Round 2`) and the double elimination group titles (`Winners bracket`, `Losers bracket`), have no option. A stage is plain data, so rename them before you pass the stage in:
+
+```tsx
+import type { Stage } from '@react-brackets/native';
+
+const groupNames: Record<string, string> = {
+  winners: 'المجموعة الرئيسية',
+  losers: 'مجموعة الخاسرين',
+  'grand-final': 'النهائي الكبير',
+};
+
+function translated(stage: Stage): Stage {
+  return {
+    ...stage,
+    groups: stage.groups.map((group) => ({
+      ...group,
+      name: groupNames[group.kind] ?? group.name,
+      // Swiss and round robin rounds are numbered, so number them in Arabic.
+      rounds:
+        group.kind === 'pool'
+          ? group.rounds.map((round, index) => ({ ...round, name: `الجولة ${index + 1}` }))
+          : group.rounds,
+    })),
+  };
+}
+```
+
+Renaming changes only the names. Match ids stay the same, so `reportResult` and everything else work on the translated stage as before. To keep the names out of your stored data, translate at render time: `<Bracket stage={translated(stage)} />`.
+
+For a title drawn your own way, like a round name with a date under it, use `renderRoundTitle`. See [round titles](/docs/native/round-titles).

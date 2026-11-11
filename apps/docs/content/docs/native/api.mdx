@@ -1,5 +1,5 @@
 ---
-title: API
+title: Components and parts
 description: Every prop of the native Bracket, its parts and its theme.
 ---
 
@@ -9,31 +9,51 @@ import { Bracket } from '@react-brackets/native';
 <Bracket stage={stage} />;
 ```
 
-`@react-brackets/native` also exports everything from [`@react-brackets/core`](/docs/api/formats): the formats, `reportResult`, `standings` and the data types work the same way as on the web.
+`@react-brackets/native` also exports everything from [`@react-brackets/core`](/docs/api/formats): the formats, `reportResult`, `standings` and the data types work the same way as on the web. Hooks, options and types are in [Hooks and types](/docs/native/hooks-and-types).
 
 ## `<Bracket>`
 
-Draws every group of a stage. A double elimination stage gets its winners bracket, with the grand final, and its losers bracket below it.
+Draws every group of a stage, each with its title, its rounds and its round tabs. A double elimination stage gets its winners bracket, with the grand final, and its losers bracket below it. It's a shortcut for the parts below: see [Building from parts](/docs/native/building-from-parts) for what it puts together.
 
 <ApiTable from="native" name="BracketProps" />
 
 ```tsx
-// Paging and highlighting controlled from outside
+// Paging and highlighting held in your own state
 <Bracket stage={stage} page={page} onPageChange={setPage} highlighted={team} onHighlightChange={setTeam} />
 
 // Plain lists, one round per swipe
 <Bracket stage={stage} compact="list" maxSwipeRounds={1} />
 
-// The whole tree on a phone, to pinch and zoom
-<Bracket stage={stage} compactBelow={0} mode="pan-zoom" />
+// The whole tree on a phone, to pinch and zoom, up to three times
+<Bracket stage={stage} compactBelow={0} mode="pan-zoom" zoom={{ maxScale: 3 }} />
 
 // Right to left, translated
 <Bracket stage={stage} dir="rtl" labels={{ tbd: 'لم يحدد', bye: 'راحة' }} />
 ```
 
+## `Bracket.Root`
+
+Holds one group's state: the page, the highlight, the theme, card heights, and pan and zoom. Every other part goes inside it. Without children it draws the group title, the viewport and the round tabs, like `<Bracket>` does for one group.
+
+<ApiTable from="native" name="RootProps" />
+
+## `Bracket.Viewport`
+
+Draws the rounds: a round at a time below `compactBelow`, the whole tree above it.
+
+<ApiTable from="native" name="ViewportProps" />
+
+## `Bracket.GroupTitle`
+
+The group's name, like "Winners bracket", for stages with more than one group. Draws nothing for a stage with a single group.
+
+<ApiTable from="native" name="GroupTitleProps" />
+
+<ApiTable from="native" name="GroupTitleState" />
+
 ## `Bracket.Match`
 
-A match card, used inside `renderMatch`. Its `style` can be a function of the match's state.
+A match card, used inside `renderMatch`. Its `style` can be a function of the match's state. See [Match cards](/docs/native/match-cards).
 
 <ApiTable from="native" name="MatchProps" />
 
@@ -65,9 +85,59 @@ One side of a match. Its children can be a function of the participant's state, 
 />
 ```
 
+## `Bracket.RoundTitle`
+
+The default title above a round, given the `round`. Use it inside `renderRoundTitle` to keep the default look next to something of your own. See [Round titles](/docs/native/round-titles).
+
+## Round tabs
+
+The parts under the paged view. [Navigation and zoom](/docs/native/navigation-and-zoom) shows them in use.
+
+### `Bracket.Pagination`
+
+<ApiTable from="native" name="PaginationProps" />
+
+### `Bracket.PageButton`
+
+<ApiTable from="native" name="PageButtonProps" />
+
+<ApiTable from="native" name="PageButtonState" />
+
+### `Bracket.PreviousPage`, `Bracket.NextPage`
+
+<ApiTable from="native" name="StepButtonProps" />
+
+<ApiTable from="native" name="StepButtonState" />
+
+### `Bracket.PageIndicator`
+
+The pill behind the tab in focus. Place it inside `Bracket.Pagination`, before the `Bracket.PageButton`s it measures.
+
+<ApiTable from="native" name="PageIndicatorProps" />
+
+## Zoom controls
+
+The parts that zoom the whole tree in `pan-zoom` mode. They work anywhere inside `Bracket.Root`, in the frame or outside it, and draw nothing while the tree isn't panned and zoomed.
+
+### `Bracket.ZoomControls`
+
+<ApiTable from="native" name="ZoomControlsProps" />
+
+### `Bracket.ZoomIn`, `Bracket.ZoomOut`, `Bracket.ZoomReset`
+
+<ApiTable from="native" name="ZoomButtonProps" />
+
+<ApiTable from="native" name="ZoomButtonState" />
+
+### `Bracket.ZoomLevel`
+
+<ApiTable from="native" name="ZoomLevelProps" />
+
+<ApiTable from="native" name="ZoomLevelState" />
+
 ## Theme
 
-`theme` on `<Bracket>` replaces any value of the light or dark theme, picked from the system's appearance. `BracketThemeProvider` sets one theme for every bracket below it, and `createTheme` builds one from a base.
+`theme` on `<Bracket>` or `Bracket.Root` replaces any value of the light or dark theme, picked from the system's appearance. `BracketThemeProvider` sets one theme for every bracket below it, and `createTheme` builds one from a base. See [Theme](/docs/native/theme).
 
 ```tsx
 import { BracketThemeProvider, createTheme, darkTheme } from '@react-brackets/native';
@@ -82,7 +152,3 @@ const theme = createTheme({ colors: { accent: '#ea580c' }, radius: 14 }, darkThe
 <ApiTable from="native" name="BracketTheme" />
 
 <ApiTable from="native" name="BracketColors" />
-
-## Hooks
-
-`useBracket()` returns the bracket's context inside `renderMatch`, and `useMatch()` the match being drawn, for your own components inside a card.

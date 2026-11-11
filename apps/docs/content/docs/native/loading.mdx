@@ -1,0 +1,199 @@
+---
+title: Loading
+description: Show a placeholder in the bracket's own shape while the draw loads, so nothing jumps when it arrives.
+---
+
+This page shows how to fill the screen while the draw is on its way, so the bracket appears in place instead of pushing everything around it.
+
+<div className="not-prose my-6 flex justify-center">
+  <Recording slug="loading" label="A placeholder bracket that breathes until the draw arrives" />
+</div>
+
+## A placeholder in the bracket's own shape
+
+A spinner tells people something is coming, but not what. A placeholder bracket does both: it has the real rounds, lines and spacing, with blank cards where the matches will go. When the draw arrives, the cards fill in and nothing else moves.
+
+Build a stage from placeholder participants, the same size as the one you are waiting for, and draw every match as a blank card:
+
+```tsx
+import { Bracket, type Stage, singleElimination } from '@react-brackets/native';
+import { useEffect, useState } from 'react';
+import { View } from 'react-native';
+
+/** Eight blank entries make the same rounds as eight real teams. */
+const placeholder = singleElimination(
+  Array.from({ length: 8 }, (_, index) => ({ id: `placeholder-${index}`, name: '' })),
+);
+
+export function Draw({ tournamentId }: { tournamentId: string }) {
+  const [stage, setStage] = useState<Stage | null>(null);
+
+  useEffect(() => {
+    let current = true;
+    fetch(`https://example.com/tournaments/${tournamentId}`)
+      .then((response) => response.json())
+      .then((draw: Stage) => current && setStage(draw));
+    return () => {
+      current = false;
+    };
+  }, [tournamentId]);
+
+  return stage ? (
+    <Bracket stage={stage} />
+  ) : (
+    <Bracket stage={placeholder} renderMatch={() => <BlankCard />} />
+  );
+}
+
+function BlankCard() {
+  return (
+    <View
+      style={{
+        height: 84,
+        padding: 14,
+        gap: 12,
+        justifyContent: 'center',
+        borderRadius: 10,
+        borderWidth: 1,
+        borderColor: '#e4e4e7',
+      }}
+    >
+      <View style={{ width: '62%', height: 10, borderRadius: 5, backgroundColor: '#e4e4e7' }} />
+      <View style={{ width: '48%', height: 10, borderRadius: 5, backgroundColor: '#e4e4e7' }} />
+    </View>
+  );
+}
+```
+
+The `current` flag stops a slow response for an earlier tournament from replacing a newer one. With React Query, SWR or your own store, swap the effect for their hook and keep the rest.
+
+## Keep the swap from shifting
+
+The placeholder only hides the wait if it lines up with what replaces it.
+
+- **Use the same format and options.** A `thirdPlace` match, a double elimination stage or a `roundRobin` with groups all change the rounds, so build the placeholder with the same call as the real stage.
+- **Use the likely size.** If you don't know how many entries there will be, use the most likely count. A placeholder a round too big still looks better than an empty screen.
+- **Match the card height.** Each card keeps its own measured height, so a placeholder card taller or shorter than the real one changes the bracket's height when the draw lands. Either give it the height of your real cards, or build it from the real rows, as below.
+
+To match the default card exactly, keep `Bracket.Participant` and fill it with invisible text. The text takes one line at the bracket's font size, so each row is as tall as a real one:
+
+```tsx
+import { Bracket, useBracket } from '@react-brackets/native';
+import { Text, View } from 'react-native';
+
+function BlankCard() {
+  const { theme } = useBracket();
+  const bar = { borderRadius: 6, backgroundColor: theme.colors.border };
+  const hidden = { color: 'transparent', fontSize: theme.fontSize };
+
+  return (
+    <Bracket.Match>
+      <Bracket.Participant slot={0}>
+        <View style={bar}>
+          <Text style={hidden}>Placeholder</Text>
+        </View>
+      </Bracket.Participant>
+      <Bracket.Participant slot={1}>
+        <View style={bar}>
+          <Text style={hidden}>Team</Text>
+        </View>
+      </Bracket.Participant>
+    </Bracket.Match>
+  );
+}
+```
+
+`useBracket` works inside anything `renderMatch` returns, so the placeholder takes its colours and font size from the same theme as the real bracket, in light and dark mode.
+
+Blank participants are still participants, so pressing one would highlight a path. Pass `highlighted={null}` to the placeholder bracket to keep it still:
+
+```tsx
+<Bracket stage={placeholder} highlighted={null} renderMatch={() => <BlankCard />} />
+```
+
+## Make it breathe
+
+A slow pulse shows the screen is working rather than stuck. Animate the card's opacity with Reanimated, so it runs on the UI thread and keeps going while JavaScript is busy parsing the response:
+
+```tsx
+import { useEffect } from 'react';
+import { View } from 'react-native';
+import Animated, {
+  Easing,
+  useAnimatedStyle,
+  useSharedValue,
+  withRepeat,
+  withTiming,
+} from 'react-native-reanimated';
+
+function BlankCard() {
+  const pulse = useSharedValue(0);
+
+  useEffect(() => {
+    pulse.value = withRepeat(
+      withTiming(1, { duration: 800, easing: Easing.inOut(Easing.quad) }),
+      -1,
+      true,
+    );
+  }, [pulse]);
+
+  const breathing = useAnimatedStyle(() => ({ opacity: 0.55 + pulse.value * 0.45 }));
+
+  return (
+    <Animated.View
+      style={[
+        { height: 84, padding: 14, gap: 12, justifyContent: 'center', borderRadius: 10 },
+        { borderWidth: 1, borderColor: '#e4e4e7' },
+        breathing,
+      ]}
+    >
+      <View style={{ width: '62%', height: 10, borderRadius: 5, backgroundColor: '#e4e4e7' }} />
+      <View style={{ width: '48%', height: 10, borderRadius: 5, backgroundColor: '#e4e4e7' }} />
+    </Animated.View>
+  );
+}
+```
+
+Reanimated follows the system's reduce motion setting by default, so people who have turned it on see a still card, as they do with the bracket's own animations. The [Loading example](/examples/native#loading) puts the placeholder, the pulse and a reload button together.
+
+## Screen readers
+
+A blank bracket read aloud is a list of empty rows. Mark the area as busy while it loads, and hide the placeholder cards from assistive technology:
+
+```tsx
+<View accessibilityState={{ busy: !stage }}>
+  {stage ? (
+    <Bracket stage={stage} />
+  ) : (
+    <Bracket stage={placeholder} highlighted={null} renderMatch={() => <BlankCard />} />
+  )}
+</View>
+```
+
+Inside `BlankCard`, give the outer view, or `Bracket.Match` if you build it from the real rows, both of these:
+
+```tsx
+<Bracket.Match accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
+  {/* the blank rows */}
+</Bracket.Match>
+```
+
+`accessibilityElementsHidden` hides the card on iOS and `importantForAccessibility="no-hide-descendants"` on Android. `Bracket.Match` passes any view prop through to its view.
+
+## With Suspense
+
+If your data library suspends, render the placeholder bracket as the fallback:
+
+```tsx
+<Suspense fallback={<Bracket stage={placeholder} renderMatch={() => <BlankCard />} />}>
+  <Draw tournamentId="spring-cup" />
+</Suspense>
+```
+
+## Refreshing a draw you already have
+
+Only show the placeholder the first time. When people pull to refresh, or a screen comes back into focus, keep showing the stage you have until the new one arrives. Swapping a real bracket back to blank cards for a second looks like the data went missing.
+
+## Before there is a draw
+
+With no participants yet, there is no bracket to draw. Show your own empty state, like "The draw opens on 12 June", and render the bracket once you have a stage.

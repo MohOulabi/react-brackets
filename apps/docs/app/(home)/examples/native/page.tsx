@@ -110,6 +110,12 @@ const groups: { title: string; examples: Example[] }[] = [
           "Rounded, square or bold: the lines' colour, width and corners, and the colour of a highlighted path.",
       },
       {
+        slug: 'custom-controls',
+        title: 'Custom controls',
+        summary:
+          'Round dots that stretch under your finger as you swipe, and zoom buttons of your own above a pinchable tree.',
+      },
+      {
         slug: 'right-to-left',
         title: 'Right to left',
         summary:

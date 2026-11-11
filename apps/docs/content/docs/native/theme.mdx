@@ -1,0 +1,251 @@
+---
+title: Theme
+description: The colours, sizes and fonts every bracket is drawn with, in light and dark, and how to match them to your app.
+---
+
+Every bracket draws its cards, lines and controls from a theme: a set of colours, sizes and fonts. This page shows how to change one value on one bracket, give every bracket in your app the same look, and keep the bracket in step with your app's own dark mode.
+
+## Light and dark
+
+With nothing set, a bracket uses `lightTheme` or `darkTheme` to match the device's appearance, and switches when the person changes it. There is nothing to set up: the bracket reads React Native's `useColorScheme` itself.
+
+```tsx
+import { Bracket } from '@react-brackets/native';
+
+<Bracket stage={stage} />; // light or dark, following the device
+```
+
+## Changing a few values
+
+`theme` takes any values you want to replace. Everything you leave out keeps its default, and colours merge one by one, so you can change the accent without restating the other eight colours:
+
+```tsx
+<Bracket
+  stage={stage}
+  theme={{
+    radius: 14,
+    colors: { accent: '#ea580c', accentSoft: 'rgba(234, 88, 12, 0.14)' },
+  }}
+/>
+```
+
+These values are laid over whichever theme the bracket would otherwise use, so the bracket still follows the device: the cards turn dark in dark mode and keep your accent. Change `accent` and `accentSoft` together. The soft one fills highlighted rows and the pill behind the round in focus, and a blue pill under an orange path looks like a mistake.
+
+If one colour doesn't work in both modes, pick it from the device's scheme:
+
+```tsx
+import { useColorScheme } from 'react-native';
+
+const dark = useColorScheme() === 'dark';
+
+<Bracket stage={stage} theme={{ colors: { accent: dark ? '#fb923c' : '#c2410c' } }} />;
+```
+
+## What each value changes
+
+### Colours
+
+| Value | Light | Dark | What it colours |
+| --- | --- | --- | --- |
+| `text` | `#18181b` | `#fafafa` | Names and scores, group titles, round tabs, the zoom level, arrows and zoom icons |
+| `textMuted` | `#71717a` | `#a1a1aa` | Losers, `TBD` and byes, round titles, disabled buttons |
+| `surface` | `#ffffff` | `#18181b` | Match cards and zoom buttons |
+| `surfacePressed` | `#f4f4f5` | `#27272a` | A participant row or a zoom button while it is pressed |
+| `border` | `#e4e4e7` | `#3f3f46` | Card borders, the divider between the two sides, the pan-zoom frame, the zoom controls' outline |
+| `line` | `#d4d4d8` | `#52525b` | Connector lines |
+| `accent` | `#2563eb` | `#60a5fa` | Winning scores and the highlighted path's lines |
+| `accentSoft` | `rgba(37, 99, 235, 0.12)` | `rgba(96, 165, 250, 0.16)` | Highlighted participant rows, the pill behind the round in focus |
+| `live` | `#ef4444` | `#f87171` | The border of a live match |
+
+### Sizes and fonts
+
+Sizes are in points, and the same in both themes.
+
+| Value | Default | What it changes |
+| --- | --- | --- |
+| `radius` | `10` | Card corners, and the corners of the pan-zoom frame |
+| `lineWidth` | `1.5` | The width of connector lines |
+| `connectorRadius` | `8` | How round the turns in connector lines are. `0` makes square turns |
+| `matchWidth` | `200` | Card width in the whole tree |
+| `matchGap` | `12` | Space between the matches of a round, in both views |
+| `columnGap` | `40` | Space between rounds in the whole tree |
+| `pagedColumnGap` | `20` | Space between rounds in the paged view |
+| `titleHeight` | `32` | The height of the row of round titles |
+| `fontFamily` | the system font | Every piece of text the bracket draws |
+| `fontSize` | `15` | Names and scores. Group titles are one point larger |
+| `titleFontSize` | `12` | Round titles. Round tabs and the zoom level are one point larger |
+
+`fontFamily` reaches the text the bracket draws itself. Text in your own cards is yours to style, so set the font there too. A custom font has to be loaded before the bracket draws with it, with `expo-font` or however your app loads fonts.
+
+## Card sizes on a phone
+
+`matchWidth` only applies to the whole tree. In the paged view, the round in focus takes 76% of the bracket's width and its cards fill that, less `pagedColumnGap`; the rest of the width shows the next round coming. To give cards more room on a phone, give the round in focus a bigger share with `swipe`:
+
+```tsx
+<Bracket stage={stage} swipe={{ focus: 0.85 }} />
+```
+
+With `compact="list"`, cards take the full width. There is no height in the theme: cards are as tall as what they draw, and each one is measured. See [card height](/docs/native/match-cards#card-height).
+
+## Connector lines
+
+<div className="not-prose my-6 flex justify-center">
+  <Recording slug="connector-lines" label="Three line styles, with a team's path highlighted" />
+</div>
+
+Lines take their colour from `colors.line`, their width from `lineWidth` and their rounded turns from `connectorRadius`. The path of a highlighted participant, every line they travelled by winning, is drawn in `colors.accent`:
+
+```tsx
+import { Bracket, type ThemeOverrides } from '@react-brackets/native';
+
+const rounded: ThemeOverrides = {
+  lineWidth: 2,
+  connectorRadius: 14,
+  colors: { line: '#c4b5fd', accent: '#7c3aed', accentSoft: 'rgba(124, 58, 237, 0.12)' },
+};
+
+const square: ThemeOverrides = {
+  lineWidth: 1,
+  connectorRadius: 0,
+  radius: 2,
+  colors: { line: '#a1a1aa', accent: '#0f766e', accentSoft: 'rgba(15, 118, 110, 0.12)' },
+};
+
+<Bracket stage={stage} theme={rounded} highlighted="falcons" />;
+```
+
+A turn is never rounder than half the gap between rounds, so a large `connectorRadius` with a small `columnGap` or `pagedColumnGap` gives the roundest turn that fits. In the paged view, line widths and turns are rounded to whole pixels, so the lines stay sharp as they move.
+
+Lines are drawn by the bracket, as views that move with the cards. Unlike the web package, you can't replace them with your own drawing, so dashed lines, curves and arrows aren't available on native. To hide them, set `colors.line` to `'transparent'`. A highlighted path still draws in `accent`.
+
+See [press and highlight](/docs/native/press-and-highlight) for how a path gets highlighted.
+
+## One theme for every bracket
+
+`createTheme` builds a full theme from a base and the values you change, and `BracketThemeProvider` gives it to every bracket inside it. Build one for each mode and pick between them, so your brand works in light and dark:
+
+```tsx
+import {
+  BracketThemeProvider,
+  createTheme,
+  darkTheme,
+  lightTheme,
+} from '@react-brackets/native';
+import type { ReactNode } from 'react';
+import { useColorScheme } from 'react-native';
+
+const shared = { radius: 14, connectorRadius: 10 };
+
+const light = createTheme(
+  { ...shared, colors: { accent: '#c2410c', accentSoft: 'rgba(194, 65, 12, 0.12)' } },
+  lightTheme,
+);
+const dark = createTheme(
+  { ...shared, colors: { accent: '#fb923c', accentSoft: 'rgba(251, 146, 60, 0.16)' } },
+  darkTheme,
+);
+
+export function BracketLook({ children }: { children: ReactNode }) {
+  const scheme = useColorScheme();
+  return (
+    <BracketThemeProvider theme={scheme === 'dark' ? dark : light}>{children}</BracketThemeProvider>
+  );
+}
+```
+
+Two things to know:
+
+- `createTheme` builds on `lightTheme` unless you pass a base. A theme built from it alone stays light in dark mode.
+- A provider's theme is used as it is. The bracket stops following the device by itself once there is a provider, which is why the example picks the theme from the scheme.
+
+Build themes outside your components, or in `useMemo`, so the bracket isn't handed a new theme every render.
+
+A bracket's own `theme` still applies inside a provider. It is laid over the provider's theme, so one bracket can differ from the rest:
+
+```tsx
+<BracketLook>
+  <Bracket stage={league} />
+  <Bracket stage={cup} theme={{ colors: { accent: '#16a34a', accentSoft: 'rgba(22, 163, 74, 0.14)' } }} />
+</BracketLook>
+```
+
+In short, a bracket draws with its `theme` prop laid over the nearest provider's theme, or over the light or dark theme for the device when there is no provider.
+
+## Matching your app's theme
+
+If your app has its own theme, or a dark mode switch of its own that doesn't follow the device, build the bracket's theme from it and pass it through a provider. With React Navigation, for example:
+
+```tsx
+import {
+  BracketThemeProvider,
+  createTheme,
+  darkTheme,
+  lightTheme,
+} from '@react-brackets/native';
+import { useTheme } from '@react-navigation/native';
+import { type ReactNode, useMemo } from 'react';
+
+export function NavigationBracketTheme({ children }: { children: ReactNode }) {
+  const { dark, colors } = useTheme();
+  const theme = useMemo(
+    () =>
+      createTheme(
+        {
+          colors: {
+            text: colors.text,
+            surface: colors.card,
+            border: colors.border,
+            accent: colors.primary,
+          },
+        },
+        dark ? darkTheme : lightTheme,
+      ),
+    [dark, colors],
+  );
+  return <BracketThemeProvider theme={theme}>{children}</BracketThemeProvider>;
+}
+```
+
+Start from `darkTheme` or `lightTheme` to match your app's mode, so the colours you don't map, like `textMuted` and `line`, suit it too.
+
+With Unistyles, `withUnistyles` maps your theme onto the bracket's and follows it when it changes. With Uniwind, `useCSSVariable` reads your CSS variables. Both are on the [styling](/docs/native/styling) page.
+
+## Using the theme in your own components
+
+Inside a bracket, `useBracket().theme` is the theme that bracket draws with, its own `theme` prop included. Use it in your cards so they match the rest:
+
+```tsx
+import { useBracket } from '@react-brackets/native';
+import { Text } from 'react-native';
+
+function Score({ value, winner }: { value?: number; winner: boolean }) {
+  const { theme } = useBracket();
+  return (
+    <Text
+      style={{
+        color: winner ? theme.colors.accent : theme.colors.textMuted,
+        fontFamily: theme.fontFamily,
+        fontSize: theme.fontSize,
+      }}
+    >
+      {value ?? ''}
+    </Text>
+  );
+}
+```
+
+Outside a bracket, like a header next to it, `useBracketTheme()` returns the theme a bracket there would use: the nearest provider's, or the light or dark theme for the device. Pass it overrides to get them merged in, the same way a bracket's `theme` prop is:
+
+```tsx
+import { useBracketTheme } from '@react-brackets/native';
+
+const theme = useBracketTheme({ colors: { accent: '#16a34a' } });
+```
+
+`lightTheme` and `darkTheme` are exported too, if you want to read a default or build on one.
+
+## Reference
+
+<ApiTable from="native" name="BracketTheme" />
+
+<ApiTable from="native" name="BracketColors" />

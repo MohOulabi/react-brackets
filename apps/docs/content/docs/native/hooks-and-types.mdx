@@ -1,0 +1,83 @@
+---
+title: Hooks and types
+description: The hooks for your own parts, the zoom and swipe options, labels, and the types around them.
+---
+
+Everything here is exported from `@react-brackets/native`. The data types, like `Stage`, `Match` and `Participant`, come from the core and are the same as on the web: see [Data model](/docs/api/data-model).
+
+## `usePagination()`
+
+Paging for your own round tabs, dots or buttons. Works anywhere inside `Bracket.Root`. `position` is a Reanimated shared value that moves under the finger during a swipe, so an indicator built from it in `useAnimatedStyle` moves on the UI thread. See [Navigation and zoom](/docs/native/navigation-and-zoom#round-tabs).
+
+```tsx
+const { rounds, page, setPage, previous, next, canPrevious, canNext, position } = usePagination();
+```
+
+<ApiTable from="native" name="PaginationState" />
+
+## `useZoom()`
+
+Pan and zoom for your own zoom buttons, anywhere inside `Bracket.Root`. Returns `null` while the tree isn't panned and zoomed: in the paged view, or in `scroll` and `fit` modes.
+
+```tsx
+const zoom = useZoom();
+if (!zoom) return null;
+zoom.zoomTo(zoom.maxScale);
+```
+
+<ApiTable from="native" name="ZoomState" />
+
+## `useBracket()`
+
+The bracket's context: the stage, the group, the theme, the labels and the highlight. Use it in your own components inside a card, a round title or anything else inside the bracket.
+
+<ApiTable from="native" name="BracketContextValue" />
+
+## `useMatch()`
+
+The match being drawn, inside `renderMatch`. Useful in a component of your own deep inside a card, without passing the match down.
+
+```tsx
+function Venue() {
+  const match = useMatch();
+  return <Text>{venues[match.id]}</Text>;
+}
+```
+
+## `useBracketTheme()`
+
+The theme a bracket would use here: the nearest `BracketThemeProvider`, or the light or dark theme from the system's appearance, with any overrides you pass applied on top. Use it to match your own views to the bracket.
+
+```tsx
+const theme = useBracketTheme();
+<View style={{ backgroundColor: theme.colors.surface, borderRadius: theme.radius }} />;
+```
+
+## `ZoomOptions`
+
+The `zoom` option on `<Bracket>` and `Bracket.Root`: how pan and zoom behaves in `pan-zoom` mode. [How it feels](/docs/native/navigation-and-zoom#zoom) shows each one in use.
+
+<ApiTable from="native" name="ZoomOptions" />
+
+## `SwipeOptions`
+
+The `swipe` option: how a swipe pages in the paged view.
+
+<ApiTable from="native" name="SwipeOptions" />
+
+## `Labels`
+
+Every built-in string, for translation and screen readers. Pass any of them to `labels`. See [Right to left](/docs/native/right-to-left).
+
+<ApiTable from="native" name="Labels" />
+
+## Other types
+
+| Type | What it is |
+| --- | --- |
+| `StyleOf<State, Style>` | A style, or a function of a part's state that returns one. Every part's `style` takes it. |
+| `ThemeOverrides` | Any values of `BracketTheme`, with any of its `colors`. What `theme` and `createTheme` take. |
+| `TreeMode` | `'scroll' \| 'fit' \| 'pan-zoom'`: how the whole tree fits its width. |
+| `BracketLayout` | `'standard' \| 'mirrored'`: one tree, or two halves that meet at the final. |
+| `PageHeight` | `'contain' \| 'follow'`: how the paged view's height moves between rounds. |
+| `Transform` | `{ scale, x, y }`: a zoom and a position, as `zoom.initial` takes. |
