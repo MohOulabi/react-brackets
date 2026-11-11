@@ -3,7 +3,7 @@
 import { Popover, PopoverContent, PopoverTrigger } from 'fumadocs-ui/components/ui/popover';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
-import type { Release } from '@/lib/versions';
+import type { Major, Release } from '@/lib/versions';
 
 /**
  * The version these docs describe, for the platform being read, with the other
@@ -12,7 +12,12 @@ import type { Release } from '@/lib/versions';
 export function VersionMenu({ react, native }: { react: Release; native: Release }) {
   const pathname = usePathname();
   const release = pathname.startsWith('/docs/native') ? native : react;
-  const label = release.version ? `v${release.version}` : 'Not on npm yet';
+  // The deepest on-site version this page sits in: an archived copy, or the latest docs.
+  const current = release.majors
+    .filter((major) => pathname === major.url || pathname.startsWith(`${major.url}/`))
+    .sort((a, b) => b.url.length - a.url.length)[0];
+  const shown = current ?? release.majors[0];
+  const label = shown ? versionLabel(release, shown) : 'Not on npm yet';
   const row = 'flex h-8 w-full items-center gap-2 rounded-lg px-2.5 text-sm';
 
   if (release.majors.length < 2) {
@@ -50,7 +55,7 @@ export function VersionMenu({ react, native }: { react: Release; native: Release
           <a
             key={major.label}
             href={major.url}
-            aria-current={index === 0 ? 'page' : undefined}
+            aria-current={(current ? major === current : index === 0) ? 'page' : undefined}
             className="flex flex-col rounded-md px-2.5 py-2 text-sm transition-colors hover:bg-fd-accent aria-[current]:bg-fd-primary/10"
           >
             <span className="font-medium">{major.label}</span>
@@ -60,4 +65,16 @@ export function VersionMenu({ react, native }: { react: Release; native: Release
       </PopoverContent>
     </Popover>
   );
+}
+
+/**
+ * The exact version when the package on npm is in that major line, like `v2.3.0` under `v2`, or the line itself:
+ * an archived one, or the latest before its first release reaches npm.
+ */
+function versionLabel(release: Release, major: Major): string {
+  const { version } = release;
+  const line = major.label.slice(1);
+  if (major === release.majors[0] && version && `${version}.`.startsWith(`${line}.`))
+    return `v${version}`;
+  return major.label;
 }

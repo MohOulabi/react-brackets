@@ -10,6 +10,7 @@ import type {
   Stage,
 } from '@react-brackets/core';
 import { type Context, createContext, useContext } from 'react';
+import type { ResolvedSwipe, ResolvedZoom } from './options';
 import type { PageHeight } from './page-height';
 
 /** The name of every element the bracket renders, set as its `data-part` attribute. */
@@ -32,10 +33,13 @@ export type Part =
   | 'page'
   | 'page-previous'
   | 'page-next'
+  | 'page-indicator'
   | 'zoom-controls'
+  | 'zoom-steps'
   | 'zoom-in'
   | 'zoom-out'
-  | 'zoom-reset';
+  | 'zoom-reset'
+  | 'zoom-level';
 
 /** A class for any part, by part name: `{ match: 'rounded-xl', connector: 'stroke-zinc-300' }`. */
 export type ClassNames = Partial<Record<Part, string>>;
@@ -147,6 +151,10 @@ export interface BracketContextValue {
   pageHeight: PageHeight;
   /** The most rounds one swipe can move, at least 1. */
   maxSwipeRounds: number;
+  /** The `zoom` options, with defaults filled in. */
+  zoom: ResolvedZoom;
+  /** The `swipe` options, with defaults filled in. */
+  swipe: ResolvedSwipe;
   /** `true` when columns share one grid with connector lines: the tree, and the bracket-style paged view. */
   grid: boolean;
   /** The container width in pixels, or `null` before it is measured, as on the server. */

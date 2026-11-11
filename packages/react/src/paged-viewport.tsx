@@ -18,8 +18,6 @@ import { GridContent } from './viewport';
 
 type SectionProps = ComponentPropsWithoutRef<'section'>;
 
-/** Share of the width given to the round in focus; the rest previews the next round. */
-const FOCUS = 0.76;
 const ROUNDS = ':scope > [data-part="round"]';
 
 /**
@@ -29,7 +27,7 @@ const ROUNDS = ':scope > [data-part="round"]';
  * one before slides away, and letting go finishes the move or takes it back.
  */
 export function PagedBracketViewport({ style, children, ...props }: SectionProps): ReactNode {
-  const { page, setPage, rounds, width, labels, motion, maxSwipeRounds, pageHeight } =
+  const { page, setPage, rounds, width, labels, motion, maxSwipeRounds, pageHeight, swipe } =
     useBracketContext();
   const paging = useContext(PagingContext);
   const viewport = useRef<HTMLElement>(null);
@@ -44,8 +42,9 @@ export function PagedBracketViewport({ style, children, ...props }: SectionProps
   const height = useRef({ from: 0, to: 0, rest: 0 });
   const rtl = useRtl(viewport);
   const step = rtl ? -1 : 1;
-  const travel = Math.round((width || 320) * FOCUS);
-  const pull = (offset: number) => resist(offset, step, page, rounds.length, width ?? 0);
+  const travel = Math.round((width || 320) * swipe.focus);
+  const pull = (offset: number) =>
+    resist(offset, step, page, rounds.length, width ?? 0, swipe.elasticity);
 
   // The box follows the move, so it never jumps to the new round's height while cards are still on their way.
   // Heights are the box's own natural height, padding included, so the move lands exactly where layout will.
@@ -82,6 +81,8 @@ export function PagedBracketViewport({ style, children, ...props }: SectionProps
 
   const { handlers } = useSwipe({
     target: viewport,
+    threshold: swipe.commit,
+    projection: swipe.projection,
     onDrag: (offset) => {
       // Past a whole round, the move carries on into the next one, never back: rounds already passed stay passed.
       const way = offset < 0 ? step : -step;
@@ -176,8 +177,18 @@ function useRtl(viewport: RefObject<HTMLElement | null>): boolean {
 
 /** One round at a time as a plain list of matches, sliding sideways between rounds. */
 export function PagedListViewport({ style, children, ...props }: SectionProps): ReactNode {
-  const { page, setPage, rounds, classNames, labels, width, motion, maxSwipeRounds, pageHeight } =
-    useBracketContext();
+  const {
+    page,
+    setPage,
+    rounds,
+    classNames,
+    labels,
+    width,
+    motion,
+    maxSwipeRounds,
+    pageHeight,
+    swipe,
+  } = useBracketContext();
   const viewport = useRef<HTMLElement>(null);
   const content = useRef<HTMLDivElement>(null);
   const rtl = useRtl(viewport);
@@ -185,9 +196,12 @@ export function PagedListViewport({ style, children, ...props }: SectionProps): 
   const follow = useListHeight(viewport, content, page, step, pageHeight);
   const at = -page * step * 100;
   const resting = `translateX(${at}%)`;
-  const pull = (offset: number) => resist(offset, step, page, rounds.length, width ?? 0);
+  const pull = (offset: number) =>
+    resist(offset, step, page, rounds.length, width ?? 0, swipe.elasticity);
   const { dragging, handlers } = useSwipe({
     target: viewport,
+    threshold: swipe.commit,
+    projection: swipe.projection,
     onDrag: (offset) => {
       if (content.current) {
         content.current.style.transition = 'none';
@@ -252,10 +266,17 @@ function clamp(value: number, min: number, max: number): number {
 }
 
 /** Follows the finger, but resists once there is no round left to reveal. */
-function resist(offset: number, step: number, page: number, pages: number, width: number): number {
+function resist(
+  offset: number,
+  step: number,
+  page: number,
+  pages: number,
+  width: number,
+  elasticity: number,
+): number {
   const pull = offset * step;
   const pastEdge = (pull > 0 && page === 0) || (pull < 0 && page === pages - 1);
-  return pastEdge ? rubberBand(offset, width) : offset;
+  return pastEdge ? rubberBand(offset, width, elasticity) : offset;
 }
 
 function transition(property: string, motion: Motion | null): string | undefined {

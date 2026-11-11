@@ -1,0 +1,38 @@
+---
+title: Introduction
+description: Tournament brackets for React Native and Expo, with every swipe and zoom on the UI thread.
+---
+
+<div className="not-prose my-8 grid items-center gap-8 sm:grid-cols-[auto_minmax(0,1fr)]">
+  <Recording slug="quick-start" label="A bracket swiped round by round on an iPhone" />
+  <div className="flex flex-col gap-3 text-[15px] leading-relaxed text-fd-muted-foreground">
+    <p>`@react-brackets/native` draws brackets in React Native and Expo from the same core as the web package, so formats, results, standings and your data work the same way on both.</p>
+    <p>On a phone the bracket pages through one round at a time, still drawn as a bracket. On wider screens you get the whole tree, scrolled, fitted, or pinched and zoomed.</p>
+  </div>
+</div>
+
+```tsx
+import { Bracket, singleElimination } from '@react-brackets/native';
+
+const stage = singleElimination(teams);
+
+export function Screen() {
+  return <Bracket stage={stage} />;
+}
+```
+
+## How it moves
+
+Every card's place on every round is worked out up front. A swipe only moves one number on the UI thread, and the cards, round titles, connector lines and the bracket's height all follow that number there, in the same frame. React hears about the new round once the swipe lands, so nothing re-renders while your finger is down.
+
+Connector lines are plain views moved by the same transforms as the cards. They never trail behind during a fast swipe, and they stay sharp at any zoom.
+
+## What you get
+
+- **Every format**: single and double elimination, round robin, Swiss and your own data, with [results](/docs/guides/results) that move winners on.
+- **Two phone layouts**: a bracket with the next round peeking in, or [plain lists](/docs/native/v0.1/layouts#plain-lists), one round at a time.
+- **The whole tree** on wider screens, [scrolled, fitted or zoomed](/docs/native/v0.1/layouts#the-whole-tree).
+- **Right to left**, for Arabic, Hebrew and Persian.
+- **Your own look**: a light and dark theme, and [a style on every part](/docs/native/v0.1/styling) for StyleSheet, Uniwind, NativeWind or Unistyles.
+
+Start with [installation](/docs/native/v0.1/installation), or see it all in the [examples](/examples/native).

@@ -42,6 +42,39 @@ function useConnector(): ConnectorState
 
 The line being rendered, inside `Bracket.Connectors`. Use it to keep a custom line in its own component. Returns a [`ConnectorState`](#connectorstate).
 
+## usePagination
+
+The paged view's rounds and position, and actions to move it, anywhere inside `Bracket.Root`. See [navigation and zoom](/docs/customize/navigation-and-zoom#anything-else-from-usepagination).
+
+```tsx
+const { rounds, page, position, setPage, previous, next, canPrevious, canNext, paged } = usePagination();
+```
+
+<ApiTable from="react" name="PaginationState" />
+
+## useZoom
+
+The zoom of the pan and zoom viewport, and actions to change it, anywhere inside `Bracket.Root`. `null` while the bracket isn't showing a pan and zoom viewport. See [navigation and zoom](/docs/customize/navigation-and-zoom#a-toolbar-with-a-slider).
+
+```tsx
+const zoom = useZoom();
+zoom?.zoomTo(zoom.maxScale);
+```
+
+<ApiTable from="react" name="ZoomState" />
+
+## ZoomOptions
+
+The `zoom` prop of `<Bracket>` and `Bracket.Root`.
+
+<ApiTable from="react" name="ZoomOptions" />
+
+## SwipeOptions
+
+The `swipe` prop of `<Bracket>` and `Bracket.Root`.
+
+<ApiTable from="react" name="SwipeOptions" />
+
 ## Labels
 
 <ApiTable from="react" name="Labels" />

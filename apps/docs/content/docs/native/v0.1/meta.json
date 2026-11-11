@@ -1,0 +1,16 @@
+{
+  "title": "React Native 0.1",
+  "description": "Docs for version 0.1",
+  "root": true,
+  "pages": [
+    "---Getting started---",
+    "index",
+    "installation",
+    "---Guides---",
+    "layouts",
+    "styling",
+    "performance",
+    "---Reference---",
+    "api"
+  ]
+}

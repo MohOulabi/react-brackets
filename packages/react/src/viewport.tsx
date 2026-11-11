@@ -25,17 +25,18 @@ export interface ViewportOwnProps {
    */
   mode?: ViewportMode;
   /**
-   * Shows zoom in, zoom out and fit buttons in `pan-zoom` mode.
+   * Shows the default zoom controls in the corner in `pan-zoom` mode. Set it to `false` to place
+   * `Bracket.ZoomControls`, or controls of your own built with `useZoom()`, anywhere else.
    * @defaultValue true
    */
   controls?: boolean;
   /**
-   * The smallest zoom in `pan-zoom` mode.
+   * The smallest zoom in `pan-zoom` mode. A shorthand for the `zoom.minScale` option of the root.
    * @defaultValue the scale that fits the whole bracket, at most 1
    */
   minScale?: number;
   /**
-   * The largest zoom in `pan-zoom` mode.
+   * The largest zoom in `pan-zoom` mode. A shorthand for the `zoom.maxScale` option of the root.
    * @defaultValue 2
    */
   maxScale?: number;
@@ -53,7 +54,7 @@ export function Viewport({
   mode = 'scroll',
   controls = true,
   minScale,
-  maxScale = 2,
+  maxScale,
   className,
   style,
   children,

@@ -28,8 +28,19 @@ export type {
   ParticipantProps,
   ParticipantState,
 } from './match';
+export type { ResolvedSwipe, ResolvedZoom, SwipeOptions, ZoomOptions } from './options';
 export type { PageHeight } from './page-height';
-export type { PaginationProps } from './pagination';
+export type {
+  PageButtonProps,
+  PageButtonState,
+  PageIndicatorProps,
+  PaginationPartState,
+  PaginationProps,
+  PaginationState,
+  StepButtonProps,
+  StepButtonState,
+} from './pagination';
+export { usePagination } from './pagination';
 export type { Point } from './paths';
 export type { BracketLayout, RootOwnProps, RootProps, RootState } from './root';
 export type {
@@ -41,3 +52,11 @@ export type {
   RoundTitleProps,
 } from './rounds';
 export type { ViewportMode, ViewportOwnProps, ViewportProps, ViewportState } from './viewport';
+export type { ZoomState } from './zoom';
+export { useZoom } from './zoom';
+export type {
+  ZoomButtonProps,
+  ZoomControlsProps,
+  ZoomLevelProps,
+  ZoomPartState,
+} from './zoom-controls';

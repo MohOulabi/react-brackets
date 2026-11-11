@@ -1,0 +1,110 @@
+---
+title: Styling
+description: A theme, a style on every part, and your own cards, with StyleSheet, Uniwind or Unistyles.
+---
+
+## Theme
+
+Light and dark themes follow the device. Change any value on one bracket, or for all of them:
+
+```tsx
+import { BracketThemeProvider, createTheme, darkTheme } from '@react-brackets/native';
+
+<Bracket stage={stage} theme={{ colors: { accent: '#ea580c' }, radius: 14 }} />;
+
+const court = createTheme({ colors: { accent: '#d7f25a', surface: '#142b63' } }, darkTheme);
+
+<BracketThemeProvider theme={court}>{/* every bracket inside */}</BracketThemeProvider>;
+```
+
+| Value | Used for |
+| --- | --- |
+| `colors.text`, `colors.textMuted` | Names, losers and slots still to be decided |
+| `colors.surface`, `colors.surfacePressed`, `colors.border` | Match cards |
+| `colors.line` | Connector lines |
+| `colors.accent`, `colors.accentSoft` | Winner scores, the highlighted path, the current round |
+| `colors.live` | The border of a live match |
+| `radius`, `lineWidth`, `connectorRadius` | Corners, line width and rounded line turns |
+| `matchWidth`, `matchGap`, `columnGap`, `pagedColumnGap`, `titleHeight` | Sizes, in points |
+| `fontFamily`, `fontSize`, `titleFontSize` | Text |
+
+## Your own cards
+
+Every part takes a `style`, or a function of its state. `Bracket.Participant` also takes a function as its child, to draw anything from the participant:
+
+```tsx
+<Bracket
+  stage={stage}
+  renderMatch={() => (
+    <Bracket.Match style={({ live }) => [styles.card, live && styles.live]}>
+      {([0, 1] as const).map((slot) => (
+        <Bracket.Participant key={slot} slot={slot}>
+          {({ participant, slot: { score }, winner }) => (
+            <>
+              <Text style={[styles.name, winner && styles.winner]}>{participant?.name}</Text>
+              <Text style={styles.score}>{score}</Text>
+            </>
+          )}
+        </Bracket.Participant>
+      ))}
+    </Bracket.Match>
+  )}
+/>
+```
+
+The match state has `live`, `completed` and `highlighted`. The participant state has `participant`, `slot`, `winner`, `loser`, `bye`, `empty` and `highlighted`. The [Nations example](/examples/native#nations) builds a full card this way.
+
+Tapping a participant highlights their path. Pass `highlighted` and `onHighlightChange` to control it, or `onMatchPress` to make whole matches pressable instead.
+
+### Cards that open
+
+Each card keeps its own height, measured as it lays out. When one grows, say to show a roster, the cards below it make room, the next round re-centres between the matches that feed it, and the lines follow, all gliding into place. Nothing needs setting up: change what the card renders.
+
+```tsx
+<Bracket.Participant slot={slot}>
+  {({ participant }) => (
+    <>
+      <Text>{participant?.name}</Text>
+      <Pressable onPress={() => toggle(participant?.id)}>
+        <Chevron open={open.has(participant?.id)} />
+      </Pressable>
+    </>
+  )}
+</Bracket.Participant>
+{open.has(match.slots[slot].participantId) && <Roster />}
+```
+
+Use Gesture Handler's `Pressable` for buttons inside a card, so a tap on the button wins over the participant's own press. The [Esports example](/examples/native#esports) opens rosters this way.
+
+## Tailwind, through Uniwind or NativeWind
+
+Wrap a part to give it a `className`, and use classes freely inside `renderMatch`:
+
+```tsx
+import { withUniwind } from 'uniwind';
+
+const Match = withUniwind(Bracket.Match);
+
+<Bracket
+  stage={stage}
+  renderMatch={() => (
+    <Match className="rounded-2xl border-indigo-200 bg-white dark:bg-indigo-900">{/* … */}</Match>
+  )}
+/>;
+```
+
+With NativeWind, wrap the part with `cssInterop` the same way. See the [Tailwind example](/examples/native#tailwind).
+
+## Unistyles
+
+`withUnistyles` maps your Unistyles theme onto the bracket's, and keeps it in step when the theme changes:
+
+```tsx
+import { withUnistyles } from 'react-native-unistyles';
+
+const ThemedBracket = withUnistyles(Bracket, (theme) => ({
+  theme: { colors: theme.bracket, radius: 14 },
+}));
+```
+
+See the [Unistyles example](/examples/native#unistyles).

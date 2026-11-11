@@ -1,0 +1,239 @@
+---
+title: Navigation and zoom
+description: Your own round navigation, your own zoom controls, and how pan, zoom and swipe feel.
+---
+
+Nothing the bracket draws to move around is fixed. The round buttons under a phone-sized bracket and the zoom buttons over a zoomable tree are parts you can restyle, rearrange, replace or leave out, and two hooks give you everything they know to build controls of your own.
+
+## Round navigation
+
+On narrow containers the bracket shows one round at a time, with `Bracket.Pagination` underneath. Without children it draws previous, a button per round, and next. Give it children to arrange them your way:
+
+| Part | What it is | Customize |
+| --- | --- | --- |
+| `Bracket.Pagination` | The `nav` around the navigation. Draws nothing while the whole tree is shown. | `className`, children |
+| `Bracket.PageButton` | A button that moves to round `index`. Shows the round's name. | `className` and children as functions of `{ round, index, active }` |
+| `Bracket.PreviousPage`, `Bracket.NextPage` | One round back or on. Disabled at the ends. | `className` and children as functions of `{ disabled }` |
+| `Bracket.PageIndicator` | A mark that slides under the button of the round being shown. | `className`, `style` |
+
+### Pills that follow the round
+
+<Preview>
+  <PillsDemo />
+</Preview>
+
+```tsx
+<Bracket.Root stage={stage}>
+  <Bracket.Viewport>
+    <Bracket.Rounds />
+    <Bracket.Connectors radius={8} />
+  </Bracket.Viewport>
+
+  <Bracket.Pagination className="flex items-center gap-1">
+    <Bracket.PreviousPage className="grid size-8 place-items-center rounded-full disabled:opacity-30">
+      <ChevronLeft />
+    </Bracket.PreviousPage>
+    <div className="relative flex flex-1 justify-between">
+      <Bracket.PageIndicator className="top-0 bottom-0 rounded-full bg-blue-500/10" />
+      {rounds.map((round, index) => (
+        <Bracket.PageButton
+          key={round.id}
+          index={index}
+          className={({ active }) => cn('relative rounded-full bg-transparent px-3 py-1.5', active && 'text-blue-600')}
+        />
+      ))}
+    </div>
+    <Bracket.NextPage className="grid size-8 place-items-center rounded-full disabled:opacity-30">
+      <ChevronRight />
+    </Bracket.NextPage>
+  </Bracket.Pagination>
+</Bracket.Root>
+```
+
+`Bracket.PageIndicator` measures the page buttons next to it, so it lines up however you lay them out. It moves with your `motion` timing, and while a swipe is heading to a round it is already on its way there.
+
+### Anything else, from `usePagination()`
+
+`usePagination()` works anywhere inside `Bracket.Root`, so the navigation can sit above the bracket, beside it, or in a header of its own. Here a title with progress sits above, and dots sit below:
+
+<Preview>
+  <DotsDemo />
+</Preview>
+
+```tsx
+function RoundHeader() {
+  const { rounds, page, previous, next, canPrevious, canNext } = usePagination();
+  return (
+    <header>
+      <p>Round {page + 1} of {rounds.length}</p>
+      <h3>{rounds[page]?.name}</h3>
+      <button onClick={previous} disabled={!canPrevious} aria-label="Previous round">‹</button>
+      <button onClick={next} disabled={!canNext} aria-label="Next round">›</button>
+    </header>
+  );
+}
+
+function Dots() {
+  const { rounds, position, setPage } = usePagination();
+  return rounds.map((round, index) => (
+    <button
+      key={round.id}
+      aria-label={round.name}
+      aria-current={index === position ? 'step' : undefined}
+      onClick={() => setPage(index)}
+      className={index === position ? 'dot dot-active' : 'dot'}
+    />
+  ));
+}
+
+<Bracket.Root stage={stage}>
+  <RoundHeader />
+  <Bracket.Viewport>
+    <Bracket.Rounds />
+    <Bracket.Connectors />
+  </Bracket.Viewport>
+  <Dots />
+</Bracket.Root>
+```
+
+`page` is the round in focus. `position` is the round being drawn in focus, which runs ahead of `page` while a swipe is on its way, so an indicator built on it moves with the finger. `paged` is `false` while the whole tree fits, for controls that should hide themselves then.
+
+With the `<Bracket>` shortcut, `renderPagination` swaps in your navigation without composing the rest:
+
+```tsx
+<Bracket stage={stage} renderPagination={() => <Dots />} />
+```
+
+To keep the navigation outside the bracket entirely, like tabs in your page header, control the round with `page` and `onPageChange`, as in [controlling the round](/docs/guides/click-events#controlling-the-round).
+
+## Zoom controls
+
+With `mode="pan-zoom"`, the bracket draws its zoom controls in the corner: zoom out, the zoom level and zoom in in one pill, and a button to fit it back into view. They dim at the smallest and largest zoom. They are parts too:
+
+| Part | What it is |
+| --- | --- |
+| `Bracket.ZoomControls` | The group of controls. Draws the default ones without children. |
+| `Bracket.ZoomIn`, `Bracket.ZoomOut` | Zoom by the `zoom.step` option around the centre, or by their own `step`. Disabled at the limits. |
+| `Bracket.ZoomReset` | Fits the whole tree back into view. Disabled while it already is. |
+| `Bracket.ZoomLevel` | The zoom as a percentage, announced as it changes. |
+
+Every one takes `className` and children as functions of `{ scale, percent, disabled }`. They work anywhere inside `Bracket.Root`, not only over the bracket. To draw them somewhere else, pass `controls={false}` to `Bracket.Viewport` so the corner stays empty.
+
+### A toolbar with a slider
+
+`useZoom()` gives you the zoom and every action, for controls the parts don't cover, like a slider or a button that zooms all the way in:
+
+<Preview>
+  <ZoomToolbarDemo />
+</Preview>
+
+```tsx
+function ZoomToolbar() {
+  const zoom = useZoom();
+  if (!zoom) return null;
+  return (
+    <div className="flex items-center gap-2">
+      <Bracket.ZoomOut><Minus /></Bracket.ZoomOut>
+      <Slider
+        min={zoom.minScale}
+        max={zoom.maxScale}
+        step={0.01}
+        value={[zoom.scale]}
+        onValueChange={([scale]) => zoom.zoomTo(scale)}
+      />
+      <Bracket.ZoomIn><Plus /></Bracket.ZoomIn>
+      <Bracket.ZoomLevel />
+      <button onClick={() => zoom.zoomTo(zoom.maxScale)} disabled={!zoom.canZoomIn}>Zoom in fully</button>
+      <Bracket.ZoomReset><Scan /></Bracket.ZoomReset>
+    </div>
+  );
+}
+
+<Bracket.Root stage={stage} compactBelow={0} zoom={{ maxScale: 2.5 }}>
+  <ZoomToolbar />
+  <Bracket.Viewport mode="pan-zoom" controls={false}>
+    <Bracket.Rounds />
+    <Bracket.Connectors radius={8} />
+  </Bracket.Viewport>
+</Bracket.Root>
+```
+
+`useZoom()` is `null` while the bracket isn't showing a pan and zoom viewport, as on a phone, where it pages instead. It returns:
+
+<ApiTable from="react" name="ZoomState" />
+
+### Floating buttons
+
+With the shortcut, `renderZoomControls` draws your controls after the viewport in place of the default ones. Position them over it with your own styles:
+
+<Preview>
+  <FloatingZoomDemo />
+</Preview>
+
+```tsx
+<div className="relative">
+  <Bracket
+    stage={stage}
+    compactBelow={0}
+    mode="pan-zoom"
+    renderZoomControls={() => (
+      <Bracket.ZoomControls className="absolute top-3 right-3 flex flex-col gap-2">
+        <Bracket.ZoomIn className="size-10 rounded-full border shadow-md"><Plus /></Bracket.ZoomIn>
+        <Bracket.ZoomOut className="size-10 rounded-full border shadow-md"><Minus /></Bracket.ZoomOut>
+        <Bracket.ZoomReset className="size-10 rounded-full border shadow-md"><Maximize /></Bracket.ZoomReset>
+      </Bracket.ZoomControls>
+    )}
+  />
+</div>
+```
+
+## How pan and zoom feel
+
+Every behaviour of the pan and zoom viewport is an option of `zoom`, on `<Bracket>` or `Bracket.Root`. Try a few:
+
+<Preview>
+  <ZoomFeelDemo />
+</Preview>
+
+```tsx
+// Hard edges and no glide
+<Bracket stage={stage} compactBelow={0} mode="pan-zoom" zoom={{ elasticity: 0, momentum: false }} />
+
+// A long glide and a loose edge
+<Bracket stage={stage} compactBelow={0} mode="pan-zoom" zoom={{ elasticity: 1, momentum: { deceleration: 0.999 } }} />
+
+// Starts at full size, centred while smaller than the frame, and a double tap zooms by 1.5
+<Bracket stage={stage} compactBelow={0} mode="pan-zoom" zoom={{ initial: 1, align: 'center', doubleTap: 1.5 }} />
+```
+
+By default:
+
+- **Drag** to pan. Released at speed, the tree glides on and slows down, and it gives a little past the edges before springing back.
+- **Pinch** or **Ctrl/⌘ + wheel** to zoom around the fingers or the pointer. A pinch may go a little past the limits and settles back.
+- **Double click or double tap** zooms in two times there, and again zooms back out to fit.
+- **Wheel** without a key pans while there is room, then lets the page scroll.
+- **Keyboard**: with the viewport focused, `+` and `-` zoom, `0` fits, and the arrow keys pan.
+
+<ApiTable from="react" name="ZoomOptions" />
+
+`minScale` and `maxScale` on `Bracket.Viewport` still work, as shorthands for the same options.
+
+## How swiping feels
+
+On a phone, the `swipe` option tunes how the bracket moves between rounds:
+
+```tsx
+// The round in focus takes the whole width, and a short drag is enough
+<Bracket stage={stage} swipe={{ focus: 1, commit: 0.1 }} />
+
+// No give at the first and last round
+<Bracket stage={stage} swipe={{ elasticity: 0 }} />
+```
+
+<ApiTable from="react" name="SwipeOptions" />
+
+`maxSwipeRounds` sets how many rounds one flick can cross, and `pageHeight` how the height changes between rounds. See [small screens](/docs/guides/small-screens).
+
+## Labels
+
+Every control's accessible name comes from `labels`: `previous`, `next`, `rounds`, `zoomIn`, `zoomOut` and `zoomReset`. Translate them there, or give a part its own `aria-label`. See [RTL and languages](/docs/guides/rtl-and-languages).

@@ -1,5 +1,12 @@
 export { QuickStartDemo, ResultsDemo } from './basics';
 export {
+  DotsDemo,
+  FloatingZoomDemo,
+  PillsDemo,
+  ZoomFeelDemo,
+  ZoomToolbarDemo,
+} from './controls';
+export {
   ArrowsDemo,
   CustomPaginationDemo,
   DashedDemo,
