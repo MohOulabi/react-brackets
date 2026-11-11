@@ -13,6 +13,8 @@ Headless, responsive tournament brackets for React, and for React Native with [`
 
 > **v2 is a ground-up rewrite.** Upgrading from 0.x? Read the [migration guide](MIGRATION.md). v0.x lives on the [`legacy`](https://github.com/MohOulabi/react-brackets/tree/legacy) branch.
 
+![react-brackets — a live tournament bracket, every format, and the phone view swiped round by round](https://raw.githubusercontent.com/yasirwhite/opendemo-media/main/MohOulabi-react-brackets/react-brackets-demo.gif)
+
 ## Install
 
 ```bash
