@@ -1,0 +1,95 @@
+---
+title: Formats
+description: Single and double elimination, round robin, Swiss and groups to playoffs, drawn on a phone.
+---
+
+Every format comes from the same core as the web package, re-exported by `@react-brackets/native`. You build a stage with a format function and pass it to `<Bracket>`, which draws whatever the stage holds. The options for each format, like seeding, byes and a third place match, are the same on both platforms, so the web's format pages cover them in full.
+
+## Single elimination
+
+<div className="not-prose my-6 flex justify-center">
+  <Recording slug="quick-start" label="A knockout bracket swiped round by round" />
+</div>
+
+```tsx
+import { Bracket, singleElimination } from '@react-brackets/native';
+
+const stage = singleElimination(
+  ['Falcons', 'Wolves', 'Herons', 'Lynx', 'Orcas', 'Ravens', 'Bison', 'Cobras'].map((name) => ({ id: name, name })),
+  { thirdPlace: true },
+);
+
+<Bracket stage={stage} />;
+```
+
+A field that isn't a power of two gets byes for the top seeds. Seeding, byes and the third place match are in [Single elimination](/docs/formats/single-elimination).
+
+## Double elimination
+
+<div className="not-prose my-6 flex justify-center">
+  <Recording slug="double-elimination" label="A winners bracket above its losers bracket" />
+</div>
+
+```tsx
+import { Bracket, doubleElimination } from '@react-brackets/native';
+
+const stage = doubleElimination(teams.map((name) => ({ id: name, name })));
+
+<Bracket stage={stage} />;
+```
+
+`<Bracket>` draws the winners bracket with the grand final, then the losers bracket below it, each with its own title and round tabs. To show one at a time, on tabs of your own, see [several groups](/docs/native/building-from-parts#several-groups). The grand final reset and the other options are in [Double elimination](/docs/formats/double-elimination).
+
+## Round robin
+
+```tsx
+import { Bracket, roundRobin } from '@react-brackets/native';
+
+const stage = roundRobin(teams.map((name) => ({ id: name, name })), { groups: 2 });
+
+<Bracket stage={stage} compact="list" />;
+```
+
+A pool has no lines to draw, so each match day reads best as a list. `standings(stage)` gives each group's table, which you draw however you like: the [Groups to playoffs example](/examples/native#groups-to-playoffs) draws it as a league table. See [Round robin](/docs/formats/round-robin) and [standings](/docs/native/results#standings-for-round-robin-and-swiss).
+
+## Swiss
+
+<div className="not-prose my-6 flex justify-center">
+  <Recording slug="swiss" label="Swiss rounds paired one at a time" />
+</div>
+
+```tsx
+import { Bracket, nextSwissRound, swiss, swissRoundsLeft } from '@react-brackets/native';
+
+const [stage, setStage] = useState(() => swiss(players.map((name) => ({ id: name, name }))));
+
+// once every match of the round has a result
+if (swissRoundsLeft(stage) > 0) setStage(nextSwissRound(stage));
+
+<Bracket stage={stage} compact="list" />;
+```
+
+Swiss pairs one round at a time, from the results so far: players on the same score meet, and nobody meets the same opponent twice. See [Swiss](/docs/formats/swiss).
+
+## Groups to playoffs
+
+<div className="not-prose my-6 flex justify-center">
+  <Recording slug="groups-to-playoffs" label="Group tables, then the playoff bracket" />
+</div>
+
+```tsx
+import { Bracket, qualifiers, roundRobin, singleElimination } from '@react-brackets/native';
+
+const groups = roundRobin(teams.map((name) => ({ id: name, name })), { groups: 2 });
+
+// once the groups are played: the top two of each, group winners meeting the other group's runner-up
+const playoffs = singleElimination(qualifiers(groups, 2), { id: 'playoffs', thirdPlace: true });
+
+<Bracket stage={playoffs} />;
+```
+
+The two stages are separate, so you choose how to show them: tabs, a segmented control, or one screen after the other. See [Groups to playoffs](/docs/formats/groups-to-playoffs).
+
+## Your own data
+
+`fromRounds` builds a stage from rounds you already have, for example from your server, and every participant, match and group can carry `meta` of your own: a logo, a country, a seed or a venue. See [your own data](/docs/formats/your-own-data).

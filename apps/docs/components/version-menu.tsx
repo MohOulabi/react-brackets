@@ -68,13 +68,14 @@ export function VersionMenu({ react, native }: { react: Release; native: Release
 }
 
 /**
- * The exact version when the package on npm is in that major line, like `v2.3.0` under `v2`, or the line itself:
- * an archived one, or the latest before its first release reaches npm.
+ * The exact version when the package on npm is in that major line, like `v2.3.0` under `v2`, or else the line's
+ * first release, like `v0.2.0`: an archived line, or the latest before its release reaches npm.
  */
 function versionLabel(release: Release, major: Major): string {
   const { version } = release;
   const line = major.label.slice(1);
   if (major === release.majors[0] && version && `${version}.`.startsWith(`${line}.`))
     return `v${version}`;
-  return major.label;
+  const parts = line.split('.');
+  return `v${[...parts, '0', '0'].slice(0, Math.max(3, parts.length)).join('.')}`;
 }

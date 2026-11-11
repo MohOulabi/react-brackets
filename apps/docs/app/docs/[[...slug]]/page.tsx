@@ -4,6 +4,7 @@ import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { PageActions } from '@/components/docs/page-actions';
 import { getMDXComponents } from '@/components/mdx';
+import { counterpart } from '@/lib/counterparts';
 import { markdownPath } from '@/lib/llms';
 import { site } from '@/lib/site';
 import { source } from '@/lib/source';
@@ -25,7 +26,7 @@ export default async function Page({ params }: Props) {
     <DocsPage toc={page.data.toc} full={page.data.full}>
       <DocsTitle>{page.data.title}</DocsTitle>
       <DocsDescription className="mb-2">{page.data.description}</DocsDescription>
-      <PageActions markdown={markdownPath(page.url)} />
+      <PageActions markdown={markdownPath(page.url)} other={counterpart(page.url)} />
       {archived && <OlderVersion url={page.url} {...archived} />}
       <script
         type="application/ld+json"

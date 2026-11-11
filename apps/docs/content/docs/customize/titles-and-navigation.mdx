@@ -1,6 +1,6 @@
 ---
-title: Titles and navigation
-description: Round titles with dates or formats, group titles, and your own round navigation.
+title: Titles and labels
+description: Round titles with dates or progress, group titles, a round title with navigation, and the built-in labels.
 ---
 
 ## Round titles
@@ -46,9 +46,9 @@ To only rename rounds, there's no need to compose: pass `roundName` when you bui
 
 Inside the root, `useBracket().group` gives you the group being drawn.
 
-## Your own round navigation
+## A round title with navigation
 
-On narrow containers the bracket shows one round at a time with `Bracket.Pagination` underneath. Restyle it, rearrange its parts, or build your own from `usePagination()`:
+On narrow containers the bracket shows one round at a time, with `Bracket.Pagination` underneath. A title above the bracket can carry the navigation instead, built from `usePagination()`:
 
 <Preview>
   <Phone>

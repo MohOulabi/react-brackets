@@ -1,0 +1,278 @@
+---
+title: Results and live scores
+description: Report scores, show matches in progress, keep standings, and follow the round being played.
+---
+
+This page shows how to record results as matches are played, stream live scores from your server, and keep the bracket on the round that matters. Winners move on by themselves: you report a score, and the next match fills in.
+
+<div className="not-prose my-6 flex justify-center">
+  <Recording slug="live-scores" label="Live scores ticking up as the bracket follows the round being played" />
+</div>
+
+## Keep the stage in state
+
+A stage is a plain object, and every update returns a new one. Keep it wherever you keep other data: `useState`, a store such as Zustand, or the cache of a query library. When it changes, pass the new stage to the bracket and it moves to match.
+
+```tsx
+import { Bracket, singleElimination } from '@react-brackets/native';
+import { useState } from 'react';
+
+const teams = ['Falcons', 'Wolves', 'Herons', 'Lynx', 'Orcas', 'Ravens', 'Bison', 'Cobras'];
+
+export function Draw() {
+  const [stage, setStage] = useState(() =>
+    singleElimination(teams.map((name) => ({ id: name, name }))),
+  );
+
+  return <Bracket stage={stage} />;
+}
+```
+
+Building the stage inside `useState(() => ...)` makes it once, on the first render, rather than on every render.
+
+## Report a result
+
+`reportResult` takes a stage, a match id and a result, and returns a new stage with the winner moved on. It comes from `@react-brackets/core` and is exported again by `@react-brackets/native`, so one import is enough.
+
+```tsx
+import { reportResult, resetResult } from '@react-brackets/native';
+
+// a finished match: the higher score wins and moves on
+setStage((current) => reportResult(current, 'main.r1.m1', { scores: [3, 1] }));
+
+// a tie in a knockout needs a winner: 0 is the top slot, 1 the bottom
+setStage((current) => reportResult(current, 'main.r1.m2', { scores: [2, 2], winner: 1 }));
+
+// level scores with no winner record a draw, for round robin and Swiss
+setStage((current) => reportResult(current, 'main.r1.m3', { scores: [1, 1] }));
+
+// undo, which also clears every result that depended on it
+setStage((current) => resetResult(current, 'main.r1.m1'));
+```
+
+Pass a function to `setStage`, as above, when results can arrive close together. Each update then starts from the latest stage, not the one your component last rendered with.
+
+Generated match ids read as group, round and match: `main.r1.m1` is the first match of the first round. You rarely type them yourself. They usually come from a pressed match (see [press and highlight](/docs/native/press-and-highlight)) or from your server.
+
+<ApiTable from="core" name="MatchResult" />
+
+### When a result can be reported
+
+Every match has a `status`. Only a match whose two sides are known can take a result, and `reportResult` throws for the rest, so check the status before you offer a button for it.
+
+| Status | Meaning |
+| --- | --- |
+| `waiting` | At least one side is still to be decided. |
+| `ready` | Both sides are known and the match can be played. |
+| `live` | In progress, reported with `live: true`. |
+| `completed` | Finished, or decided by a bye. |
+| `skipped` | Will never be played, like an unused bracket reset. |
+
+Changing a result that is already in clears every match that depended on it. A stage can never hold a winner who did not qualify.
+
+## Show a match in progress
+
+Report a result with `live: true` and the match keeps its scores but nobody advances. Report it again without `live` when the match ends, and the winner moves on.
+
+```tsx
+// kick-off
+setStage((current) => reportResult(current, 'main.r2.m1', { scores: [0, 0], live: true }));
+
+// a goal
+setStage((current) => reportResult(current, 'main.r2.m1', { scores: [1, 0], live: true }));
+
+// full time
+setStage((current) => reportResult(current, 'main.r2.m1', { scores: [2, 1] }));
+```
+
+A live match is drawn with a coloured border, `colors.live` from the theme: red in the light theme and a softer red in the dark one. Change it like any other theme value:
+
+```tsx
+<Bracket stage={stage} theme={{ colors: { live: '#16a34a' } }} />
+```
+
+To mark it some other way, read `live` from the match state in your own card. This one adds a small badge above the two participants:
+
+```tsx
+import { Bracket } from '@react-brackets/native';
+import { Text, View } from 'react-native';
+
+<Bracket
+  stage={stage}
+  renderMatch={(match) => (
+    <Bracket.Match style={({ live }) => live && { borderColor: '#16a34a', borderWidth: 2 }}>
+      {match.status === 'live' && (
+        <View style={{ paddingHorizontal: 12, paddingTop: 6 }}>
+          <Text style={{ color: '#16a34a', fontSize: 11, fontWeight: '700' }}>Live</Text>
+        </View>
+      )}
+      <Bracket.Participant slot={0} />
+      <Bracket.Participant slot={1} />
+    </Bracket.Match>
+  )}
+/>;
+```
+
+Cards keep their own measured height, so a badge that appears on one card makes room for itself and the lines follow. See [match cards](/docs/native/match-cards) for more on drawing your own.
+
+## Results from your server
+
+There are two ways to keep a bracket in step with a server. Which one fits depends on where the truth lives.
+
+**The server sends the whole stage.** If your backend runs `reportResult` itself and stores the stage, send the stage down and replace yours with it. A stage is JSON, so it survives the trip unchanged, and the app can never disagree with the server.
+
+```tsx
+import { Bracket, type Stage } from '@react-brackets/native';
+import { useEffect, useState } from 'react';
+
+export function LiveDraw({ initial }: { initial: Stage }) {
+  const [stage, setStage] = useState(initial);
+
+  useEffect(() => {
+    const socket = new WebSocket('wss://example.com/tournaments/spring-cup');
+    socket.onmessage = (event) => setStage(JSON.parse(event.data) as Stage);
+    return () => socket.close();
+  }, []);
+
+  return <Bracket stage={stage} />;
+}
+```
+
+**The server sends score events.** If the feed only carries scores, apply each one with `reportResult` in the app. Catch the error for an event that arrives for a match that cannot take it yet, so one bad message does not break the screen.
+
+```tsx
+import { Bracket, reportResult, type Stage } from '@react-brackets/native';
+import { useEffect, useState } from 'react';
+
+interface ScoreEvent {
+  matchId: string;
+  scores: [number, number];
+  finished: boolean;
+}
+
+function apply(stage: Stage, event: ScoreEvent): Stage {
+  try {
+    return reportResult(stage, event.matchId, { scores: event.scores, live: !event.finished });
+  } catch {
+    return stage;
+  }
+}
+
+export function LiveDraw({ initial }: { initial: Stage }) {
+  const [stage, setStage] = useState(initial);
+
+  useEffect(() => {
+    const socket = new WebSocket('wss://example.com/tournaments/spring-cup/scores');
+    socket.onmessage = (message) => {
+      const event = JSON.parse(message.data) as ScoreEvent;
+      setStage((current) => apply(current, event));
+    };
+    return () => socket.close();
+  }, []);
+
+  return <Bracket stage={stage} />;
+}
+```
+
+The same works with polling, server-sent events or a push from Firebase or Supabase: whatever hands you a stage or a score, put it through `setStage`.
+
+## Follow the round being played
+
+On a phone the bracket shows one round at a time. During a live event, people usually want the round that is being played, not the first one. Work out which round that is, and pass it as `page`:
+
+```tsx
+import { Bracket, type Stage } from '@react-brackets/native';
+import { useEffect, useState } from 'react';
+
+/** The first round with a match still to finish, or the final once everything is played. */
+function playingRound(stage: Stage): number {
+  const rounds = stage.groups[0]?.rounds ?? [];
+  const index = rounds.findIndex((round) =>
+    round.matches.some((match) => match.status === 'live' || match.status === 'ready'),
+  );
+  return index === -1 ? rounds.length - 1 : index;
+}
+
+export function FollowTheAction({ stage }: { stage: Stage }) {
+  const playing = playingRound(stage);
+  const [page, setPage] = useState(playing);
+
+  // Move on when play moves on, and not before.
+  useEffect(() => setPage(playing), [playing]);
+
+  return <Bracket stage={stage} page={page} onPageChange={setPage} />;
+}
+```
+
+Keep `page` in state and pass `onPageChange` too. A swipe then still works: someone can look back at the quarterfinals, and the bracket only jumps forward again when the next round starts. Changing `page` animates to the new round, so the move reads as the bracket turning a page rather than a jump.
+
+`page` counts from 0 and only matters in the paged view. On a wide screen the whole tree shows, and `page` is ignored. The [Esports example](/examples/native#esports) follows each series this way as it plays.
+
+## Standings for round robin and Swiss
+
+Pools have no bracket to follow, so people look at a table instead. `standings` builds one from the completed matches, ranked by points, then score difference, then score, then seed:
+
+```tsx
+import {
+  Bracket,
+  participantMap,
+  roundRobin,
+  type Stage,
+  standings,
+} from '@react-brackets/native';
+import { Text, View } from 'react-native';
+
+const stage = roundRobin(
+  ['Falcons', 'Wolves', 'Herons', 'Lynx'].map((name) => ({ id: name, name })),
+);
+
+export function Table({ stage }: { stage: Stage }) {
+  const names = participantMap(stage);
+
+  return (
+    <View>
+      {standings(stage).map((row, index) => (
+        <View key={row.participantId} style={{ flexDirection: 'row', gap: 12, paddingVertical: 6 }}>
+          <Text style={{ width: 20, fontVariant: ['tabular-nums'] }}>{index + 1}</Text>
+          <Text style={{ flex: 1 }}>{names.get(row.participantId)?.name}</Text>
+          <Text style={{ fontVariant: ['tabular-nums'] }}>
+            {row.wins}-{row.draws}-{row.losses}
+          </Text>
+          <Text style={{ width: 28, textAlign: 'right', fontVariant: ['tabular-nums'] }}>
+            {row.points}
+          </Text>
+        </View>
+      ))}
+    </View>
+  );
+}
+
+export function League() {
+  return (
+    <View style={{ gap: 16 }}>
+      <Table stage={stage} />
+      <Bracket stage={stage} compact="list" />
+    </View>
+  );
+}
+```
+
+- With several groups, pass a group id to rank one group: `standings(stage, group.id)`. Leave it out to rank the whole stage, which is what you want for Swiss.
+- Points default to 3 for a win, 1 for a draw and 0 for a loss. Change them with `standings(stage, undefined, { points: { win: 2, draw: 1, loss: 0 } })`.
+- `compact="list"` suits pools: their rounds are match days with no lines between them, so a list of fixtures reads better than a bracket.
+- `qualifiers(stage, 2)` returns the top two of every group, ready to seed a knockout stage. See [groups to playoffs](/docs/formats/groups-to-playoffs).
+
+The table updates with the stage, so a live result does not count until it is reported without `live`. The [Swiss example](/examples/native#swiss) keeps a table above its rounds, and the [groups to playoffs example](/examples/native#groups-to-playoffs) feeds group tables into a knockout. Every field of a row is listed in [results and standings](/docs/api/results-and-standings).
+
+## Save and restore
+
+A stage is JSON. Store it with AsyncStorage, MMKV or your backend, and load it back as it was:
+
+```tsx
+import type { Stage } from '@react-brackets/native';
+
+const saved = JSON.stringify(stage);
+const restored = JSON.parse(saved) as Stage;
+```
+
+The restored stage takes results like the original, so a tournament can be saved after every match and picked up later.

@@ -77,10 +77,10 @@ export function Pagination({ style, children, ...props }: PaginationProps): Reac
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
-        style={[{ direction: 'ltr' }, style]}
+        // The gap sits on the row itself, so a `style` can move it when the tabs go above the bracket.
+        style={[{ direction: 'ltr', paddingTop: 12 }, style]}
         contentContainerStyle={{
           flexGrow: 1,
-          paddingTop: 12,
           justifyContent: rtl ? 'flex-end' : 'flex-start',
         }}
         accessibilityRole="tablist"

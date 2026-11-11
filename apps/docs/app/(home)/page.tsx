@@ -89,7 +89,7 @@ export default function HomePage() {
                 key={screen.slug}
                 className={cn('w-60 shrink-0 snap-center sm:w-[272px]', index === 1 && 'sm:mt-12')}
               >
-                <Recording slug={screen.slug} label={screen.label} />
+                <Recording slug={screen.slug} label={screen.label} source={false} />
               </div>
             ))}
           </div>

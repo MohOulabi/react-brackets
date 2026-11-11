@@ -1,0 +1,178 @@
+---
+title: Titles and labels
+description: Round titles with dates or progress, group titles, and the built-in labels.
+---
+
+Every round has a title above it, and every group of a stage with several has its name above it. This page shows how to rename rounds, draw your own titles with a date or a match format, and restyle or replace group titles.
+
+<div className="not-prose my-6 flex justify-center">
+  <Recording slug="round-titles" label="Round titles with dates and how many matches are played" />
+</div>
+
+## Renaming rounds
+
+Round names are data. The formats name rounds for you, like `Quarterfinals`, `Semifinals` and `Final`, and take `roundName` to name them yourself:
+
+```tsx
+import { singleElimination } from '@react-brackets/native';
+
+const stage = singleElimination(teams, {
+  roundName: (index, total) => (index === total - 1 ? 'Grand final' : `Matchday ${index + 1}`),
+});
+```
+
+`index` counts from 0 and `total` is the number of rounds. `doubleElimination` takes `roundName` for the winners bracket too. To only rename rounds, this is all you need: the default title draws `round.name`.
+
+## Drawing your own titles
+
+`renderRoundTitle` draws each round's title from the round:
+
+```tsx
+import { Bracket, type Round } from '@react-brackets/native';
+import { Text, View } from 'react-native';
+
+const dates: Record<string, string> = {
+  'main.r1': 'Sat 14 March',
+  'main.r2': 'Sat 21 March',
+  'main.r3': 'Sun 29 March',
+};
+
+function Title({ round }: { round: Round }) {
+  const played = round.matches.filter((match) => match.status === 'completed').length;
+  return (
+    <View style={{ alignItems: 'center', gap: 3 }}>
+      <Text style={{ fontSize: 15, fontWeight: '700' }}>{round.name}</Text>
+      <Text style={{ fontSize: 12, color: '#71717a' }}>
+        {dates[round.id]}, {played} of {round.matches.length} played
+      </Text>
+    </View>
+  );
+}
+
+<Bracket
+  stage={stage}
+  theme={{ titleHeight: 52 }}
+  renderRoundTitle={(round) => <Title round={round} />}
+/>;
+```
+
+Each title sits in a box as wide as its column and `titleHeight` tall, 32 points by default, and is centred in it from top to bottom. The box doesn't grow with what you draw, so a title of two lines needs a taller `titleHeight`, or it runs into the cards below. `titleHeight` applies to every round, in the paged view and the whole tree.
+
+Round ids are readable, like `main.r1`, so a plain object keyed by `round.id` is enough for dates. On a phone, titles move with their round as you swipe, and the column is narrower than in the tree, so keep them short and give long text `numberOfLines`.
+
+## Titles that depend on the round's place
+
+`renderRoundTitle` only gets the round. To know where the round sits, like whether it's the final, read the group from `useBracket()` in your title component:
+
+```tsx
+import { type Round, useBracket } from '@react-brackets/native';
+import { Text, View } from 'react-native';
+
+function Title({ round }: { round: Round }) {
+  const { group, theme } = useBracket();
+  const index = group.rounds.findIndex((each) => each.id === round.id);
+  const final = index === group.rounds.length - 1;
+  return (
+    <View style={{ alignItems: 'center' }}>
+      <Text style={{ fontWeight: '700', color: theme.colors.text }}>{round.name}</Text>
+      <Text style={{ fontSize: 11, color: theme.colors.textMuted }}>
+        Best of {final ? 5 : 3}
+      </Text>
+    </View>
+  );
+}
+```
+
+`theme` here is the bracket's own, so the title follows light and dark like the rest.
+
+## The default title
+
+Without `renderRoundTitle`, a round's title is its name in one line, centred, in `colors.textMuted`, the theme's `fontFamily` and `titleFontSize` (12 by default), at weight 600. It takes no style. Change it through the theme:
+
+```tsx
+<Bracket stage={stage} theme={{ titleFontSize: 14, titleHeight: 40 }} />
+```
+
+`textMuted` also colours losers and slots still to be decided, so to colour the titles alone, draw them with `renderRoundTitle`.
+
+`Bracket.RoundTitle` is the part the bracket draws for each round. It takes the `round` and draws your `renderRoundTitle` if there is one, or the default title. You can use it in your own elements inside `Bracket.Root`, like a header that names the round in focus:
+
+```tsx
+import { Bracket, usePagination } from '@react-brackets/native';
+
+function CurrentRound() {
+  const { rounds, page } = usePagination();
+  const round = rounds[page];
+  return round ? <Bracket.RoundTitle round={round} /> : null;
+}
+```
+
+Don't draw `Bracket.RoundTitle` from `renderRoundTitle` itself: it would call your function again, and again.
+
+## Group titles
+
+When a stage has several groups, `<Bracket>` draws each one with its name above it: `Winners bracket` and `Losers bracket` in double elimination, `Group A`, `Group B` and so on in a round robin. Some groups don't get a title: the grand final continues the winners bracket on the same grid, and a third place match sits under the bracket on its own. A stage with one group has no group title.
+
+Group names are data too. `roundRobin` takes `groupName`:
+
+```tsx
+const stage = roundRobin(teams, {
+  groups: 2,
+  groupName: (index) => ['North', 'South'][index] ?? `Group ${index + 1}`,
+});
+```
+
+The [Groups to playoffs example](/examples/native#groups-to-playoffs) draws a round robin's match days as lists with `compact="list"`, each group under its own title.
+
+The default title is a header in the theme's `text` colour and `fontFamily`, one point larger than `fontSize`, at weight 600, with 12 points below it.
+
+<div className="not-prose my-6 flex justify-center">
+  <Recording slug="double-elimination" label="A double elimination stage with a title above each bracket" />
+</div>
+
+### Restyling or replacing them
+
+`Bracket.GroupTitle` is the part that draws the name. Its `style` is a text style, or a function of `{ title }`, and its children replace the name or draw from the same state. To reach it, write out the bracket's parts, one `Bracket.Root` per group:
+
+```tsx
+import { Bracket, doubleElimination } from '@react-brackets/native';
+import { Text, View } from 'react-native';
+
+const stage = doubleElimination(teams);
+
+<View style={{ gap: 28 }}>
+  <Bracket.Root stage={stage} group="main.wb">
+    <Bracket.GroupTitle style={{ fontSize: 13, textTransform: 'uppercase', letterSpacing: 1 }} />
+    <Bracket.Viewport />
+    <Bracket.Pagination />
+  </Bracket.Root>
+  <Bracket.Root stage={stage} group="main.lb">
+    <Bracket.GroupTitle>
+      {({ title }) => (
+        <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 8, marginBottom: 12 }}>
+          <Text accessibilityRole="header" style={{ fontSize: 17, fontWeight: '700' }}>
+            {title}
+          </Text>
+          <Text style={{ color: '#71717a' }}>Lose here and you're out</Text>
+        </View>
+      )}
+    </Bracket.GroupTitle>
+    <Bracket.Viewport />
+    <Bracket.Pagination />
+  </Bracket.Root>
+</View>;
+```
+
+Children replace the whole title, so add `accessibilityRole="header"` yourself, as here, for screen readers to treat it as one. The title draws nothing in a stage with one group, and for groups that don't get one, so the same code works for any stage.
+
+Inside the root, `useBracket().group` is the group being drawn, with its `kind`, `name` and `rounds`, for anything else you want to show beside the title. [Building from parts](/docs/native/building-from-parts#several-groups) has more on drawing groups one by one.
+
+## Labels
+
+Every built-in string, like `TBD`, `Bye` and the names of the round tabs and zoom buttons read by screen readers, can be changed through `labels`. See [Right to left and languages](/docs/native/right-to-left#translate-the-built-in-strings).
+
+## Reference
+
+<ApiTable from="native" name="GroupTitleProps" />
+
+<ApiTable from="native" name="GroupTitleState" />

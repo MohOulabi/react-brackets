@@ -1,0 +1,338 @@
+---
+title: Match cards
+description: Draw your own match cards with logos, seeds, flags, scores, live states and cards that open.
+---
+
+`renderMatch` replaces the match card and keeps everything around it: the lines, swiping, pan and zoom, highlighting and presses. This page builds cards up from the two parts the bracket gives you, then adds logos and flags, scores, live states and cards that open to show more.
+
+<div className="not-prose my-6 flex justify-center">
+  <Recording slug="nations" label="Match cards with flags, seeds, kick-off times and a live match" />
+</div>
+
+```tsx
+import { Bracket } from '@react-brackets/native';
+import { Text } from 'react-native';
+
+<Bracket
+  stage={stage}
+  renderMatch={(match) => (
+    <Bracket.Match style={{ borderRadius: 16 }}>
+      <Text style={{ paddingHorizontal: 12, paddingTop: 8, fontSize: 11, color: '#71717a' }}>
+        {match.status === 'completed' ? 'Full time' : 'Upcoming'}
+      </Text>
+      {([0, 1] as const).map((slot) => (
+        <Bracket.Participant key={slot} slot={slot}>
+          {({ participant, winner, slot: { score } }) => (
+            <>
+              <Text numberOfLines={1} style={{ flex: 1, fontWeight: winner ? '700' : '400' }}>
+                {participant?.name ?? 'To be decided'}
+              </Text>
+              <Text style={{ fontVariant: ['tabular-nums'] }}>{score ?? ''}</Text>
+            </>
+          )}
+        </Bracket.Participant>
+      ))}
+    </Bracket.Match>
+  )}
+/>;
+```
+
+`renderMatch` only swaps the card. `<Bracket>` still draws everything around it, including the round tabs under the paged view, which is why they show in the recording. To move them above the bracket, restyle or replace them, see [Navigation and zoom](/docs/native/navigation-and-zoom#round-tabs).
+
+`renderMatch` is called with each match. Cards can be any height, and different heights in one bracket are fine: the bracket measures each card and fits the lines and the rounds around it. The width is the column's, set by `matchWidth` in the [theme](/docs/native/theme#card-sizes-on-a-phone), so leave it off the card.
+
+## The two building blocks
+
+**`Bracket.Match`** is the card: a view with the default border, corners and background, which takes any view prop. Its `style` can be a function of the match's state: the `match` itself, `live`, `completed`, and `highlighted` when the highlighted participant plays in it. Without children it draws both participants.
+
+**`Bracket.Participant`** is one side of the match, by `slot`: `0` for the top, `1` for the bottom. Pressing it highlights the participant's path. Its children can be a function of the participant's state:
+
+| Field | What it is |
+| --- | --- |
+| `participant` | The participant, or `undefined` while the side is still to be decided, or a bye |
+| `slot` | The slot itself, with `score`, `bye` and `participantId` |
+| `winner` / `loser` | Whether this side won or lost a decided match |
+| `bye` | Whether this side has no opponent |
+| `empty` | Whether the side is still to be decided |
+| `highlighted` | Whether this participant's path is highlighted |
+
+Your children sit in the participant's row, which lays them out side by side with a gap of 12 points. The theme styles the default name and score, not the text you draw, so set your own colours and fonts. The [styling](/docs/native/styling#participant-rows) page covers the row itself.
+
+Neither part is required. The bracket measures and places whatever `renderMatch` returns, so a card can be any view. `Bracket.Match` gives you the default look and its state, and `Bracket.Participant` gives each side the press that highlights a path.
+
+## A card in its own component
+
+Inside `renderMatch`, `useMatch()` returns the match being drawn, and `useBracket()` returns the bracket around it: its stage, participants and theme, and the highlighted participant. A card can live in its own file and take nothing:
+
+```tsx
+import { Bracket, useBracket, useMatch } from '@react-brackets/native';
+import { Text } from 'react-native';
+
+function Card() {
+  const match = useMatch();
+  const { theme } = useBracket();
+  return (
+    <Bracket.Match>
+      <Text style={{ paddingHorizontal: 12, paddingTop: 8, color: theme.colors.textMuted }}>
+        {match.id}
+      </Text>
+      <Bracket.Participant slot={0} />
+      <Bracket.Participant slot={1} />
+    </Bracket.Match>
+  );
+}
+
+<Bracket stage={stage} renderMatch={() => <Card />} />;
+```
+
+Reading colours from `theme` keeps your card in step with the rest of the bracket, in light and dark.
+
+## Logos, seeds and flags
+
+Put anything in a participant's `meta` when you build the stage, and read it back in the card:
+
+```tsx
+import { Bracket, singleElimination } from '@react-brackets/native';
+import { Text } from 'react-native';
+
+const stage = singleElimination([
+  { id: 'bra', name: 'Brazil', meta: { flag: '🇧🇷', seed: 1 } },
+  { id: 'arg', name: 'Argentina', meta: { flag: '🇦🇷', seed: 2 } },
+  // …
+]);
+
+type Nation = { flag: string; seed: number };
+
+<Bracket.Participant slot={slot} style={{ paddingVertical: 7 }}>
+  {({ participant, winner, loser, slot: { score } }) => {
+    const nation = participant?.meta as Nation | undefined;
+    return (
+      <>
+        <Text style={{ width: 12, fontSize: 11, color: '#a1a1aa' }}>{nation?.seed}</Text>
+        <Text style={{ fontSize: 17 }}>{nation?.flag ?? '🏳️'}</Text>
+        <Text
+          numberOfLines={1}
+          style={{ flex: 1, fontWeight: winner ? '700' : '400', color: loser ? '#a1a1aa' : '#18181b' }}
+        >
+          {participant?.name ?? 'To be decided'}
+        </Text>
+        <Text style={{ fontWeight: '700', fontVariant: ['tabular-nums'] }}>{score ?? ''}</Text>
+      </>
+    );
+  }}
+</Bracket.Participant>;
+```
+
+`meta` is typed as `Record<string, unknown>`, so cast it to your own shape where you read it.
+
+For logos, give each image a fixed width and height:
+
+```tsx
+import { Image } from 'react-native';
+
+<Image source={{ uri: team.logo }} style={{ width: 22, height: 22, borderRadius: 6 }} />
+```
+
+A card is measured as it lays out. An image with no size of its own has none until it loads, then grows the card, and the cards around it move to make room. A fixed size keeps the card the same height from the start.
+
+Matches have `meta` too, for a venue, a stream link or anything else: `match.meta?.venue`. Data that changes on its own schedule, like kick-off times, can also live in your own map, keyed by `match.id`.
+
+## Scores
+
+Each side's score is `slot.score`, `undefined` until one is reported. The default card shows it after the name, in the accent colour for the winner. In your own card, draw it however you like, such as pips for a best of three:
+
+```tsx
+import { View } from 'react-native';
+
+function Maps({ won, color }: { won: number; color: string }) {
+  return (
+    <View style={{ flexDirection: 'row', gap: 3 }}>
+      {[0, 1].map((map) => (
+        <View
+          key={map}
+          style={{ width: 7, height: 7, borderRadius: 4, backgroundColor: map < won ? color : '#d4d4d8' }}
+        />
+      ))}
+    </View>
+  );
+}
+```
+
+For several scores, like the games in each set of a tennis match, report the deciding score so the bracket knows who won, and keep the detail in your own data:
+
+```tsx
+import { Bracket, reportResult } from '@react-brackets/native';
+import { Text } from 'react-native';
+
+const games: Record<string, [number, number][]> = {
+  'main.r1.m1': [[6, 4], [3, 6], [7, 5]],
+};
+
+const next = reportResult(stage, 'main.r1.m1', { scores: [2, 1] });
+
+<Bracket.Participant slot={side}>
+  {({ participant }) => (
+    <>
+      <Text style={{ flex: 1 }}>{participant?.name}</Text>
+      {games[match.id]?.map((set, index) => (
+        <Text key={index} style={{ width: 16, textAlign: 'center' }}>
+          {set[side]}
+        </Text>
+      ))}
+    </>
+  )}
+</Bracket.Participant>;
+```
+
+## Live and finished matches
+
+Every match has a `status`: `waiting`, `ready`, `live`, `completed` or `skipped`. The match's state gives you `live` and `completed` to style by, and the default card's border turns to the theme's `live` colour while a match is on.
+
+```tsx
+import { Bracket } from '@react-brackets/native';
+import { Text, View } from 'react-native';
+
+<Bracket.Match
+  style={({ live }) => ({
+    borderWidth: 1.5,
+    borderColor: live ? '#ef4444' : '#e4e4e7',
+    backgroundColor: live ? '#fff5f5' : '#ffffff',
+  })}
+>
+  <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 12, paddingTop: 8 }}>
+    <Text style={{ fontSize: 11, color: '#71717a' }}>{kickoff[match.id]}</Text>
+    <Text style={{ fontSize: 11, fontWeight: match.status === 'live' ? '700' : '400' }}>
+      {match.status === 'live' ? 'Live' : match.status === 'completed' ? 'Full time' : 'Upcoming'}
+    </Text>
+  </View>
+  {/* the two participants */}
+</Bracket.Match>
+```
+
+A match is reported live with `reportResult(stage, id, { scores, live: true })`, and stays live, with nobody moving on, until a result is reported without `live`. Once it's decided, the participant's state has `winner` and `loser` for each side. In a bye, the empty side is neither: its `bye` is `true` instead.
+
+Cards are your components, so they can animate. The [Nations example](/examples/native#nations) draws a live dot that pulses with Reanimated, on the UI thread.
+
+## Cards that open
+
+<div className="not-prose my-6 flex justify-center">
+  <Recording slug="esports" label="Series cards that open to show each team's roster" />
+</div>
+
+A card can change height at any time, say to show a team's roster. When it does, the cards below it make room, the next round re-centres between the matches that feed it, and the lines follow, all gliding into place. There's nothing to set up: change what the card renders.
+
+```tsx
+import { Bracket, type Match } from '@react-brackets/native';
+import { useState } from 'react';
+import { Text, View } from 'react-native';
+import { Pressable } from 'react-native-gesture-handler';
+
+function SeriesCard({ match }: { match: Match }) {
+  const [open, setOpen] = useState<number | null>(null);
+  return (
+    <Bracket.Match>
+      {([0, 1] as const).map((slot) => (
+        <View key={slot}>
+          <Bracket.Participant slot={slot}>
+            {({ participant }) => (
+              <>
+                <Text style={{ flex: 1 }}>{participant?.name ?? 'To be decided'}</Text>
+                {participant && (
+                  <Pressable
+                    onPress={() => setOpen(open === slot ? null : slot)}
+                    hitSlop={6}
+                    accessibilityRole="button"
+                    accessibilityLabel={`${participant.name} roster`}
+                    accessibilityState={{ expanded: open === slot }}
+                  >
+                    <Text>{open === slot ? 'Hide' : 'Roster'}</Text>
+                  </Pressable>
+                )}
+              </>
+            )}
+          </Bracket.Participant>
+          {open === slot && <Roster teamId={match.slots[slot].participantId} />}
+        </View>
+      ))}
+    </Bracket.Match>
+  );
+}
+
+<Bracket stage={stage} renderMatch={(match) => <SeriesCard match={match} />} />;
+```
+
+Three things make this work well:
+
+- **Use Gesture Handler's `Pressable`** for buttons inside a card, from `react-native-gesture-handler`. The participant row is a Gesture Handler pressable itself, and a Gesture Handler button inside it wins the tap, so opening a roster doesn't also highlight the team.
+- **Draw the opened part beside the participant, not inside it.** Here the roster sits under the row, in the same view, so pressing a player's name doesn't count as pressing the team.
+- **Keep what's open by match and side** if you hold it above the card. A team that wins plays again in the next round, and keying by `match.id` and slot lets it be open in one round and closed in the next.
+
+Content that appears can animate in, for example with Reanimated's `entering={FadeIn}`. How fast the cards around it move follows `motion` on `<Bracket>`, and they move at once for people who prefer reduced motion. The [Esports example](/examples/native#esports) opens rosters this way.
+
+## Card height
+
+Cards are measured, not set. Here is what the bracket does with the measurements:
+
+- Each card keeps its own height, and a round's matches are spaced by their real heights, with `matchGap` between them.
+- Until the first cards are measured, the bracket is drawn hidden at a height guessed from `fontSize`, so it never shows at the wrong size.
+- Cards not measured yet, and empty rows in the tree, take the height of the shortest card.
+- A change of a point or less is ignored. It comes from rounding to whole pixels, not from the card.
+
+Cards look best when the cards in a round are close in height. Give text `numberOfLines`, images a fixed size, and keep optional lines, like a kick-off time, in every card rather than some. In the paged view, the bracket's height follows the round in focus; see [height between rounds](/docs/native/layouts#height-between-rounds).
+
+## Pressing a whole card
+
+`onMatchPress` makes every card pressable and calls you with its match. The card fades while pressed, and participants stop highlighting on press, so the two don't compete:
+
+```tsx
+import { Bracket, type Match } from '@react-brackets/native';
+import { useState } from 'react';
+
+const [selected, setSelected] = useState<Match | null>(null);
+
+<Bracket
+  stage={stage}
+  onMatchPress={setSelected}
+  renderMatch={(match) => (
+    <Bracket.Match style={{ borderColor: match.id === selected?.id ? '#16a34a' : '#e4e4e7' }} />
+  )}
+/>;
+```
+
+`renderMatch` closes over `selected`, so the selected card redraws when it changes. More on presses in [press and highlight](/docs/native/press-and-highlight).
+
+## Without participant rows
+
+For a card with no rows, like a single line with both names and the score, draw anything inside `Bracket.Match`. You keep the lines, paging and match presses, and lose only the press that highlights a team. To keep that too, call `highlight` from `useBracket()` yourself:
+
+```tsx
+import { Bracket, useBracket, useMatch } from '@react-brackets/native';
+import { Pressable } from 'react-native-gesture-handler';
+import { Text } from 'react-native';
+
+function OneLine() {
+  const match = useMatch();
+  const { participants, highlight } = useBracket();
+  const [home, away] = match.slots;
+  const name = (id: string | null) => (id ? participants.get(id)?.name : undefined) ?? 'TBD';
+  return (
+    <Bracket.Match>
+      <Pressable onPress={() => highlight(home.participantId)} style={{ padding: 12 }}>
+        <Text>
+          {name(home.participantId)} {home.score ?? ''} v {away.score ?? ''} {name(away.participantId)}
+        </Text>
+      </Pressable>
+    </Bracket.Match>
+  );
+}
+```
+
+## Reference
+
+<ApiTable from="native" name="MatchProps" />
+
+<ApiTable from="native" name="MatchState" />
+
+<ApiTable from="native" name="ParticipantProps" />
+
+<ApiTable from="native" name="ParticipantState" />

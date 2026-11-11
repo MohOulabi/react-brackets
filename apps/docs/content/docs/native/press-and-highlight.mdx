@@ -1,0 +1,260 @@
+---
+title: Press events and control
+description: Follow a participant's path, make matches pressable, open a match screen, and put buttons inside a card.
+---
+
+This page covers what happens when people tap the bracket: following a team through the rounds, pressing a match to act on it, and adding buttons of your own to a card.
+
+## Follow a participant's path
+
+Out of the box, tapping a participant highlights their path. Their rows take the theme's `colors.accentSoft` background in every match they played, and the lines they travelled turn `colors.accent`. Tapping them again, or tapping someone else, clears or moves the highlight.
+
+Nothing needs setting up for this. Each participant row is a button with `accessibilityState.selected` set while it is highlighted, so screen readers announce it too.
+
+## Control the highlight
+
+To highlight from outside the bracket, pass `highlighted` with a participant id, and `onHighlightChange` to hear about taps in the bracket. This puts a row of team chips above the bracket, and either one can choose whose path lights up:
+
+<div className="not-prose my-6 flex justify-center">
+  <Recording slug="follow-a-team" label="Team chips that light up a team's path through the bracket" />
+</div>
+
+```tsx
+import { Bracket, type Stage } from '@react-brackets/native';
+import { useState } from 'react';
+import { Pressable, ScrollView, Text, View } from 'react-native';
+
+export function FollowATeam({ stage }: { stage: Stage }) {
+  const [team, setTeam] = useState<string | null>(null);
+
+  return (
+    <View style={{ gap: 16 }}>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+        <View style={{ flexDirection: 'row', gap: 8 }}>
+          {stage.participants.map(({ id, name }) => (
+            <Pressable
+              key={id}
+              onPress={() => setTeam(team === id ? null : id)}
+              style={{
+                paddingHorizontal: 14,
+                paddingVertical: 8,
+                borderRadius: 999,
+                backgroundColor: team === id ? '#2563eb' : '#e4e4e7',
+              }}
+            >
+              <Text style={{ fontWeight: '600', color: team === id ? '#ffffff' : '#27272a' }}>
+                {name}
+              </Text>
+            </Pressable>
+          ))}
+        </View>
+      </ScrollView>
+      <Bracket stage={stage} highlighted={team} onHighlightChange={setTeam} />
+    </View>
+  );
+}
+```
+
+- `highlighted` takes a participant id, or `null` for nothing. Leave it out and the bracket keeps its own highlight.
+- `onHighlightChange` is called with the tapped participant's id, or `null` when a tap clears it. Leave it out, keep `highlighted`, and taps in the bracket stop changing the highlight.
+- Store the followed team with the rest of your screen's state, and it survives the stage changing. A highlight set in a user's settings, like their favourite team, can start the screen already highlighted.
+
+### Across several groups
+
+A double elimination stage is drawn as one bracket per group: the winners bracket and the losers bracket. Each keeps its own highlight unless you control it, so tapping a team in the winners bracket does not light up their run in the losers bracket. Pass `highlighted` and `onHighlightChange` from your own state, as above, and the same team is highlighted in every group.
+
+## Press a match
+
+Pass `onMatchPress` and every match becomes a button. It is called with the match that was pressed, and the card dims slightly while a finger is on it.
+
+```tsx
+<Bracket stage={stage} onMatchPress={(match) => console.log(match.id, match.status)} />
+```
+
+While `onMatchPress` is set, participant rows stop highlighting on tap, so a press always means the whole match. `highlighted` still works if you set it yourself, so you can highlight from somewhere else, like the chips above.
+
+### Pick a winner
+
+A common use is a panel to report a result. Store the pressed match's id, not the match itself: once you report a result the stage changes, and the match object you stored would show the old scores. Look the match up again with `getMatch` on every render instead.
+
+```tsx
+import {
+  Bracket,
+  getMatch,
+  participantMap,
+  reportResult,
+  type SlotIndex,
+  type Stage,
+} from '@react-brackets/native';
+import { useState } from 'react';
+import { Pressable, Text, View } from 'react-native';
+
+export function Referee({ initial }: { initial: Stage }) {
+  const [stage, setStage] = useState(initial);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const names = participantMap(stage);
+  const selected = selectedId ? getMatch(stage, selectedId) : null;
+  const canReport =
+    selected !== null && (selected.status === 'ready' || selected.status === 'live');
+
+  const win = (slot: SlotIndex) => {
+    if (!selected) return;
+    setStage(reportResult(stage, selected.id, { scores: slot === 0 ? [1, 0] : [0, 1] }));
+    setSelectedId(null);
+  };
+
+  return (
+    <View style={{ gap: 16 }}>
+      <Bracket stage={stage} onMatchPress={(match) => setSelectedId(match.id)} />
+      {selected && canReport && (
+        <View style={{ flexDirection: 'row', gap: 8 }}>
+          {([0, 1] as const).map((slot) => (
+            <Pressable
+              key={slot}
+              onPress={() => win(slot)}
+              style={{ padding: 12, borderRadius: 10, backgroundColor: '#2563eb' }}
+            >
+              <Text style={{ color: '#ffffff', fontWeight: '600' }}>
+                {names.get(selected.slots[slot].participantId ?? '')?.name} wins
+              </Text>
+            </Pressable>
+          ))}
+        </View>
+      )}
+    </View>
+  );
+}
+```
+
+`canReport` matters because `reportResult` throws for a match that is still waiting for its players. See [results and live scores](/docs/native/results) for everything `reportResult` takes.
+
+### Mark the selected match
+
+To show which match is selected, draw the card yourself and style it from the id you stored. `onMatchPress` wraps whatever `renderMatch` returns, so the card stays pressable:
+
+```tsx
+<Bracket
+  stage={stage}
+  onMatchPress={(match) => setSelectedId(match.id)}
+  renderMatch={(match) => (
+    <Bracket.Match
+      style={match.id === selectedId && { borderColor: '#2563eb', borderWidth: 2 }}
+    >
+      <Bracket.Participant slot={0} />
+      <Bracket.Participant slot={1} />
+    </Bracket.Match>
+  )}
+/>
+```
+
+## Open a match screen
+
+For more than a quick choice, open a screen of its own: the line-ups, a stream, the venue. Pass the match id to your router, and read the match from the stage on the other side. With Expo Router:
+
+```tsx
+// app/(tournament)/index.tsx
+import { Bracket } from '@react-brackets/native';
+import { useRouter } from 'expo-router';
+
+export default function DrawScreen() {
+  const router = useRouter();
+  const stage = useTournament();
+
+  return (
+    <Bracket
+      stage={stage}
+      onMatchPress={(match) =>
+        router.push({ pathname: '/match/[id]', params: { id: match.id } })
+      }
+    />
+  );
+}
+```
+
+```tsx
+// app/(tournament)/match/[id].tsx
+import { findMatch, participantMap } from '@react-brackets/native';
+import { useLocalSearchParams } from 'expo-router';
+import { Text, View } from 'react-native';
+
+export default function MatchScreen() {
+  const { id } = useLocalSearchParams<{ id: string }>();
+  const stage = useTournament();
+  const match = findMatch(stage, id);
+  if (!match) return <Text>This match is not in the draw.</Text>;
+
+  const names = participantMap(stage);
+  return (
+    <View style={{ padding: 16, gap: 8 }}>
+      {match.slots.map((slot, index) => (
+        <Text key={index}>
+          {names.get(slot.participantId ?? '')?.name ?? 'To be decided'} {slot.score ?? ''}
+        </Text>
+      ))}
+    </View>
+  );
+}
+```
+
+`useTournament` stands for wherever your stage lives: a store, a query or a context. Both screens read the same stage, so a result reported on the match screen shows in the bracket when you go back. `findMatch` returns `undefined` for an id it doesn't know, which is safer than `getMatch` for an id that came from a link.
+
+The same works with React Navigation: `navigation.navigate('Match', { id: match.id })`.
+
+## Buttons inside a card
+
+A card can hold its own buttons: open a roster, start a stream, follow a team. Use the `Pressable` from `react-native-gesture-handler` for them, not the one from `react-native`. The bracket's own participant rows and pressable matches are Gesture Handler buttons, and a Gesture Handler button inside another one wins the tap, so pressing your button does only what your button does.
+
+<div className="not-prose my-6 flex justify-center">
+  <Recording slug="esports" label="Series cards with a button that opens each team's roster" />
+</div>
+
+```tsx
+import { Bracket, type Stage } from '@react-brackets/native';
+import { useState } from 'react';
+import { Text } from 'react-native';
+import { Pressable } from 'react-native-gesture-handler';
+
+export function Rosters({ stage }: { stage: Stage }) {
+  const [open, setOpen] = useState<string | null>(null);
+
+  return (
+    <Bracket
+      stage={stage}
+      renderMatch={(match) => (
+        <Bracket.Match>
+          {([0, 1] as const).map((slot) => {
+            const id = match.slots[slot].participantId;
+            return (
+              <Bracket.Participant key={slot} slot={slot}>
+                {({ participant }) => (
+                  <>
+                    <Text style={{ flex: 1 }}>{participant?.name ?? 'To be decided'}</Text>
+                    {id && (
+                      <Pressable
+                        onPress={() => setOpen(open === id ? null : id)}
+                        hitSlop={6}
+                        accessibilityRole="button"
+                        accessibilityLabel={`${participant?.name} roster`}
+                        accessibilityState={{ expanded: open === id }}
+                      >
+                        <Text>{open === id ? 'Hide' : 'Roster'}</Text>
+                      </Pressable>
+                    )}
+                  </>
+                )}
+              </Bracket.Participant>
+            );
+          })}
+          {match.slots.some((slot) => slot.participantId === open) && (
+            <Text style={{ padding: 12 }}>Roster for {open}</Text>
+          )}
+        </Bracket.Match>
+      )}
+    />
+  );
+}
+```
+
+Tapping the name still highlights the team's path, and tapping "Roster" only opens the roster. The card grows to fit it, and the bracket makes room: the cards below move down and the lines follow. `hitSlop` makes a small button easier to hit without changing its size, and the accessibility props tell a screen reader what it does and whether it is open.
+
+The [Esports example](/examples/native#esports) opens full rosters this way, with a play button in the card header as well.

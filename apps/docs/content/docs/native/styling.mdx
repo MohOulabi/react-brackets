@@ -1,110 +1,284 @@
 ---
-title: Styling
-description: A theme, a style on every part, and your own cards, with StyleSheet, Uniwind or Unistyles.
+title: Parts and styles
+description: A style on every part, as an object or a function of its state, with StyleSheet, Uniwind, NativeWind or Unistyles.
 ---
 
-## Theme
+The [theme](/docs/native/theme) sets colours, sizes and fonts for the whole bracket. Styles change one part: a card, a participant row, a round tab, a zoom button. Every part takes `style`, and most take it as a function of their state, so a winner, a live match or the round in focus can look different from the rest.
 
-Light and dark themes follow the device. Change any value on one bracket, or for all of them:
+## How styles combine
+
+A part draws its default look first and your style after it. Any property you set wins, and every property you leave out keeps its default, so you only write what you change:
 
 ```tsx
-import { BracketThemeProvider, createTheme, darkTheme } from '@react-brackets/native';
+import { Bracket } from '@react-brackets/native';
+import { StyleSheet } from 'react-native';
 
-<Bracket stage={stage} theme={{ colors: { accent: '#ea580c' }, radius: 14 }} />;
+<Bracket
+  stage={stage}
+  renderMatch={() => (
+    <Bracket.Match style={({ live }) => [styles.card, live && styles.live]} />
+  )}
+/>;
 
-const court = createTheme({ colors: { accent: '#d7f25a', surface: '#142b63' } }, darkTheme);
-
-<BracketThemeProvider theme={court}>{/* every bracket inside */}</BracketThemeProvider>;
+const styles = StyleSheet.create({
+  card: { borderRadius: 16, borderWidth: 1.5 },
+  live: { backgroundColor: '#fff5f5' },
+});
 ```
 
-| Value | Used for |
-| --- | --- |
-| `colors.text`, `colors.textMuted` | Names, losers and slots still to be decided |
-| `colors.surface`, `colors.surfacePressed`, `colors.border` | Match cards |
-| `colors.line` | Connector lines |
-| `colors.accent`, `colors.accentSoft` | Winner scores, the highlighted path, the current round |
-| `colors.live` | The border of a live match |
-| `radius`, `lineWidth`, `connectorRadius` | Corners, line width and rounded line turns |
-| `matchWidth`, `matchGap`, `columnGap`, `pagedColumnGap`, `titleHeight` | Sizes, in points |
-| `fontFamily`, `fontSize`, `titleFontSize` | Text |
+`Bracket.Match` without children still draws both participants, so this keeps the default card and changes its corners and border. To take away part of the default look, set it back: `borderWidth: 0` removes the card's border.
 
-## Your own cards
+A style function gets the part's state and returns any style: an object, an array, a `StyleSheet` entry, or `false` and `null` for nothing. It runs every time the part renders, so keep it to picking styles.
 
-Every part takes a `style`, or a function of its state. `Bracket.Participant` also takes a function as its child, to draw anything from the participant:
+## The parts and their states
+
+| Part | `style` | State passed to a style function |
+| --- | --- | --- |
+| `Bracket.Match` | a view style, or a function | `match`, `live`, `completed`, `highlighted` |
+| `Bracket.Participant` | a view style, or a function | `participant`, `slot`, `winner`, `loser`, `bye`, `empty`, `highlighted` |
+| `Bracket.GroupTitle` | a text style, or a function | `title` |
+| `Bracket.Pagination` | a view style | |
+| `Bracket.PageButton` | a view style, or a function | `round`, `index`, `active` |
+| `Bracket.PreviousPage`, `Bracket.NextPage` | a view style, or a function | `disabled` |
+| `Bracket.PageIndicator` | a view style | |
+| `Bracket.ZoomControls` | a view style | |
+| `Bracket.ZoomIn`, `Bracket.ZoomOut`, `Bracket.ZoomReset` | a view style, or a function | `disabled`, `pressed` |
+| `Bracket.ZoomLevel` | a text style, or a function | `scale`, `percent` |
+
+`Bracket.RoundTitle` takes no style. Round titles follow the theme's `titleFontSize`, `textMuted` and `fontFamily`, and `renderRoundTitle` draws them your own way. See [round titles](/docs/native/round-titles).
+
+`Bracket.Match` and `Bracket.Participant` go in `renderMatch`. The others are parts of `Bracket.Root`, which you reach by [building from parts](/docs/native/building-from-parts), or through `renderPagination` and `renderZoomControls` on `<Bracket>`. `style` on `<Bracket>` itself styles the view around the whole bracket.
+
+Where a part draws text, like a participant's name or a round tab's label, `style` styles the part's view, not the text. The text follows the theme and the part's state. To change it, give the part children: most take a function of the same state. See [match cards](/docs/native/match-cards).
+
+## Match cards
+
+By default a card has a 1 point border in `colors.border`, or `colors.live` while the match is live, corners of `radius`, a `colors.surface` background and `overflow: 'hidden'`, so rows don't spill past the rounded corners. Style it by state:
 
 ```tsx
 <Bracket
   stage={stage}
   renderMatch={() => (
-    <Bracket.Match style={({ live }) => [styles.card, live && styles.live]}>
+    <Bracket.Match
+      style={({ live, completed, highlighted }) => [
+        styles.card,
+        completed && styles.done,
+        highlighted && styles.following,
+        live && styles.live,
+      ]}
+    />
+  )}
+/>;
+
+const styles = StyleSheet.create({
+  card: { borderRadius: 14, borderWidth: 1.5, borderColor: '#e4e4e7' },
+  done: { backgroundColor: '#fafafa' },
+  following: { borderColor: '#2563eb' },
+  live: { borderColor: '#ef4444' },
+});
+```
+
+`highlighted` is `true` when the highlighted participant plays in the match, so a card can join in when someone follows a team. Leave the card's width alone: it fills its column, which `matchWidth` in the theme sets.
+
+## Participant rows
+
+Each side of a match is a row: names and scores side by side, 12 points apart, with 12 points of padding on the sides and 9 above and below. A highlighted row gets `colors.accentSoft`, a pressed one `colors.surfacePressed`, and the bottom row has a divider along its top.
+
+```tsx
+<Bracket
+  stage={stage}
+  renderMatch={() => (
+    <Bracket.Match>
       {([0, 1] as const).map((slot) => (
-        <Bracket.Participant key={slot} slot={slot}>
-          {({ participant, slot: { score }, winner }) => (
-            <>
-              <Text style={[styles.name, winner && styles.winner]}>{participant?.name}</Text>
-              <Text style={styles.score}>{score}</Text>
-            </>
-          )}
-        </Bracket.Participant>
+        <Bracket.Participant
+          key={slot}
+          slot={slot}
+          style={({ winner, loser }) => [
+            styles.row,
+            winner && styles.winner,
+            loser && styles.loser,
+          ]}
+        />
       ))}
     </Bracket.Match>
   )}
-/>
+/>;
+
+const styles = StyleSheet.create({
+  row: { paddingVertical: 12, borderTopWidth: 0 },
+  winner: { backgroundColor: 'rgba(22, 163, 74, 0.08)' },
+  loser: { opacity: 0.55 },
+});
 ```
 
-The match state has `live`, `completed` and `highlighted`. The participant state has `participant`, `slot`, `winner`, `loser`, `bye`, `empty` and `highlighted`. The [Nations example](/examples/native#nations) builds a full card this way.
+`borderTopWidth: 0` removes the divider. `empty` is `true` while the side is still to be decided, and `bye` when there is no opponent, so both can be styled apart from a loss.
 
-Tapping a participant highlights their path. Pass `highlighted` and `onHighlightChange` to control it, or `onMatchPress` to make whole matches pressable instead.
+## Round tabs and zoom buttons
 
-### Cards that open
-
-Each card keeps its own height, measured as it lays out. When one grows, say to show a roster, the cards below it make room, the next round re-centres between the matches that feed it, and the lines follow, all gliding into place. Nothing needs setting up: change what the card renders.
+The round tabs under the paged view and the zoom buttons over a zoomable tree take styles the same way. `renderPagination` draws your own row of tabs from the bracket's parts:
 
 ```tsx
-<Bracket.Participant slot={slot}>
-  {({ participant }) => (
-    <>
-      <Text>{participant?.name}</Text>
-      <Pressable onPress={() => toggle(participant?.id)}>
-        <Chevron open={open.has(participant?.id)} />
-      </Pressable>
-    </>
+<Bracket
+  stage={stage}
+  renderPagination={({ rounds }) => (
+    <Bracket.Pagination style={styles.tabs}>
+      <Bracket.PageIndicator style={styles.pill} />
+      {rounds.map((round, index) => (
+        <Bracket.PageButton
+          key={round.id}
+          index={index}
+          style={({ active }) => [styles.tab, active && styles.active]}
+        />
+      ))}
+    </Bracket.Pagination>
   )}
-</Bracket.Participant>
-{open.has(match.slots[slot].participantId) && <Roster />}
+/>;
+
+const styles = StyleSheet.create({
+  tabs: { gap: 4 },
+  pill: { borderRadius: 8, backgroundColor: 'rgba(234, 88, 12, 0.14)' },
+  tab: { paddingHorizontal: 12, borderRadius: 8 },
+  active: { borderBottomWidth: 2, borderBottomColor: '#ea580c' },
+});
 ```
 
-Use Gesture Handler's `Pressable` for buttons inside a card, so a tap on the button wins over the participant's own press. The [Esports example](/examples/native#esports) opens rosters this way.
-
-## Tailwind, through Uniwind or NativeWind
-
-Wrap a part to give it a `className`, and use classes freely inside `renderMatch`:
+`renderZoomControls` does the same over the pan-zoom frame. Your controls replace the default ones in the frame, so position them yourself:
 
 ```tsx
+<Bracket
+  stage={stage}
+  compactBelow={0}
+  mode="pan-zoom"
+  renderZoomControls={() => (
+    <Bracket.ZoomControls style={{ position: 'absolute', top: 10, right: 10, gap: 6 }}>
+      <Bracket.ZoomOut style={({ disabled }) => [styles.button, disabled && { opacity: 0.4 }]} />
+      <Bracket.ZoomIn style={({ disabled }) => [styles.button, disabled && { opacity: 0.4 }]} />
+    </Bracket.ZoomControls>
+  )}
+/>;
+```
+
+Every navigation and zoom part, and building them from scratch with hooks, is in [navigation and zoom](/docs/native/navigation-and-zoom).
+
+## StyleSheet
+
+Everything on this page works with React Native's `StyleSheet`, plain objects, or both in an array. Styles from `StyleSheet.create` are the usual choice for anything that doesn't change, with a style function to pick between them by state.
+
+## Uniwind
+
+<div className="not-prose my-6 flex justify-center">
+  <Recording slug="tailwind" label="A bracket styled with Tailwind classes through Uniwind" />
+</div>
+
+React Native's own components take a `className` with Uniwind as they are. The bracket's parts need wrapping first, with `withUniwind`, which turns the `className` into a style:
+
+```tsx
+import { Bracket } from '@react-brackets/native';
+import { Text, View } from 'react-native';
 import { withUniwind } from 'uniwind';
 
 const Match = withUniwind(Bracket.Match);
 
 <Bracket
   stage={stage}
+  theme={{ colors: { line: '#a5b4fc', accent: '#4f46e5' } }}
   renderMatch={() => (
-    <Match className="rounded-2xl border-indigo-200 bg-white dark:bg-indigo-900">{/* … */}</Match>
+    <Match className="rounded-2xl border-indigo-200 bg-white dark:border-indigo-800 dark:bg-indigo-900">
+      {([0, 1] as const).map((slot) => (
+        <Bracket.Participant key={slot} slot={slot} style={{ paddingHorizontal: 0, paddingVertical: 0 }}>
+          {({ participant, slot: { score }, winner }) => (
+            <View className="flex-1 flex-row items-center px-3 py-2.5">
+              <Text
+                numberOfLines={1}
+                className={winner ? 'flex-1 font-bold text-indigo-950 dark:text-white' : 'flex-1 text-indigo-900/60'}
+              >
+                {participant?.name ?? 'To be decided'}
+              </Text>
+              <Text className="font-semibold text-indigo-600">{score}</Text>
+            </View>
+          )}
+        </Bracket.Participant>
+      ))}
+    </Match>
   )}
 />;
 ```
 
-With NativeWind, wrap the part with `cssInterop` the same way. See the [Tailwind example](/examples/native#tailwind).
+A `className` is a string, not a function of state. There are two ways to style by state:
+
+- **In `renderMatch`**, you have the match: `match.status === 'live'` picks classes for the card.
+- **In a participant's children**, you have the participant's state: `winner`, `loser` and the rest pick classes for the views you draw there. The example zeroes the row's own padding and lets its inner view carry the classes.
+
+Classes like `dark:` follow Uniwind's theme. The bracket's theme, which colours the lines, follows the device. To feed it your CSS variables instead, read them with Uniwind's `useCSSVariable`, which also updates when the theme changes:
+
+```tsx
+import { useCSSVariable } from 'uniwind';
+
+const [line, accent] = useCSSVariable(['--color-line', '--color-brand']);
+
+<Bracket stage={stage} theme={{ colors: { line: String(line), accent: String(accent) } }} />;
+```
+
+Uniwind only finds a variable that a class uses somewhere, or one declared in a static theme. See the [Tailwind example](/examples/native#tailwind).
+
+## NativeWind
+
+NativeWind does the same with `cssInterop`. Call it once for each part you want to style with classes, then use `className`:
+
+```tsx
+import { Bracket } from '@react-brackets/native';
+import { cssInterop } from 'nativewind';
+
+cssInterop(Bracket.Match, { className: 'style' });
+cssInterop(Bracket.Participant, { className: 'style' });
+
+<Bracket
+  stage={stage}
+  renderMatch={(match) => (
+    <Bracket.Match className={match.status === 'live' ? 'rounded-2xl border-red-500' : 'rounded-2xl'} />
+  )}
+/>;
+```
+
+Call `cssInterop` once, outside your components, before the parts render. The parts' props extend React Native's view props, which NativeWind's types already give a `className`, so TypeScript accepts it with nothing more. Styling by state works as with Uniwind: pick classes from the match in `renderMatch`, or from the participant's state in its children.
 
 ## Unistyles
 
-`withUnistyles` maps your Unistyles theme onto the bracket's, and keeps it in step when the theme changes:
+<div className="not-prose my-6 flex justify-center">
+  <Recording slug="unistyles" label="A bracket following a Unistyles theme between light and dark" />
+</div>
+
+Unistyles updates styles without re-rendering, but only on components it knows about. Wrap the bracket with `withUnistyles` and map your theme onto the bracket's. It keeps the two in step when your theme changes:
 
 ```tsx
+import { Bracket } from '@react-brackets/native';
 import { withUnistyles } from 'react-native-unistyles';
 
 const ThemedBracket = withUnistyles(Bracket, (theme) => ({
   theme: { colors: theme.bracket, radius: 14 },
 }));
+
+<ThemedBracket stage={stage} />;
 ```
 
-See the [Unistyles example](/examples/native#unistyles).
+Here `theme.bracket` is a set of `BracketColors` kept in each of your Unistyles themes, one for light and one for dark. Map from your own tokens if you'd rather not keep a separate set.
+
+Styles from Unistyles' `StyleSheet.create` reach the bracket's parts the same way: wrap the part with `withUnistyles`, then pass the styles.
+
+```tsx
+import { StyleSheet, withUnistyles } from 'react-native-unistyles';
+
+const Match = withUnistyles(Bracket.Match);
+
+const styles = StyleSheet.create((theme) => ({
+  card: { borderRadius: 14, backgroundColor: theme.colors.card },
+  live: { borderColor: theme.bracket.live },
+}));
+
+<ThemedBracket
+  stage={stage}
+  renderMatch={(match) => <Match style={[styles.card, match.status === 'live' && styles.live]} />}
+/>;
+```
+
+A wrapped part takes styles and arrays of styles, not a function. Pick by state from the match in `renderMatch`, as here. See the [Unistyles example](/examples/native#unistyles).

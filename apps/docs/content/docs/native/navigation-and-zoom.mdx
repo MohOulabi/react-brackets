@@ -1,0 +1,362 @@
+---
+title: Navigation and zoom
+description: Your own round tabs, your own zoom buttons, and how swiping, panning and zooming feel.
+---
+
+The round tabs under a phone-sized bracket and the zoom buttons over a zoomable tree are parts, not fixed drawings. You can restyle them, move them, replace them or leave them out, and two hooks, `usePagination()` and `useZoom()`, give you everything they know so you can build your own. Everything here works the same way as [on the web](/docs/customize/navigation-and-zoom), with React Native views and Reanimated in place of the DOM.
+
+<div className="flex flex-wrap justify-center gap-6">
+  <Recording slug="custom-controls" label="Round dots that follow a swipe, and zoom buttons above a pinchable tree" />
+</div>
+
+The code for both is in the [Custom controls example](/examples/native#custom-controls).
+
+## Round tabs
+
+Below `compactBelow` the bracket shows a round at a time, with `Bracket.Pagination` underneath. Without children it draws a tab for each round, with a pill behind the round in focus that follows your finger during a swipe. To arrange it yourself, compose the bracket from parts and give `Bracket.Pagination` children:
+
+| Part | What it is | Customize |
+| --- | --- | --- |
+| `Bracket.Pagination` | The row of tabs. Draws nothing while the whole tree is shown. | `style`, children |
+| `Bracket.PageButton` | A tab that moves to round `index`. Shows the round's name. | `style` and children as functions of `{ round, index, active }` |
+| `Bracket.PreviousPage`, `Bracket.NextPage` | One round back or on. Disabled at the ends. | `style` and children as functions of `{ disabled }` |
+| `Bracket.PageIndicator` | The pill behind the tab in focus. It slides and resizes between tabs as a swipe moves, on the UI thread. | `style` |
+
+```tsx
+import { Bracket } from '@react-brackets/native';
+import { Text } from 'react-native';
+
+<Bracket.Root stage={stage}>
+  <Bracket.Viewport />
+  <Bracket.Pagination style={{ gap: 4, justifyContent: 'center' }}>
+    <Bracket.PreviousPage>{({ disabled }) => <Text style={{ opacity: disabled ? 0.3 : 1 }}>‹</Text>}</Bracket.PreviousPage>
+    <Bracket.PageIndicator style={{ backgroundColor: '#dbeafe' }} />
+    {stage.groups[0].rounds.map((round, index) => (
+      <Bracket.PageButton
+        key={round.id}
+        index={index}
+        style={({ active }) => ({ paddingHorizontal: 12, paddingVertical: 6, opacity: active ? 1 : 0.6 })}
+      />
+    ))}
+    <Bracket.NextPage>{({ disabled }) => <Text style={{ opacity: disabled ? 0.3 : 1 }}>›</Text>}</Bracket.NextPage>
+  </Bracket.Pagination>
+</Bracket.Root>;
+```
+
+`Bracket.PageIndicator` measures the `Bracket.PageButton`s in the same `Bracket.Pagination`, so it lines up however you space them. Put it before the buttons so it sits behind them.
+
+With children, `Bracket.Pagination` is a plain row, so long round names can run out of room. The default tabs scroll sideways instead. For a row of tabs that scrolls, keep the default, or wrap your buttons in a horizontal `ScrollView`.
+
+`Bracket.PageButton` children replace the round's name. Use a function to draw from its state:
+
+```tsx
+<Bracket.PageButton index={index}>
+  {({ round, active }) => (
+    <Text style={{ fontWeight: active ? '700' : '400' }}>{round.name.replace('Round ', 'R')}</Text>
+  )}
+</Bracket.PageButton>
+```
+
+### Above the bracket, or not at all
+
+`<Bracket>` puts the tabs under the paged view. To put them above it, compose the bracket and place `Bracket.Pagination` first. The default tabs keep a 12 point gap on their top edge, so move it to the bottom:
+
+```tsx
+<Bracket.Root stage={stage}>
+  <Bracket.Pagination style={{ paddingTop: 0, paddingBottom: 12 }} />
+  <Bracket.Viewport />
+</Bracket.Root>
+```
+
+Leave `Bracket.Pagination` out and there are no tabs at all; swiping still pages. With the shortcut, `renderPagination={() => null}` does the same.
+
+### Dots that follow the swipe
+
+`usePagination()` works anywhere inside `Bracket.Root`. Its `position` is a Reanimated shared value: the round being shown as a fractional number that changes under your finger, `1.4` when a swipe is 40% of the way from the second round to the third. Read it in `useAnimatedStyle` and your own indicator moves on the UI thread, with no re-renders during the swipe:
+
+```tsx
+import { Bracket, usePagination } from '@react-brackets/native';
+import { Pressable, View } from 'react-native';
+import Animated, { useAnimatedStyle } from 'react-native-reanimated';
+
+function Dots() {
+  const { rounds } = usePagination();
+  return (
+    <View style={{ flexDirection: 'row', justifyContent: 'center', gap: 6, paddingTop: 16 }}>
+      {rounds.map((round, index) => (
+        <Dot key={round.id} index={index} />
+      ))}
+    </View>
+  );
+}
+
+/** Wide on the round in focus, narrowing as a swipe moves away from it. */
+function Dot({ index }: { index: number }) {
+  const { position, setPage } = usePagination();
+  const style = useAnimatedStyle(() => {
+    const near = Math.max(0, 1 - Math.abs(position.value - index));
+    return { width: 8 + 20 * near, opacity: 0.35 + 0.65 * near };
+  });
+  return (
+    <Pressable accessibilityRole="button" onPress={() => setPage(index)} hitSlop={8}>
+      <Animated.View style={[{ height: 8, borderRadius: 4, backgroundColor: '#2563eb' }, style]} />
+    </Pressable>
+  );
+}
+
+<Bracket.Root stage={stage}>
+  <Bracket.Viewport />
+  <Dots />
+</Bracket.Root>;
+```
+
+Leave `Bracket.Pagination` out and nothing else is drawn under the bracket.
+
+### A header above the bracket
+
+The hook also gives you the round in focus and the actions to move. Here the round's name and arrows sit above the bracket instead of tabs below it:
+
+```tsx
+import { Bracket, usePagination } from '@react-brackets/native';
+import { Pressable, Text, View } from 'react-native';
+
+function RoundHeader() {
+  const { rounds, page, previous, next, canPrevious, canNext } = usePagination();
+  return (
+    <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingBottom: 12 }}>
+      <View>
+        <Text style={{ fontSize: 12, color: '#71717a' }}>
+          Round {page + 1} of {rounds.length}
+        </Text>
+        <Text style={{ fontSize: 17, fontWeight: '600' }}>{rounds[page]?.name}</Text>
+      </View>
+      <View style={{ flexDirection: 'row', gap: 8 }}>
+        <Pressable accessibilityRole="button" accessibilityLabel="Previous round" disabled={!canPrevious} onPress={previous}>
+          <Text style={{ fontSize: 22, opacity: canPrevious ? 1 : 0.3 }}>‹</Text>
+        </Pressable>
+        <Pressable accessibilityRole="button" accessibilityLabel="Next round" disabled={!canNext} onPress={next}>
+          <Text style={{ fontSize: 22, opacity: canNext ? 1 : 0.3 }}>›</Text>
+        </Pressable>
+      </View>
+    </View>
+  );
+}
+
+<Bracket.Root stage={stage}>
+  <RoundHeader />
+  <Bracket.Viewport />
+</Bracket.Root>;
+```
+
+`page` changes once a swipe lands, and `position` changes during it. Use `page` for text and anything that re-renders, and `position` for anything that should move with the finger.
+
+### Without composing
+
+`<Bracket>` takes `renderPagination` for the common case of replacing just the tabs. It receives the same state as `usePagination()` and is only called while the bracket is paged:
+
+```tsx
+<Bracket
+  stage={stage}
+  renderPagination={({ rounds, page, setPage }) => (
+    <View style={{ flexDirection: 'row', justifyContent: 'center', gap: 8, paddingTop: 12 }}>
+      {rounds.map((round, index) => (
+        <Pressable key={round.id} onPress={() => setPage(index)}>
+          <Text style={{ fontWeight: index === page ? '700' : '400' }}>{round.name}</Text>
+        </Pressable>
+      ))}
+    </View>
+  )}
+/>
+```
+
+A function you pass this way is a render function, not a component, so it can't call hooks itself. For a `useAnimatedStyle` indicator, render a component from it, as `Dots` does above.
+
+## Zoom controls
+
+With `mode="pan-zoom"`, the whole tree sits in a frame you can pinch, drag and double tap, with zoom buttons in its corner. Those buttons are parts too:
+
+| Part | What it is | Customize |
+| --- | --- | --- |
+| `Bracket.ZoomControls` | The toolbar. Without children: zoom out, the zoom level and zoom in in one pill, and fit beside it. Draws nothing while the tree isn't panned and zoomed. | `style`, children |
+| `Bracket.ZoomIn`, `Bracket.ZoomOut` | Zoom by `zoom.step`. Disabled at the largest and smallest zoom. | `style` and children as functions of `{ disabled, pressed }` |
+| `Bracket.ZoomReset` | Back to where the tree started. Disabled while it is already there. | `style` and children as functions of `{ disabled, pressed }` |
+| `Bracket.ZoomLevel` | The zoom as a percentage. Updates as a pinch passes each whole percent. | `style` as a function of `{ scale, percent }`, children as a function of the same |
+
+Their accessibility labels come from `labels.zoomIn`, `labels.zoomOut` and `labels.zoomReset`, so a [translated bracket](/docs/native/right-to-left) translates them too.
+
+### Move them
+
+`Bracket.Viewport` takes `controls`: `true` for the default toolbar in the bottom right corner, `false` for none, or your own element, drawn inside the frame. Whatever you pass is placed in the frame as it is, so give it an absolute position:
+
+```tsx
+<Bracket.Root stage={stage} compactBelow={0}>
+  <Bracket.Viewport
+    mode="pan-zoom"
+    controls={<Bracket.ZoomControls style={{ position: 'absolute', top: 10, left: 10 }} />}
+  />
+</Bracket.Root>
+```
+
+### Your own buttons in the frame
+
+Give `Bracket.ZoomControls` children to keep its toolbar role and draw your own buttons. Here they stack down the right side:
+
+```tsx
+const round = ({ disabled, pressed }: { disabled: boolean; pressed: boolean }) => ({
+  width: 40,
+  height: 40,
+  borderRadius: 20,
+  alignItems: 'center' as const,
+  justifyContent: 'center' as const,
+  backgroundColor: pressed ? '#e4e4e7' : '#fff',
+  opacity: disabled ? 0.4 : 1,
+});
+
+<Bracket.Viewport
+  mode="pan-zoom"
+  controls={
+    <Bracket.ZoomControls style={{ position: 'absolute', top: 10, right: 10, flexDirection: 'column', gap: 8 }}>
+      <Bracket.ZoomIn style={round}>
+        <Text>＋</Text>
+      </Bracket.ZoomIn>
+      <Bracket.ZoomOut style={round}>
+        <Text>－</Text>
+      </Bracket.ZoomOut>
+      <Bracket.ZoomReset style={round}>
+        <Text>⤢</Text>
+      </Bracket.ZoomReset>
+    </Bracket.ZoomControls>
+  }
+/>;
+```
+
+### A toolbar outside the frame
+
+`useZoom()` works anywhere inside `Bracket.Root` and returns `null` while the tree isn't panned and zoomed, for example while a phone shows one round at a time. Turn the frame's controls off and put your own anywhere:
+
+```tsx
+import { Bracket, useZoom } from '@react-brackets/native';
+import { Pressable, Text, View } from 'react-native';
+
+function ZoomBar() {
+  const zoom = useZoom();
+  if (!zoom) return null;
+  const buttons = [
+    { label: 'Zoom out', onPress: () => zoom.zoomOut(), disabled: !zoom.canZoomOut },
+    { label: 'Zoom in', onPress: () => zoom.zoomIn(), disabled: !zoom.canZoomIn },
+    { label: 'Largest', onPress: () => zoom.zoomTo(zoom.maxScale), disabled: !zoom.canZoomIn },
+    { label: 'Fit', onPress: zoom.reset, disabled: !zoom.canReset },
+  ];
+  return (
+    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+      <Bracket.ZoomLevel>
+        {({ percent }) => <Text style={{ width: 52, fontWeight: '700', fontVariant: ['tabular-nums'] }}>{percent}%</Text>}
+      </Bracket.ZoomLevel>
+      {buttons.map(({ label, onPress, disabled }) => (
+        <Pressable
+          key={label}
+          accessibilityRole="button"
+          accessibilityState={{ disabled }}
+          disabled={disabled}
+          onPress={onPress}
+          style={{ paddingHorizontal: 12, paddingVertical: 6, borderRadius: 999, borderWidth: 1, opacity: disabled ? 0.4 : 1 }}
+        >
+          <Text>{label}</Text>
+        </Pressable>
+      ))}
+    </View>
+  );
+}
+
+<Bracket.Root stage={stage} compactBelow={0} zoom={{ maxScale: 3 }}>
+  <ZoomBar />
+  <Bracket.Viewport mode="pan-zoom" controls={false} />
+</Bracket.Root>;
+```
+
+| From `useZoom()` | What it is |
+| --- | --- |
+| `scale` | The zoom now, as a shared value. Read it in worklets and animated styles. |
+| `fitScale`, `minScale`, `maxScale` | The zoom that shows the whole width, and the limits. |
+| `canZoomIn`, `canZoomOut`, `canReset` | Whether each action would do anything. They change the moment a limit is reached or left, even during a pinch. |
+| `zoomIn(step?)`, `zoomOut(step?)` | Zoom on the middle by `step`, or by `zoom.step`. |
+| `zoomTo(scale, focus?)` | Zoom to a scale, keeping the point `focus` (in the frame, in points) still. |
+| `panBy(dx, dy)`, `panTo(x, y)` | Move the tree, kept within its edges. |
+| `reset()` | Back to where the tree started. |
+
+`scale` is a shared value so that something drawn from it can follow a pinch frame by frame. A plain number would only change once the pinch ends. For text, `Bracket.ZoomLevel` already turns it into a percentage for you.
+
+### Without composing
+
+`<Bracket>` takes `renderZoomControls`, which replaces the toolbar in the frame. It receives the `useZoom()` state, and what it returns is placed in the frame, so position it:
+
+```tsx
+<Bracket
+  stage={stage}
+  compactBelow={0}
+  mode="pan-zoom"
+  renderZoomControls={(zoom) => (
+    <Pressable onPress={zoom.reset} style={{ position: 'absolute', right: 10, bottom: 10 }}>
+      <Text>Fit</Text>
+    </Pressable>
+  )}
+/>
+```
+
+## How it feels
+
+Every number behind swiping, panning and zooming is an option, on `<Bracket>` or `Bracket.Root`. Leave them out and you get what the bracket has always done.
+
+### `zoom`
+
+For the whole tree in `pan-zoom` mode.
+
+| Option | Default | What it does |
+| --- | --- | --- |
+| `minScale` | `'fit'` | The smallest zoom. `'fit'` shows the whole width, and is never more than 1. |
+| `maxScale` | `2` | The largest zoom. `maxScale` on `<Bracket>` is a shorthand for this. |
+| `step` | `1.5` | How much the buttons, `zoomIn()` and `zoomOut()` zoom at a time. |
+| `initial` | `'fit'` | Where the tree starts, and where reset takes it: `'fit'`, a scale, or `{ scale, x, y }`. |
+| `align` | `'start'` | Where a tree smaller than the frame sits: free from the start, or held in the middle with `'center'`. |
+| `pinch`, `pan` | `true` | Turn pinching or dragging off. |
+| `doubleTap` | `'toggle'` | `'toggle'` zooms in twice over and back out to fit. A number zooms in by that much. `false` turns it off. |
+| `momentum` | `true` | Whether a drag carries on once you let go. `{ deceleration }` sets how quickly it slows, from 0 to 1, `0.998` by default. |
+| `elasticity` | `0.6` | How far a fling runs past an edge before springing back. `0` stops hard at the edges. |
+| `overshoot` | `0.15` | How far a pinch may go past the smallest and largest zoom before settling back. |
+| `animation` | `motion` | `{ duration, easing }` for zoom animations: the buttons, double tap and reset. Off for people who prefer reduced motion. |
+| `onZoomChange` | | Called with the scale once a zoom lands. |
+
+```tsx
+// Hard edges, no glide, no double tap
+<Bracket stage={stage} mode="pan-zoom" zoom={{ elasticity: 0, momentum: false, doubleTap: false }} />
+
+// Start at full size, centred while it's smaller than the frame
+<Bracket stage={stage} mode="pan-zoom" zoom={{ initial: 1, align: 'center' }} />
+
+// A longer, looser glide, and zoom up to four times
+<Bracket stage={stage} mode="pan-zoom" zoom={{ momentum: { deceleration: 0.999 }, maxScale: 4 }} />
+```
+
+`initial` as `{ scale, x, y }` places the tree's top left corner at `x`, `y` in the frame, in points, at that scale. Negative values move the tree left and up, to start on a later round. The position is kept within the tree's edges.
+
+### `swipe`
+
+For the paged view, a round at a time.
+
+| Option | Default | What it does |
+| --- | --- | --- |
+| `focus` | `0.76` | The share of the width given to the round in focus. The rest shows the next round coming. |
+| `commit` | `0.2` | How far, as a share of a round, a slow drag has to go to move to the next round. |
+| `projection` | `0.18` | How far ahead a flick is projected, in seconds of its speed, to judge where it was heading. Higher values let a quick flick travel further. |
+| `elasticity` | `0.55` | How much a drag past the first or last round gives. `0` stops hard. |
+| `spring` | `{ mass: 1, stiffness: 260, damping: 30 }` | The spring a released swipe settles with. |
+
+```tsx
+// Each round fills the width, and a swipe never runs past the ends
+<Bracket stage={stage} swipe={{ focus: 1, elasticity: 0 }} />
+
+// A bouncier landing
+<Bracket stage={stage} swipe={{ spring: { stiffness: 180, damping: 14 } }} />
+```
+
+`maxSwipeRounds` limits how many rounds one swipe can move, and `pageHeight` sets how the height moves between rounds of different lengths. Both are covered in [Layouts](/docs/native/layouts).

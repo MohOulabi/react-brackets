@@ -1,12 +1,19 @@
 'use client';
 
-import { Check, Copy, FileText } from 'lucide-react';
+import { Check, Copy, FileText, Repeat } from 'lucide-react';
 import { useState } from 'react';
 
 const base = process.env.NEXT_PUBLIC_BASE_PATH ?? '';
 
 /** Copy the page as Markdown, or open it, for pasting into an AI assistant or reading as plain text. */
-export function PageActions({ markdown }: { markdown: string }) {
+export function PageActions({
+  markdown,
+  other,
+}: {
+  markdown: string;
+  /** The same page for the other platform. */
+  other?: { url: string; platform: string } | null;
+}) {
   const [copied, setCopied] = useState(false);
   const href = `${base}${markdown}`;
   const link =
@@ -29,6 +36,12 @@ export function PageActions({ markdown }: { markdown: string }) {
         <FileText className="size-3.5" />
         Markdown
       </a>
+      {other && (
+        <a className={link} href={`${base}${other.url}`}>
+          <Repeat className="size-3.5" />
+          For {other.platform}
+        </a>
+      )}
     </div>
   );
 }
