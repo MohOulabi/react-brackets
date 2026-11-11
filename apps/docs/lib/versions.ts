@@ -32,6 +32,14 @@ export const releases: Record<'react' | 'native', Release> = {
   },
   native: {
     version: native.version === '0.0.0' ? null : native.version,
-    majors: [],
+    // Before 1.0, each minor version is its own line, so 0.1 keeps its docs as they were when 0.2 arrived.
+    majors: [
+      { label: 'v0.2', description: 'Latest', url: '/docs/native' },
+      {
+        label: 'v0.1',
+        description: 'Before the headless parts',
+        url: 'https://native-0-1.react-brackets.oulabi.dev/docs/native',
+      },
+    ],
   },
 };
