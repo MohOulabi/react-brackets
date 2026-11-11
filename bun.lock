@@ -336,7 +336,7 @@
     },
     "packages/native": {
       "name": "@react-brackets/native",
-      "version": "0.0.0",
+      "version": "0.2.0",
       "dependencies": {
         "@react-brackets/core": "workspace:*",
       },
@@ -360,7 +360,7 @@
     },
     "packages/react": {
       "name": "react-brackets",
-      "version": "2.2.0",
+      "version": "2.4.0",
       "dependencies": {
         "@react-brackets/core": "workspace:*",
       },
@@ -383,7 +383,7 @@
     },
     "packages/theme": {
       "name": "@react-brackets/theme",
-      "version": "2.0.0",
+      "version": "2.1.0",
       "devDependencies": {
         "publint": "^0.3.25",
       },
