@@ -20,11 +20,17 @@ export interface Release {
   majors: Major[];
 }
 
+/** The release line a version belongs to: its major, or its minor before 1.0, like `v2` or `v0.3`. */
+function line(version: string): string {
+  const [major = '0', minor = '0'] = version.split('.');
+  return major === '0' ? `v0.${minor}` : `v${major}`;
+}
+
 export const releases: Record<'react' | 'native', Release> = {
   react: {
     version: react.version,
     majors: [
-      { label: `v${react.version.split('.')[0]}`, description: 'Latest', url: '/docs' },
+      { label: line(react.version), description: 'Latest', url: '/docs' },
       {
         label: 'v0.4',
         description: 'Before the rewrite',
@@ -34,9 +40,10 @@ export const releases: Record<'react' | 'native', Release> = {
   },
   native: {
     version: native.version === '0.0.0' ? null : native.version,
-    // Before 1.0, each minor version is its own line, so 0.1 keeps its docs as they were when 0.2 arrived.
+    // Before 1.0 a minor version can break things, so 0.1 keeps its docs as they were when 0.2 changed the API.
+    // Releases that only add, like 0.3, stay on the latest docs.
     majors: [
-      { label: 'v0.2', description: 'Latest', url: '/docs/native' },
+      { label: line(native.version), description: 'Latest', url: '/docs/native' },
       {
         label: 'v0.1',
         description: 'Before the headless parts',
