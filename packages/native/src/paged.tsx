@@ -1,6 +1,6 @@
 import type { Group, Id, LayoutEdge, Match } from '@react-brackets/core';
 import { memo, type ReactNode, useEffect, useMemo } from 'react';
-import { View } from 'react-native';
+import { PixelRatio, View } from 'react-native';
 import { GestureDetector, usePanGesture } from 'react-native-gesture-handler';
 import Animated, {
   cancelAnimation,
@@ -171,9 +171,14 @@ export function PagedBracket({
     from: geometry.matches.get(edge.from),
     to: geometry.matches.get(edge.to),
   }));
+  // A corner can be no rounder than half the gap between rounds. Drawn at that size from the start, it
+  // keeps the line's full width, where shrinking a larger one to fit would thin its stroke too.
+  // Both are whole pixels, so the lines and corners laid out match the places worked out for them.
+  const radius = PixelRatio.roundToNearestPixel(Math.min(theme.connectorRadius, columnGap / 2));
+  const lineWidth = PixelRatio.roundToNearestPixel(theme.lineWidth);
   const look = useMemo(
-    () => ({ radius: theme.connectorRadius, width: theme.lineWidth, color: theme.colors.line }),
-    [theme.connectorRadius, theme.lineWidth, theme.colors.line],
+    () => ({ radius, width: lineWidth, color: theme.colors.line }),
+    [radius, lineWidth, theme.colors.line],
   );
   const lit = useMemo(() => ({ ...look, color: theme.colors.accent }), [look, theme.colors.accent]);
 

@@ -323,9 +323,14 @@ function useCardHeights(theme: BracketTheme) {
 
   const measure = useCallback((id: Id, event: LayoutChangeEvent) => {
     const height = Math.ceil(event.nativeEvent.layout.height);
-    setHeights((current) =>
-      current.get(id) === height ? current : new Map(current).set(id, height),
-    );
+    // Layout snaps a card's edges to whole pixels from where it sits, so moving it can change its
+    // height by a pixel, which would move it again. A point or less is that rounding, not a change.
+    setHeights((current) => {
+      const known = current.get(id);
+      return known !== undefined && Math.abs(known - height) <= 1
+        ? current
+        : new Map(current).set(id, height);
+    });
   }, []);
 
   // Rows with no card yet, and cards not measured yet, take the shortest card's height.
