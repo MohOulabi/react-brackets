@@ -87,7 +87,33 @@ One side of a match. Its children can be a function of the participant's state, 
 
 ## `Bracket.RoundTitle`
 
-The default title above a round, given the `round`. Use it inside `renderRoundTitle` to keep the default look next to something of your own. See [Round titles](/docs/native/round-titles).
+The title above a round, given the `round`. Return it from `renderRoundTitle` with a `style`, or children, as functions of its state, or next to something of your own. Elsewhere, given neither, it draws your `renderRoundTitle`. See [Round titles](/docs/native/round-titles).
+
+<ApiTable from="native" name="RoundTitleProps" />
+
+<ApiTable from="native" name="RoundTitleState" />
+
+## `Bracket.Connector`
+
+One line between two matches, in the bracket's look. Return it from `renderConnector` with a colour, width and turns per line, dashes or dots, an arrowhead or a flowing pattern. See [Connector lines](/docs/native/connectors).
+
+```tsx
+<Bracket
+  stage={stage}
+  renderConnector={({ status }) => (
+    <Bracket.Connector
+      dash={status === 'completed' ? undefined : 'dashed'}
+      style={({ highlighted }) => ({ width: highlighted ? 3 : 1.5 })}
+    />
+  )}
+/>
+```
+
+<ApiTable from="native" name="ConnectorProps" />
+
+<ApiTable from="native" name="ConnectorStyle" />
+
+<ApiTable from="native" name="ConnectorState" />
 
 ## Round tabs
 
@@ -96,6 +122,8 @@ The parts under the paged view. [Navigation and zoom](/docs/native/navigation-an
 ### `Bracket.Pagination`
 
 <ApiTable from="native" name="PaginationProps" />
+
+<ApiTable from="native" name="PaginationPartState" />
 
 ### `Bracket.PageButton`
 
@@ -122,6 +150,8 @@ The parts that zoom the whole tree in `pan-zoom` mode. They work anywhere inside
 ### `Bracket.ZoomControls`
 
 <ApiTable from="native" name="ZoomControlsProps" />
+
+<ApiTable from="native" name="ZoomControlsState" />
 
 ### `Bracket.ZoomIn`, `Bracket.ZoomOut`, `Bracket.ZoomReset`
 

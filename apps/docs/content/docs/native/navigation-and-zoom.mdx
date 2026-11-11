@@ -17,10 +17,10 @@ Below `compactBelow` the bracket shows a round at a time, with `Bracket.Paginati
 
 | Part | What it is | Customize |
 | --- | --- | --- |
-| `Bracket.Pagination` | The row of tabs. Draws nothing while the whole tree is shown. | `style`, children |
+| `Bracket.Pagination` | The row of tabs. Draws nothing while the whole tree is shown. | `style` as a function of `{ page }`, children |
 | `Bracket.PageButton` | A tab that moves to round `index`. Shows the round's name. | `style` and children as functions of `{ round, index, active }` |
 | `Bracket.PreviousPage`, `Bracket.NextPage` | One round back or on. Disabled at the ends. | `style` and children as functions of `{ disabled }` |
-| `Bracket.PageIndicator` | The pill behind the tab in focus. It slides and resizes between tabs as a swipe moves, on the UI thread. | `style` |
+| `Bracket.PageIndicator` | The pill behind the tab in focus. It slides and resizes between tabs as a swipe moves, on the UI thread. | `style` as a function of `{ page }` |
 
 ```tsx
 import { Bracket } from '@react-brackets/native';
@@ -177,7 +177,7 @@ With `mode="pan-zoom"`, the whole tree sits in a frame you can pinch, drag and d
 
 | Part | What it is | Customize |
 | --- | --- | --- |
-| `Bracket.ZoomControls` | The toolbar. Without children: zoom out, the zoom level and zoom in in one pill, and fit beside it. Draws nothing while the tree isn't panned and zoomed. | `style`, children |
+| `Bracket.ZoomControls` | The toolbar. Without children: zoom out, the zoom level and zoom in in one pill, and fit beside it. Draws nothing while the tree isn't panned and zoomed. | `style` as a function of `{ canZoomIn, canZoomOut, canReset }`, children |
 | `Bracket.ZoomIn`, `Bracket.ZoomOut` | Zoom by `zoom.step`. Disabled at the largest and smallest zoom. | `style` and children as functions of `{ disabled, pressed }` |
 | `Bracket.ZoomReset` | Back to where the tree started. Disabled while it is already there. | `style` and children as functions of `{ disabled, pressed }` |
 | `Bracket.ZoomLevel` | The zoom as a percentage. Updates as a pinch passes each whole percent. | `style` as a function of `{ scale, percent }`, children as a function of the same |

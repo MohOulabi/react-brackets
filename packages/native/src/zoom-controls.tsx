@@ -1,6 +1,5 @@
 import { type ReactNode, useState } from 'react';
 import {
-  type StyleProp,
   StyleSheet,
   Text,
   type TextStyle,
@@ -13,8 +12,17 @@ import { useAnimatedReaction } from 'react-native-reanimated';
 import { scheduleOnRN } from 'react-native-worklets';
 import { resolveStyle, type StyleOf, useBracket, useZoom } from './context';
 
+/** What `Bracket.ZoomControls` passes to a `style` function. */
+export interface ZoomControlsState {
+  canZoomIn: boolean;
+  canZoomOut: boolean;
+  /** `false` while already where reset goes. */
+  canReset: boolean;
+}
+
 export interface ZoomControlsProps extends Omit<ViewProps, 'style'> {
-  style?: StyleProp<ViewStyle>;
+  /** A style, or a function of what the buttons can do. */
+  style?: StyleOf<ZoomControlsState, ViewStyle>;
   /** Your own buttons in place of zoom out, the zoom level, zoom in and fit. */
   children?: ReactNode;
 }
@@ -25,10 +33,12 @@ const SIZE = 36;
  * The zoom buttons. Inside `Bracket.Root` they work anywhere, in the frame or outside it,
  * and draw nothing while the tree isn't panned and zoomed.
  */
-export function ZoomControls({ style, children, ...props }: ZoomControlsProps): ReactNode {
+export function ZoomControls({ style: styleOf, children, ...props }: ZoomControlsProps): ReactNode {
   const zoom = useZoom();
   const { theme } = useBracket();
   if (!zoom) return null;
+  const { canZoomIn, canZoomOut, canReset } = zoom;
+  const style = resolveStyle(styleOf, { canZoomIn, canZoomOut, canReset });
   if (children !== undefined) {
     return (
       <View accessibilityRole="toolbar" {...props} style={[{ flexDirection: 'row' }, style]}>

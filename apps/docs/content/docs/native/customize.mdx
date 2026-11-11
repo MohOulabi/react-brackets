@@ -12,6 +12,7 @@ Everything the bracket draws can be restyled or replaced, one piece at a time. S
 | Style by state: winners, live matches, the highlighted path | `style` as a function of the part's state | [Parts and styles](/docs/native/styling#the-parts-and-their-states) |
 | Draw your own match card, with logos, seeds or a live badge | `renderMatch` | [Match cards](/docs/native/match-cards) |
 | Change the colour, width and corners of the lines | `colors.line`, `lineWidth`, `connectorRadius` | [Connector lines](/docs/native/connectors) |
+| Dash, dot, colour or point each line, or draw curves | `renderConnector` with `Bracket.Connector` | [Connector lines](/docs/native/connectors#styling-each-line) |
 | Add dates to round titles, or rename rounds | `renderRoundTitle` | [Titles and labels](/docs/native/round-titles) |
 | Move, restyle or replace the round tabs and zoom buttons | `renderPagination`, `renderZoomControls`, or the parts | [Navigation and zoom](/docs/native/navigation-and-zoom) |
 | Control every element and where it goes | The `Bracket.*` parts | [Building from parts](/docs/native/building-from-parts) |
@@ -24,7 +25,7 @@ Everything the bracket draws can be restyled or replaced, one piece at a time. S
 - takes children, or a function of its state, in place of what it draws,
 - reads its strings from `labels`, so it can be translated, and sets an accessibility role.
 
-When a shortcut prop isn't enough, swap the one part you need and keep the rest. `renderMatch` replaces the card but keeps the lines, swiping, highlighting and presses. `renderPagination` replaces the round tabs but keeps paging. Compose the parts yourself only when you need to change the structure, like putting the round tabs above the bracket.
+When a shortcut prop isn't enough, swap the one part you need and keep the rest. `renderMatch` replaces the card but keeps the lines, swiping, highlighting and presses. `renderConnector` restyles the lines but keeps them moving with the cards. `renderPagination` replaces the round tabs but keeps paging. Compose the parts yourself only when you need to change the structure, like putting the round tabs above the bracket.
 
 ## A style for every state
 

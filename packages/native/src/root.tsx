@@ -34,12 +34,14 @@ import {
   withTiming,
 } from 'react-native-reanimated';
 import { scheduleOnRN } from 'react-native-worklets';
+import type { ConnectorState } from './connectors';
 import {
   BracketContext,
   type BracketContextValue,
   defaultLabels,
   type Labels,
   MatchContext,
+  PressContext,
   RootContext,
   type RootContextValue,
   resolveStyle,
@@ -90,7 +92,11 @@ export interface RootProps {
    * @defaultValue the app's own direction
    */
   dir?: 'ltr' | 'rtl';
-  /** The round in focus in the paged view, counting from 0. Set it to control paging yourself. */
+  /**
+   * The round in focus in the paged view, counting from 0. Set it to control paging yourself: a
+   * swipe or a tab then only moves the bracket if `onPageChange` sets `page` to match, and goes
+   * back to `page` if it doesn't.
+   */
   page?: number;
   /** Called with the new round once a swipe lands, or a round is chosen. */
   onPageChange?: (page: number) => void;
@@ -104,6 +110,11 @@ export interface RootProps {
   renderMatch?: (match: Match) => ReactNode;
   /** Draws a round's title. */
   renderRoundTitle?: (round: Round) => ReactNode;
+  /**
+   * Draws each line between two matches. Return a `Bracket.Connector` with your own colour, width,
+   * dashes or arrowhead, `null` to leave the line out, or anything you draw from its `points`.
+   */
+  renderConnector?: (connector: ConnectorState) => ReactNode;
   /** Replaces any of the theme's values, over the light or dark theme or the nearest provider. */
   theme?: ThemeOverrides;
   /**
@@ -166,6 +177,7 @@ export function Root({
   onMatchPress,
   renderMatch,
   renderRoundTitle,
+  renderConnector,
   theme: overrides,
   motion = 320,
   zoom,
@@ -191,18 +203,23 @@ export function Root({
   const position = useSharedValue(page);
   const zoomStore = useZoomStore(useSettled(resolveZoom(zoom, duration)), zoom?.onZoomChange);
 
+  // Bumped by every page change asked for, so a controlled page that stays put still brings the
+  // bracket back to it, like a controlled input.
+  const [asked, setAsked] = useState(0);
   // A page set from outside, or by the pagination, is animated to; one a swipe landed on is already there.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: a page asked for runs it again
   useEffect(() => {
     if (Math.round(position.value) === page) return;
     position.value =
       duration === null
         ? page
         : withTiming(page, { duration, easing: Easing.bezier(0.2, 0, 0, 1) });
-  }, [page, duration, position]);
+  }, [page, duration, position, asked]);
 
   const setPage = useCallback(
     (next: number) => {
       setOwnPage(next);
+      setAsked((count) => count + 1);
       onPageChange?.(next);
     },
     [onPageChange],
@@ -226,6 +243,7 @@ export function Root({
       highlight,
       onMatchPress,
       renderRoundTitle,
+      renderConnector,
     }),
     [
       stage,
@@ -237,6 +255,7 @@ export function Root({
       highlight,
       onMatchPress,
       renderRoundTitle,
+      renderConnector,
     ],
   );
 
@@ -390,9 +409,21 @@ function PressableMatch({
   onPress: (match: Match) => void;
   children: ReactNode;
 }): ReactNode {
+  // A card built from `Bracket.Match` colours itself while pressed; any other card fades instead.
+  const cards = useRef(0);
+  const claim = useCallback(() => {
+    cards.current += 1;
+    return () => {
+      cards.current -= 1;
+    };
+  }, []);
   return (
     <Pressable accessibilityRole="button" onPress={() => onPress(match)}>
-      {({ pressed }) => <View style={{ opacity: pressed ? 0.7 : 1 }}>{children}</View>}
+      {({ pressed }) => (
+        <PressContext.Provider value={{ pressed, claim }}>
+          <View style={{ opacity: pressed && cards.current === 0 ? 0.7 : 1 }}>{children}</View>
+        </PressContext.Provider>
+      )}
     </Pressable>
   );
 }

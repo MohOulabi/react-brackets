@@ -34,20 +34,20 @@ A style function gets the part's state and returns any style: an object, an arra
 
 | Part | `style` | State passed to a style function |
 | --- | --- | --- |
-| `Bracket.Match` | a view style, or a function | `match`, `live`, `completed`, `highlighted` |
+| `Bracket.Match` | a view style, or a function | `match`, `live`, `completed`, `highlighted`, `pressed` |
 | `Bracket.Participant` | a view style, or a function | `participant`, `slot`, `winner`, `loser`, `bye`, `empty`, `highlighted` |
 | `Bracket.GroupTitle` | a text style, or a function | `title` |
-| `Bracket.Pagination` | a view style | |
+| `Bracket.RoundTitle` | a text style, or a function | `round`, `index`, `current` |
+| `Bracket.Connector` | `color`, `width` and `radius`, or a function | `from`, `to`, `slot`, `status`, `bye`, `highlighted` |
+| `Bracket.Pagination` | a view style, or a function | `page` |
 | `Bracket.PageButton` | a view style, or a function | `round`, `index`, `active` |
 | `Bracket.PreviousPage`, `Bracket.NextPage` | a view style, or a function | `disabled` |
-| `Bracket.PageIndicator` | a view style | |
-| `Bracket.ZoomControls` | a view style | |
+| `Bracket.PageIndicator` | a view style, or a function | `page` |
+| `Bracket.ZoomControls` | a view style, or a function | `canZoomIn`, `canZoomOut`, `canReset` |
 | `Bracket.ZoomIn`, `Bracket.ZoomOut`, `Bracket.ZoomReset` | a view style, or a function | `disabled`, `pressed` |
 | `Bracket.ZoomLevel` | a text style, or a function | `scale`, `percent` |
 
-`Bracket.RoundTitle` takes no style. Round titles follow the theme's `titleFontSize`, `textMuted` and `fontFamily`, and `renderRoundTitle` draws them your own way. See [round titles](/docs/native/round-titles).
-
-`Bracket.Match` and `Bracket.Participant` go in `renderMatch`. The others are parts of `Bracket.Root`, which you reach by [building from parts](/docs/native/building-from-parts), or through `renderPagination` and `renderZoomControls` on `<Bracket>`. `style` on `<Bracket>` itself styles the view around the whole bracket.
+`Bracket.Match` and `Bracket.Participant` go in `renderMatch`, `Bracket.RoundTitle` in `renderRoundTitle`, and `Bracket.Connector` in `renderConnector`. See [round titles](/docs/native/round-titles) and [connector lines](/docs/native/connectors). The others are parts of `Bracket.Root`, which you reach by [building from parts](/docs/native/building-from-parts), or through `renderPagination` and `renderZoomControls` on `<Bracket>`. `style` on `<Bracket>` itself styles the view around the whole bracket.
 
 Where a part draws text, like a participant's name or a round tab's label, `style` styles the part's view, not the text. The text follows the theme and the part's state. To change it, give the part children: most take a function of the same state. See [match cards](/docs/native/match-cards).
 
@@ -82,7 +82,7 @@ const styles = StyleSheet.create({
 
 ## Participant rows
 
-Each side of a match is a row: names and scores side by side, 12 points apart, with 12 points of padding on the sides and 9 above and below. A highlighted row gets `colors.accentSoft`, a pressed one `colors.surfacePressed`, and the bottom row has a divider along its top.
+Each side of a match is a row: names and scores side by side, 12 points apart, with 12 points of padding on the sides and 9 above and below. A highlighted row gets `colors.accentSoft`, a pressed one `colors.surfacePressed`, and the bottom row has a divider along its top. With `onMatchPress`, the whole card takes `colors.surfacePressed` while pressed, and `pressed` in its state says so.
 
 ```tsx
 <Bracket

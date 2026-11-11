@@ -8,14 +8,7 @@ import {
   useMemo,
   useState,
 } from 'react';
-import {
-  type LayoutRectangle,
-  type StyleProp,
-  Text,
-  View,
-  type ViewProps,
-  type ViewStyle,
-} from 'react-native';
+import { type LayoutRectangle, Text, View, type ViewProps, type ViewStyle } from 'react-native';
 import { Pressable, ScrollView } from 'react-native-gesture-handler';
 import Animated, { useAnimatedStyle } from 'react-native-reanimated';
 import { resolveStyle, type StyleOf, useBracket, usePagination, useRoot } from './context';
@@ -29,8 +22,15 @@ interface Tabs {
 
 const TabsContext: Context<Tabs | null> = createContext<Tabs | null>(null);
 
+/** What `Bracket.Pagination` and `Bracket.PageIndicator` pass to a `style` function. */
+export interface PaginationPartState {
+  /** The round in focus, counting from 0. */
+  page: number;
+}
+
 export interface PaginationProps extends Omit<ViewProps, 'style'> {
-  style?: StyleProp<ViewStyle>;
+  /** A style, or a function of the page. */
+  style?: StyleOf<PaginationPartState, ViewStyle>;
   /**
    * Your own row: `Bracket.PageButton`, `Bracket.PreviousPage`, `Bracket.NextPage`,
    * `Bracket.PageIndicator`, or anything built on `usePagination`.
@@ -43,8 +43,8 @@ export interface PaginationProps extends Omit<ViewProps, 'style'> {
  * The rounds as tabs, under the paged view; nothing while the whole tree shows.
  * The marker under them follows a swipe as it happens, not after it lands.
  */
-export function Pagination({ style, children, ...props }: PaginationProps): ReactNode {
-  const { paged, dir, group } = useRoot('Pagination');
+export function Pagination({ style: styleOf, children, ...props }: PaginationProps): ReactNode {
+  const { paged, dir, group, page } = useRoot('Pagination');
   const { labels } = useBracket();
   const [layouts, setLayouts] = useState<LayoutRectangle[]>([]);
   const place = useCallback((index: number, layout: LayoutRectangle) => {
@@ -56,6 +56,7 @@ export function Pagination({ style, children, ...props }: PaginationProps): Reac
   }, []);
   const tabs = useMemo(() => ({ layouts, place }), [layouts, place]);
   if (!paged) return null;
+  const style = resolveStyle(styleOf, { page });
 
   if (children !== undefined) {
     return (
@@ -149,7 +150,8 @@ export function PageButton({ index, style, children }: PageButtonProps): ReactNo
 }
 
 export interface PageIndicatorProps {
-  style?: StyleProp<ViewStyle>;
+  /** A style, or a function of the page. */
+  style?: StyleOf<PaginationPartState, ViewStyle>;
 }
 
 /**
@@ -157,7 +159,7 @@ export interface PageIndicatorProps {
  * thread, sliding and resizing between the tabs it passes.
  */
 export function PageIndicator({ style }: PageIndicatorProps): ReactNode {
-  const { rounds, position } = usePagination();
+  const { rounds, page, position } = usePagination();
   const { theme } = useBracket();
   const layouts = useContext(TabsContext)?.layouts ?? [];
   const measured = layouts.filter(Boolean).length === rounds.length;
@@ -180,7 +182,7 @@ export function PageIndicator({ style }: PageIndicatorProps): ReactNode {
           borderRadius: 999,
           backgroundColor: theme.colors.accentSoft,
         },
-        style,
+        resolveStyle(style, { page }),
         marker,
       ]}
     />

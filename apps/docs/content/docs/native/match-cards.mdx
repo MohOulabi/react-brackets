@@ -282,7 +282,7 @@ Cards look best when the cards in a round are close in height. Give text `number
 
 ## Pressing a whole card
 
-`onMatchPress` makes every card pressable and calls you with its match. The card fades while pressed, and participants stop highlighting on press, so the two don't compete:
+`onMatchPress` makes every card pressable and calls you with its match. A card built from `Bracket.Match` takes `colors.surfacePressed` while pressed, and a card you draw without it fades a little, and participants stop highlighting on press, so the two don't compete:
 
 ```tsx
 import { Bracket, type Match } from '@react-brackets/native';

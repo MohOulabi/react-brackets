@@ -93,7 +93,7 @@ export const nativeExamples: { title: string; examples: NativeExample[] }[] = [
         slug: 'connector-lines',
         title: 'Connector lines',
         summary:
-          "Rounded, square or bold: the lines' colour, width and corners, and the colour of a highlighted path.",
+          'Lines dashed until their match is decided, a highlighted path that flows, arrows coloured by result, and curves drawn with react-native-svg.',
       },
       {
         slug: 'custom-controls',

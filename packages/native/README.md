@@ -3,7 +3,7 @@
 Tournament brackets for React Native and Expo, from the same core as [react-brackets](https://react-brackets.oulabi.dev).
 
 - **Native feel.** Swipes, the change of round, pinch and zoom all run on the UI thread with Reanimated and Gesture Handler. React re-renders only once a swipe lands.
-- **Lines that never trail.** Connectors are plain views moved by the same transforms as the cards, in the same frame, and stay sharp at any zoom.
+- **Lines that never trail.** Connectors are plain views moved by the same transforms as the cards, in the same frame, and stay sharp at any zoom. Dash, dot, colour or point each one with `renderConnector`, or draw your own.
 - **Still a bracket on a phone.** Narrow screens page through one round at a time, with the next round and its lines at the edge, or as plain lists. Wide screens get the whole tree, scrolled, fitted or zoomed, standard or mirrored.
 - **Right to left.** Follows your app's direction, or `dir="rtl"`: the first round on the right, swiped the other way.
 - **Every format.** Single and double elimination, round robin, Swiss and your own data, with results that move winners on.

@@ -1,5 +1,5 @@
 import type { Group, Id, LayoutEdge, Match } from '@react-brackets/core';
-import { memo, type ReactNode, useMemo } from 'react';
+import { memo, type ReactNode, useCallback, useMemo } from 'react';
 import { PixelRatio, View } from 'react-native';
 import { GestureDetector, usePanGesture } from 'react-native-gesture-handler';
 import Animated, {
@@ -11,7 +11,8 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 import { scheduleOnRN } from 'react-native-worklets';
-import { MovingConnector } from './connectors';
+import { LineLayer, type LineLook, lineState, MovingConnector, MovingLine } from './connectors';
+import { useBracket } from './context';
 import {
   frameAt,
   heightAt,
@@ -155,11 +156,16 @@ export function PagedBracket({
     height: heightAt(geometry.heights, position.value, fit),
   }));
   const pulled = useAnimatedStyle(() => ({ transform: [{ translateX: stretch.value }] }));
-  const lines = geometry.edges.map((edge) => ({
-    edge,
-    from: geometry.matches.get(edge.from),
-    to: geometry.matches.get(edge.to),
-  }));
+  // Highlighted lines are drawn last, so they run over the others where they meet.
+  const lines = [...geometry.edges]
+    .sort(
+      (a, b) => Number(highlightedEdges.has(edgeKey(a))) - Number(highlightedEdges.has(edgeKey(b))),
+    )
+    .map((edge) => ({
+      edge,
+      from: geometry.matches.get(edge.from),
+      to: geometry.matches.get(edge.to),
+    }));
   // A corner can be no rounder than half the gap between rounds. Drawn at that size from the start, it
   // keeps the line's full width, where shrinking a larger one to fit would thin its stroke too.
   // Both are whole pixels, so the lines and corners laid out match the places worked out for them.
@@ -170,28 +176,75 @@ export function PagedBracket({
     [radius, lineWidth, theme.colors.line],
   );
   const lit = useMemo(() => ({ ...look, color: theme.colors.accent }), [look, theme.colors.accent]);
+  const { renderConnector } = useBracket();
+  // Lines drawn your way are held to the same: whole pixels, and turns that fit the gap.
+  const fitLook = useCallback(
+    (own: LineLook): LineLook => ({
+      color: own.color,
+      width: PixelRatio.roundToNearestPixel(own.width),
+      radius: PixelRatio.roundToNearestPixel(Math.min(own.radius, columnGap / 2)),
+    }),
+    [columnGap],
+  );
+  const matches = useMemo(
+    () => new Map(group.rounds.flatMap((round) => round.matches).map((match) => [match.id, match])),
+    [group],
+  );
+
+  const drawn = lines.map(({ edge, from, to }) => {
+    if (!from || !to) return null;
+    const highlighted = highlightedEdges.has(edgeKey(edge));
+    if (renderConnector) {
+      const state = lineState(edge, matches, highlighted);
+      return (
+        state && (
+          <MovingLine
+            key={edgeKey(edge)}
+            from={from}
+            to={to}
+            fromHeight={heightOf(metrics, edge.from)}
+            toHeight={heightOf(metrics, edge.to)}
+            width={matchWidth}
+            position={position}
+            duration={duration}
+            info={{
+              ...state,
+              look: highlighted ? lit : look,
+              fit: fitLook,
+              animate: duration !== null,
+              render: renderConnector,
+            }}
+          />
+        )
+      );
+    }
+    return (
+      <MovingConnector
+        key={edgeKey(edge)}
+        from={from}
+        to={to}
+        fromHeight={heightOf(metrics, edge.from)}
+        toHeight={heightOf(metrics, edge.to)}
+        width={matchWidth}
+        position={position}
+        duration={duration}
+        look={highlighted ? lit : look}
+      />
+    );
+  });
+  const tallest = Math.max(0, ...geometry.heights);
 
   return (
     <GestureDetector gesture={pan}>
       {/* Places are worked out left to right and mirrored for RTL, so this layer never flips them again. */}
       <Animated.View style={[{ overflow: 'hidden', direction: 'ltr' }, frame]}>
         <Animated.View style={pulled}>
-          {lines.map(
-            ({ edge, from, to }) =>
-              from &&
-              to && (
-                <MovingConnector
-                  key={edgeKey(edge)}
-                  from={from}
-                  to={to}
-                  fromHeight={heightOf(metrics, edge.from)}
-                  toHeight={heightOf(metrics, edge.to)}
-                  width={matchWidth}
-                  position={position}
-                  duration={duration}
-                  look={highlightedEdges.has(edgeKey(edge)) ? lit : look}
-                />
-              ),
+          {renderConnector ? (
+            <LineLayer width={width} height={tallest}>
+              {drawn}
+            </LineLayer>
+          ) : (
+            drawn
           )}
           {group.rounds.map((round) => (
             <Placed
