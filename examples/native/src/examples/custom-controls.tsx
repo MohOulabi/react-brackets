@@ -10,26 +10,9 @@ import type { ReactNode } from 'react';
 import { Pressable, Text, useColorScheme, View } from 'react-native';
 import Animated, { useAnimatedStyle } from 'react-native-reanimated';
 
-const teams = [
-  'Falcons',
-  'Wolves',
-  'Herons',
-  'Lynx',
-  'Orcas',
-  'Ravens',
-  'Bison',
-  'Cobras',
-  'Hawks',
-  'Otters',
-  'Cranes',
-  'Pumas',
-  'Sharks',
-  'Owls',
-  'Moose',
-  'Vipers',
-];
+const teams = ['Falcons', 'Wolves', 'Herons', 'Lynx', 'Orcas', 'Ravens', 'Bison', 'Cobras'];
 
-const stage = Array.from({ length: 8 }, (_, index) => `main.r1.m${index + 1}`).reduce<Stage>(
+const stage = Array.from({ length: 4 }, (_, index) => `main.r1.m${index + 1}`).reduce<Stage>(
   (current, match, index) => reportResult(current, match, { scores: index % 3 ? [2, 1] : [0, 2] }),
   singleElimination(teams.map((name) => ({ id: name, name }))),
 );
@@ -103,6 +86,8 @@ function Arrow({
   disabled: boolean;
   dark: boolean;
 }): ReactNode {
+  // Faded through colours rather than the view's opacity: iOS can drop the glyph when that opacity comes back.
+  const ink = dark ? '#fafafa' : '#18181b';
   return (
     <View
       style={{
@@ -112,10 +97,9 @@ function Arrow({
         alignItems: 'center',
         justifyContent: 'center',
         backgroundColor: dark ? '#27272a' : '#e4e4e7',
-        opacity: disabled ? 0.4 : 1,
       }}
     >
-      <Text style={{ fontSize: 20, lineHeight: 22, color: dark ? '#fafafa' : '#18181b' }}>
+      <Text style={{ fontSize: 20, lineHeight: 22, color: disabled ? `${ink}55` : ink }}>
         {label}
       </Text>
     </View>

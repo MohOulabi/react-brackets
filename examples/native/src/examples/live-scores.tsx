@@ -42,6 +42,10 @@ function liveRound(stage: Stage): number {
 
 export default function LiveScores() {
   const [stage, setStage] = useState(start);
+  // Follows the round being played, and still lets you swipe back to earlier rounds in between.
+  const live = liveRound(stage);
+  const [page, setPage] = useState(live);
+  useEffect(() => setPage(live), [live]);
 
   useEffect(() => {
     const timer = setInterval(() => setStage(tick), 700);
@@ -55,7 +59,7 @@ export default function LiveScores() {
         <Text style={{ fontWeight: '700', color: '#ef4444' }}>Live</Text>
         <Text style={{ color: '#71717a' }}>First to {target} goes through</Text>
       </View>
-      <Bracket stage={stage} page={liveRound(stage)} />
+      <Bracket stage={stage} page={page} onPageChange={setPage} />
     </View>
   );
 }
