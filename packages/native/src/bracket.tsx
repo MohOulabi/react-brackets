@@ -8,7 +8,7 @@ import {
   type Round,
   type Stage,
 } from '@react-brackets/core';
-import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { type ReactNode, useCallback, useMemo, useState } from 'react';
 import {
   I18nManager,
   type LayoutChangeEvent,
@@ -313,35 +313,19 @@ function GroupBracket({
 
 /**
  * Every card's height, measured as it lays out, so each keeps its own and a card
- * that opens or closes moves the ones around it. Reports from one frame are applied
- * together. Until the first ones arrive, the bracket stays hidden at a sensible guess.
+ * that opens or closes moves the ones around it. Reports arriving together are
+ * applied together, straight away, so the cards around one that grew start moving
+ * in the next frame. Until the first ones arrive, the bracket stays hidden at a sensible guess.
  */
 function useCardHeights(theme: BracketTheme) {
   const guess = Math.round(2 * (theme.fontSize * 1.3 + 18) + 3);
   const [heights, setHeights] = useState<ReadonlyMap<Id, number>>(() => new Map());
-  const pending = useRef(new Map<Id, number>());
-  const frame = useRef<number | null>(null);
-
-  useEffect(
-    () => () => {
-      if (frame.current !== null) cancelAnimationFrame(frame.current);
-    },
-    [],
-  );
 
   const measure = useCallback((id: Id, event: LayoutChangeEvent) => {
-    pending.current.set(id, Math.ceil(event.nativeEvent.layout.height));
-    if (frame.current !== null) return;
-    frame.current = requestAnimationFrame(() => {
-      frame.current = null;
-      const reported = pending.current;
-      pending.current = new Map();
-      setHeights((current) =>
-        [...reported].some(([key, height]) => current.get(key) !== height)
-          ? new Map([...current, ...reported])
-          : current,
-      );
-    });
+    const height = Math.ceil(event.nativeEvent.layout.height);
+    setHeights((current) =>
+      current.get(id) === height ? current : new Map(current).set(id, height),
+    );
   }, []);
 
   // Rows with no card yet, and cards not measured yet, take the shortest card's height.
