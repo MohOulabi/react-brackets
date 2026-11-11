@@ -1,6 +1,6 @@
 ---
-title: Round titles
-description: Rename rounds, draw titles with dates, formats or progress, and title each group of a stage.
+title: Titles and labels
+description: Round titles with dates or progress, group titles, and the built-in labels.
 ---
 
 Every round has a title above it, and every group of a stage with several has its name above it. This page shows how to rename rounds, draw your own titles with a date or a match format, and restyle or replace group titles.
@@ -166,6 +166,10 @@ const stage = doubleElimination(teams);
 Children replace the whole title, so add `accessibilityRole="header"` yourself, as here, for screen readers to treat it as one. The title draws nothing in a stage with one group, and for groups that don't get one, so the same code works for any stage.
 
 Inside the root, `useBracket().group` is the group being drawn, with its `kind`, `name` and `rounds`, for anything else you want to show beside the title. [Building from parts](/docs/native/building-from-parts#several-groups) has more on drawing groups one by one.
+
+## Labels
+
+Every built-in string, like `TBD`, `Bye` and the names of the round tabs and zoom buttons read by screen readers, can be changed through `labels`. See [Right to left and languages](/docs/native/right-to-left#translate-the-built-in-strings).
 
 ## Reference
 

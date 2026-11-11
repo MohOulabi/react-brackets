@@ -89,36 +89,7 @@ With `compact="list"`, cards take the full width. There is no height in the them
 
 ## Connector lines
 
-<div className="not-prose my-6 flex justify-center">
-  <Recording slug="connector-lines" label="Three line styles, with a team's path highlighted" />
-</div>
-
-Lines take their colour from `colors.line`, their width from `lineWidth` and their rounded turns from `connectorRadius`. The path of a highlighted participant, every line they travelled by winning, is drawn in `colors.accent`:
-
-```tsx
-import { Bracket, type ThemeOverrides } from '@react-brackets/native';
-
-const rounded: ThemeOverrides = {
-  lineWidth: 2,
-  connectorRadius: 14,
-  colors: { line: '#c4b5fd', accent: '#7c3aed', accentSoft: 'rgba(124, 58, 237, 0.12)' },
-};
-
-const square: ThemeOverrides = {
-  lineWidth: 1,
-  connectorRadius: 0,
-  radius: 2,
-  colors: { line: '#a1a1aa', accent: '#0f766e', accentSoft: 'rgba(15, 118, 110, 0.12)' },
-};
-
-<Bracket stage={stage} theme={rounded} highlighted="falcons" />;
-```
-
-A turn is never rounder than half the gap between rounds, so a large `connectorRadius` with a small `columnGap` or `pagedColumnGap` gives the roundest turn that fits. In the paged view, line widths and turns are rounded to whole pixels, so the lines stay sharp as they move.
-
-Lines are drawn by the bracket, as views that move with the cards. Unlike the web package, you can't replace them with your own drawing, so dashed lines, curves and arrows aren't available on native. To hide them, set `colors.line` to `'transparent'`. A highlighted path still draws in `accent`.
-
-See [press and highlight](/docs/native/press-and-highlight) for how a path gets highlighted.
+Lines take their colour from `colors.line`, their width from `lineWidth` and their rounded turns from `connectorRadius`, and a highlighted path is drawn in `colors.accent`. [Connector lines](/docs/native/connectors) shows each in use.
 
 ## One theme for every bracket
 

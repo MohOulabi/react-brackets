@@ -37,6 +37,8 @@ import { Text } from 'react-native';
 />;
 ```
 
+`renderMatch` only swaps the card. `<Bracket>` still draws everything around it, including the round tabs under the paged view, which is why they show in the recording. To move them above the bracket, restyle or replace them, see [Navigation and zoom](/docs/native/navigation-and-zoom#round-tabs).
+
 `renderMatch` is called with each match. Cards can be any height, and different heights in one bracket are fine: the bracket measures each card and fits the lines and the rounds around it. The width is the column's, set by `matchWidth` in the [theme](/docs/native/theme#card-sizes-on-a-phone), so leave it off the card.
 
 ## The two building blocks

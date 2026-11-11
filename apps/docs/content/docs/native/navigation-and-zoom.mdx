@@ -57,6 +57,19 @@ With children, `Bracket.Pagination` is a plain row, so long round names can run 
 </Bracket.PageButton>
 ```
 
+### Above the bracket, or not at all
+
+`<Bracket>` puts the tabs under the paged view. To put them above it, compose the bracket and place `Bracket.Pagination` first. The default tabs keep a 12 point gap on their top edge, so move it to the bottom:
+
+```tsx
+<Bracket.Root stage={stage}>
+  <Bracket.Pagination style={{ paddingTop: 0, paddingBottom: 12 }} />
+  <Bracket.Viewport />
+</Bracket.Root>
+```
+
+Leave `Bracket.Pagination` out and there are no tabs at all; swiping still pages. With the shortcut, `renderPagination={() => null}` does the same.
+
 ### Dots that follow the swipe
 
 `usePagination()` works anywhere inside `Bracket.Root`. Its `position` is a Reanimated shared value: the round being shown as a fractional number that changes under your finger, `1.4` when a swipe is 40% of the way from the second round to the third. Read it in `useAnimatedStyle` and your own indicator moves on the UI thread, with no re-renders during the swipe:

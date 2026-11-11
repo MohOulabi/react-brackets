@@ -1,0 +1,48 @@
+---
+title: Overview
+description: What you can change, and the lightest way to change it.
+---
+
+Everything the bracket draws can be restyled or replaced, one piece at a time. Start with the lightest tool that does the job; each step down the list gives you more control and asks for a little more code.
+
+| You want to | Use | Where |
+| --- | --- | --- |
+| Change colours, sizes, gaps, radius or line width | `theme`, `createTheme`, `BracketThemeProvider` | [Theme](/docs/native/theme) |
+| Style parts with StyleSheet, Uniwind, NativeWind or Unistyles | Each part's `style` | [Parts and styles](/docs/native/styling) |
+| Style by state: winners, live matches, the highlighted path | `style` as a function of the part's state | [Parts and styles](/docs/native/styling#the-parts-and-their-states) |
+| Draw your own match card, with logos, seeds or a live badge | `renderMatch` | [Match cards](/docs/native/match-cards) |
+| Change the colour, width and corners of the lines | `colors.line`, `lineWidth`, `connectorRadius` | [Connector lines](/docs/native/connectors) |
+| Add dates to round titles, or rename rounds | `renderRoundTitle` | [Titles and labels](/docs/native/round-titles) |
+| Move, restyle or replace the round tabs and zoom buttons | `renderPagination`, `renderZoomControls`, or the parts | [Navigation and zoom](/docs/native/navigation-and-zoom) |
+| Control every element and where it goes | The `Bracket.*` parts | [Building from parts](/docs/native/building-from-parts) |
+
+## How customising works
+
+`<Bracket>` is a shortcut that renders a set of parts for you: a root, the group's title, a viewport with the rounds and their lines, the round tabs under the paged view, and the zoom buttons over a zoomable tree. Every part:
+
+- takes `style` as a style, or as a function of its state,
+- takes children, or a function of its state, in place of what it draws,
+- reads its strings from `labels`, so it can be translated, and sets an accessibility role.
+
+When a shortcut prop isn't enough, swap the one part you need and keep the rest. `renderMatch` replaces the card but keeps the lines, swiping, highlighting and presses. `renderPagination` replaces the round tabs but keeps paging. Compose the parts yourself only when you need to change the structure, like putting the round tabs above the bracket.
+
+## A style for every state
+
+Each part's `style` can be a function. It receives the part's state, so you can style from data without extra code:
+
+```tsx
+<Bracket.Match style={({ live, highlighted }) => [styles.card, live && styles.live, highlighted && styles.ring]} />
+```
+
+| Part | `style` receives |
+| --- | --- |
+| `Bracket.Match` | [`MatchState`](/docs/native/api#bracketmatch) |
+| `Bracket.Participant` | [`ParticipantState`](/docs/native/api#bracketparticipant) |
+| `Bracket.PageButton` | [`PageButtonState`](/docs/native/api#bracketpagebutton) |
+| `Bracket.PreviousPage`, `Bracket.NextPage` | [`StepButtonState`](/docs/native/api#bracketpreviouspage-bracketnextpage) |
+| `Bracket.ZoomIn`, `Bracket.ZoomOut`, `Bracket.ZoomReset` | [`ZoomButtonState`](/docs/native/api#bracketzoomin-bracketzoomout-bracketzoomreset) |
+| `Bracket.ZoomLevel`, `Bracket.GroupTitle` | Their own state, with the text they show |
+
+## Your own data
+
+Anything you put in `meta` on a participant, a match or a group comes back to you wherever you render it: a logo, a country, a seed, a venue or a stream link. The data model is the same on both platforms: see [your own data](/docs/formats/your-own-data).

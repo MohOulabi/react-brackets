@@ -52,6 +52,22 @@ On narrow containers the bracket shows one round at a time, with `Bracket.Pagina
 
 `Bracket.PageIndicator` measures the page buttons next to it, so it lines up however you lay them out. It moves with your `motion` timing, and while a swipe is heading to a round it is already on its way there.
 
+### Above the bracket, or not at all
+
+`<Bracket>` puts the navigation under the paged view. To put it above, compose the bracket and place `Bracket.Pagination` first. The theme gives it a top margin, which a class overrides:
+
+```tsx
+<Bracket.Root stage={stage}>
+  <Bracket.Pagination className="mt-0 mb-3" />
+  <Bracket.Viewport>
+    <Bracket.Rounds />
+    <Bracket.Connectors />
+  </Bracket.Viewport>
+</Bracket.Root>
+```
+
+Leave `Bracket.Pagination` out and there is no navigation at all; swiping still pages.
+
 ### Anything else, from `usePagination()`
 
 `usePagination()` works anywhere inside `Bracket.Root`, so the navigation can sit above the bracket, beside it, or in a header of its own. Here a title with progress sits above, and dots sit below:
