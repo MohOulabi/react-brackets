@@ -1,1 +1,10 @@
-{ "pages": ["index", "match-cards", "connectors", "titles-and-navigation", "building-from-parts"] }
+{
+  "pages": [
+    "index",
+    "match-cards",
+    "connectors",
+    "titles-and-navigation",
+    "navigation-and-zoom",
+    "building-from-parts"
+  ]
+}

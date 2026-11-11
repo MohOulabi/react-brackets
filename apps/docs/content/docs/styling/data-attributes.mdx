@@ -28,7 +28,10 @@ Every element has `data-scope="bracket"` and a `data-part`. Target them from any
 | `participant-name` / `participant-score` | `span` | |
 | `connectors` / `connector` | `svg` / `path` | `data-status`, `data-bye`, `data-highlighted` on each path |
 | `pagination`, `page`, `page-previous`, `page-next` | `nav` / `button` | `data-active` on the current page |
-| `zoom-controls`, `zoom-in`, `zoom-out`, `zoom-reset` | `div` / `button` | |
+| `page-indicator` | `span` | |
+| `zoom-controls`, `zoom-steps` | `div` / `span` | |
+| `zoom-in`, `zoom-out`, `zoom-reset` | `button` | `data-disabled` at the limits |
+| `zoom-level` | `span` | |
 
 `data-status` is one of `waiting`, `ready`, `live`, `completed` or `skipped`.
 

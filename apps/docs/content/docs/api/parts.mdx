@@ -110,4 +110,42 @@ One line, with its `data-*` attributes and theme styling. Takes any prop of an S
 
 ## Bracket.Pagination
 
-Round navigation for the paged view: previous, a button per round, next. It renders nothing while the whole tree is shown. Takes any prop of a `nav`.
+Round navigation for the paged view: previous, a button per round, next. It renders nothing while the whole tree is shown. Give it children to build your own from the parts below or [`usePagination()`](/docs/api/hooks-and-types#usepagination). See [navigation and zoom](/docs/customize/navigation-and-zoom) for recipes.
+
+<ApiTable from="react" name="PaginationProps" />
+
+## Bracket.PageButton
+
+A button that moves the paged view to one round, showing the round's name. `className` and children can be functions of `{ round, index, active }`.
+
+<ApiTable from="react" name="PageButtonProps" />
+
+## Bracket.PreviousPage and Bracket.NextPage
+
+One round back, or one on, with an arrow. Disabled at the first and last round. `className` and children can be functions of `{ disabled }`.
+
+<ApiTable from="react" name="StepButtonProps" />
+
+## Bracket.PageIndicator
+
+A mark that slides under the page button of the round being shown, and runs ahead with a swipe. Place it next to the `Bracket.PageButton`s it follows.
+
+<ApiTable from="react" name="PageIndicatorProps" />
+
+## Bracket.ZoomControls
+
+The zoom controls of a `pan-zoom` viewport: zoom out, the level and zoom in, then fit. Works anywhere inside `Bracket.Root`, and renders nothing while there is no pan and zoom viewport. Give it children to build your own from the parts below or [`useZoom()`](/docs/api/hooks-and-types#usezoom).
+
+<ApiTable from="react" name="ZoomControlsProps" />
+
+## Bracket.ZoomIn, Bracket.ZoomOut and Bracket.ZoomReset
+
+Zoom in or out by a step around the centre, or fit the whole tree back into view. Each is disabled where it can't act. `className` and children can be functions of `{ scale, percent, disabled }`.
+
+<ApiTable from="react" name="ZoomButtonProps" />
+
+## Bracket.ZoomLevel
+
+The zoom as a percentage, announced to screen readers as it changes. Children can be a function of `{ scale, percent }`.
+
+<ApiTable from="react" name="ZoomLevelProps" />

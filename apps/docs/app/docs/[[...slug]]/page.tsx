@@ -2,7 +2,10 @@ import { DocsBody, DocsDescription, DocsPage, DocsTitle } from 'fumadocs-ui/layo
 import { createRelativeLink } from 'fumadocs-ui/mdx';
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
+import { PageActions } from '@/components/docs/page-actions';
 import { getMDXComponents } from '@/components/mdx';
+import { markdownPath } from '@/lib/llms';
+import { site } from '@/lib/site';
 import { source } from '@/lib/source';
 
 interface Props {
@@ -19,7 +22,26 @@ export default async function Page({ params }: Props) {
   return (
     <DocsPage toc={page.data.toc} full={page.data.full}>
       <DocsTitle>{page.data.title}</DocsTitle>
-      <DocsDescription>{page.data.description}</DocsDescription>
+      <DocsDescription className="mb-2">{page.data.description}</DocsDescription>
+      <PageActions markdown={markdownPath(page.url)} />
+      <script
+        type="application/ld+json"
+        // biome-ignore lint/security/noDangerouslySetInnerHtml: static JSON-LD built from the page's own data
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            '@context': 'https://schema.org',
+            '@type': 'TechArticle',
+            headline: page.data.title,
+            description: page.data.description,
+            url: `${site.url}${page.url}`,
+            about: page.url.startsWith('/docs/native')
+              ? '@react-brackets/native'
+              : 'react-brackets',
+            isPartOf: { '@type': 'WebSite', name: site.name, url: site.url },
+            author: { '@type': 'Person', name: site.author.name, url: site.author.url },
+          }),
+        }}
+      />
       <DocsBody>
         <MDX components={getMDXComponents({ a: createRelativeLink(source, page) })} />
       </DocsBody>
@@ -38,7 +60,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   return {
     title: nativeTitle(page.url, page.data.title),
     description: page.data.description,
-    alternates: { canonical: page.url },
+    alternates: { canonical: page.url, types: { 'text/markdown': markdownPath(page.url) } },
   };
 }
 
