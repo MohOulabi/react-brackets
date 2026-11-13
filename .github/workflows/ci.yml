@@ -26,6 +26,7 @@ jobs:
       - run: bun run typecheck
       - run: bun run test
       - run: bun run check:packages
+      - run: bun run check:publish
       - run: bun run check:size
       - run: bun run --filter './examples/*' build
       - run: bun run --filter './apps/*' build

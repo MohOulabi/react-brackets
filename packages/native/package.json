@@ -53,7 +53,7 @@
     "check:package": "publint"
   },
   "dependencies": {
-    "@react-brackets/core": "workspace:*"
+    "@react-brackets/core": "^2.0.0"
   },
   "peerDependencies": {
     "react": ">=19.0.0",
