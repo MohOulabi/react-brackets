@@ -337,7 +337,7 @@
     },
     "packages/native": {
       "name": "@react-brackets/native",
-      "version": "0.3.0",
+      "version": "0.3.1",
       "dependencies": {
         "@react-brackets/core": "^2.0.0",
       },
@@ -365,7 +365,7 @@
     },
     "packages/react": {
       "name": "react-brackets",
-      "version": "2.4.0",
+      "version": "2.4.1",
       "dependencies": {
         "@react-brackets/core": "^2.0.0",
       },
