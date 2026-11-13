@@ -18,7 +18,8 @@
     "check:packages": "bun run --filter './packages/*' check:package",
     "check:size": "bun scripts/check-size.ts",
     "changeset": "changeset",
-    "release": "bun run build && changeset publish"
+    "release": "bun run build && bun run check:publish && changeset publish",
+    "check:publish": "bun scripts/assert-publishable.ts"
   },
   "devDependencies": {
     "@biomejs/biome": "2.6.6",

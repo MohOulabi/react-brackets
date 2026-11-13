@@ -337,9 +337,9 @@
     },
     "packages/native": {
       "name": "@react-brackets/native",
-      "version": "0.3.0",
+      "version": "0.3.1",
       "dependencies": {
-        "@react-brackets/core": "workspace:*",
+        "@react-brackets/core": "^2.0.0",
       },
       "devDependencies": {
         "@happy-dom/global-registrator": "^21.0.4",
@@ -365,9 +365,9 @@
     },
     "packages/react": {
       "name": "react-brackets",
-      "version": "2.4.0",
+      "version": "2.4.1",
       "dependencies": {
-        "@react-brackets/core": "workspace:*",
+        "@react-brackets/core": "^2.0.0",
       },
       "devDependencies": {
         "@arethetypeswrong/cli": "^0.18.5",

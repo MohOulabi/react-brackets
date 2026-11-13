@@ -1,6 +1,6 @@
 {
   "name": "@react-brackets/native",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "Tournament brackets for React Native and Expo: single and double elimination, round robin and Swiss, swiped and zoomed on the UI thread.",
   "license": "MIT",
   "author": "Mohammed AlOulabi",
@@ -53,7 +53,7 @@
     "check:package": "publint"
   },
   "dependencies": {
-    "@react-brackets/core": "workspace:*"
+    "@react-brackets/core": "^2.0.0"
   },
   "peerDependencies": {
     "react": ">=19.0.0",
