@@ -94,9 +94,14 @@ export function PagedBracketViewport({ style, children, ...props }: SectionProps
       const to = clamp(page + way * steps, 0, rounds.length - 1);
       const scrubbing = paging && motion && offset !== 0 && to !== page;
       if (!scrubbing) {
-        // No round that way: let the bracket stretch, and let any preview go.
+        // No round that way: let the bracket stretch, and let any preview go. Back at or past the start, the
+        // drag so far is forgotten, so the next one that way starts again from one round, under the finger.
+        segment.current = { way: 0, rounds: 0 };
+        anchor.current = { run: null, from: 0, last: 0 };
         if (heading.current !== null) {
           heading.current = null;
+          // The finger no longer drives it, so the way back to the page plays on the clock.
+          scrub.current = false;
           flushSync(() => paging?.preview(null));
         }
         if (content.current) content.current.style.transform = `translateX(${pull(offset)}px)`;

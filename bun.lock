@@ -365,7 +365,7 @@
     },
     "packages/react": {
       "name": "react-brackets",
-      "version": "2.4.3",
+      "version": "2.4.4",
       "dependencies": {
         "@react-brackets/core": "^2.0.1",
       },
