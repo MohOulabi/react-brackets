@@ -211,6 +211,23 @@ interface ColumnContextValue {
   index: number;
 }
 
+/**
+ * What match and participant parts read, kept apart from `BracketContext` and kept the same object while
+ * none of it changes. A new result then re-renders only the cards whose match changed. Internal.
+ */
+export interface PartsContextValue {
+  participants: Map<Id, Participant>;
+  classNames: ClassNames;
+  labels: Labels;
+  motion: Motion | null;
+  highlighted: Id | null;
+  highlight: (participantId: Id | null) => void;
+  onMatchClick: ((match: Match) => void) | undefined;
+}
+
+export const PartsContext: Context<PartsContextValue | null> =
+  createContext<PartsContextValue | null>(null);
+
 export const BracketContext: Context<BracketContextValue | null> =
   createContext<BracketContextValue | null>(null);
 export const ColumnContext: Context<ColumnContextValue | null> =
@@ -225,6 +242,8 @@ function required<T>(value: T | null, name: string): T {
 /** Everything about the bracket being drawn. Use it in custom parts inside `Bracket.Root`. */
 export const useBracketContext = (): BracketContextValue =>
   required(useContext(BracketContext), 'Root');
+
+export const useParts = (): PartsContextValue => required(useContext(PartsContext), 'Root');
 
 export const useColumn = (): ColumnContextValue => required(useContext(ColumnContext), 'Round');
 
@@ -242,7 +261,7 @@ export function usePart<State>(
   className: ClassNameProp<State> | undefined,
   state: State,
 ): { 'data-scope': 'bracket'; 'data-part': Part; className: string | undefined } {
-  const { classNames } = useBracketContext();
+  const { classNames } = useParts();
   const own = typeof className === 'function' ? className(state) : className;
   return { 'data-scope': 'bracket', 'data-part': part, className: cx(classNames[part], own) };
 }

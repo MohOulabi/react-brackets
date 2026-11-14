@@ -1,14 +1,17 @@
 import type {
   ColumnSide,
   Group,
+  LayoutCell,
   Match as MatchData,
   Round as RoundData,
 } from '@react-brackets/core';
 import {
   type ComponentPropsWithoutRef,
   type CSSProperties,
+  memo,
   type ReactNode,
   useContext,
+  useMemo,
 } from 'react';
 import {
   CellContext,
@@ -180,36 +183,76 @@ export function Matches({
       }}
     >
       {column.cells.map((cell) => (
-        <li
+        <Cell
           key={cell.match.id}
-          ref={(element) => {
-            if (element) cells.set(cell.match.id, element);
-            else cells.delete(cell.match.id);
-          }}
-          data-scope="bracket"
-          data-part="cell"
-          data-match={cell.match.id}
-          data-status={cell.match.status}
+          match={cell.match}
+          row={cell.row}
+          span={cell.span}
+          render={children}
+          cells={cells}
           className={classNames.cell}
           hidden={hideByes && cell.match.slots.some((slot) => slot.bye)}
-          style={
-            grid
-              ? {
-                  gridRow: `${cell.row + 1} / span ${cell.span}`,
-                  display: 'flex',
-                  flexDirection: 'column',
-                  justifyContent: 'center',
-                  ...pinnedAt(pin(cell.match.id)),
-                }
-              : undefined
-          }
-        >
-          <CellContext.Provider value={cell}>{children(cell.match)}</CellContext.Provider>
-        </li>
+          grid={grid}
+          pinned={pin(cell.match.id)}
+        />
       ))}
     </ol>
   );
 }
+
+interface CellProps extends LayoutCell {
+  render: (match: MatchData) => ReactNode;
+  cells: Map<string, HTMLElement>;
+  className: string | undefined;
+  hidden: boolean;
+  grid: boolean;
+  pinned: Placed | undefined;
+}
+
+/**
+ * One match's place in the column. Skipped on a render that changes none of its props, so a new result
+ * re-renders only the cards whose match changed, as long as `render` keeps its identity.
+ */
+const Cell = memo(function Cell({
+  match,
+  row,
+  span,
+  render,
+  cells,
+  className,
+  hidden,
+  grid,
+  pinned,
+}: CellProps): ReactNode {
+  const cell = useMemo(() => ({ match, row, span }), [match, row, span]);
+  return (
+    <li
+      ref={(element) => {
+        if (element) cells.set(match.id, element);
+        else cells.delete(match.id);
+      }}
+      data-scope="bracket"
+      data-part="cell"
+      data-match={match.id}
+      data-status={match.status}
+      className={className}
+      hidden={hidden}
+      style={
+        grid
+          ? {
+              gridRow: `${row + 1} / span ${span}`,
+              display: 'flex',
+              flexDirection: 'column',
+              justifyContent: 'center',
+              ...pinnedAt(pinned),
+            }
+          : undefined
+      }
+    >
+      <CellContext.Provider value={cell}>{render(match)}</CellContext.Provider>
+    </li>
+  );
+});
 
 /** Places a part of a leaving round exactly where it was last drawn. */
 function pinned({ x, y, width, height }: Placed): CSSProperties {

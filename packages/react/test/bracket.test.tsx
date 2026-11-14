@@ -4,6 +4,7 @@ import { renderToString } from 'react-dom/server';
 import {
   Bracket,
   doubleElimination,
+  type Match,
   type Participant,
   reportResult,
   singleElimination,
@@ -528,4 +529,64 @@ describe('control and motion', () => {
 test('marks an unstyled bracket for the theme to skip', () => {
   const { container } = render(<Bracket stage={singleElimination(players(2))} unstyled />);
   expect(parts(container, 'root')[0]?.hasAttribute('data-unstyled')).toBe(true);
+});
+
+describe('re-rendering on a new result', () => {
+  const tree = { compactBelow: 0 };
+
+  test('re-renders only the card whose match changed', () => {
+    const drawn: string[] = [];
+    const renderMatch = (match: Match) => {
+      drawn.push(match.id);
+      return <Bracket.Match />;
+    };
+    const stage = singleElimination(players(8));
+    const { rerender } = render(<Bracket stage={stage} renderMatch={renderMatch} {...tree} />);
+    expect(drawn).toHaveLength(7);
+
+    drawn.length = 0;
+    const next = reportResult(stage, 'main.r1.m2', { scores: [1, 0], live: true });
+    rerender(<Bracket stage={next} renderMatch={renderMatch} {...tree} />);
+    expect(drawn).toEqual(['main.r1.m2']);
+  });
+
+  test('re-renders every card when renderMatch is a new function', () => {
+    const drawn: string[] = [];
+    const stage = singleElimination(players(4));
+    const card = (label: string) => (match: Match) => {
+      drawn.push(match.id);
+      return <Bracket.Match>{label}</Bracket.Match>;
+    };
+    const { rerender, container } = render(
+      <Bracket stage={stage} renderMatch={card('a')} {...tree} />,
+    );
+    drawn.length = 0;
+    rerender(<Bracket stage={stage} renderMatch={card('b')} {...tree} />);
+
+    expect(drawn).toHaveLength(3);
+    expect(parts(container, 'match').every((match) => match.textContent === 'b')).toBe(true);
+  });
+
+  test('calls the latest onMatchClick', () => {
+    const first = mock();
+    const second = mock();
+    const stage = singleElimination(players(4));
+    const { rerender, container } = render(
+      <Bracket stage={stage} onMatchClick={first} {...tree} />,
+    );
+    rerender(<Bracket stage={stage} onMatchClick={second} {...tree} />);
+    fireEvent.click(parts(container, 'match')[0] as HTMLElement);
+
+    expect(first).not.toHaveBeenCalled();
+    expect(second).toHaveBeenCalledTimes(1);
+  });
+
+  test('applies a changed classNames object', () => {
+    const stage = singleElimination(players(4));
+    const { rerender, container } = render(
+      <Bracket stage={stage} classNames={{ match: 'one' }} {...tree} />,
+    );
+    rerender(<Bracket stage={stage} classNames={{ match: 'two' }} {...tree} />);
+    expect(parts(container, 'match').every((match) => match.classList.contains('two'))).toBe(true);
+  });
 });
