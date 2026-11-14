@@ -66,6 +66,19 @@ setStage((s) => resetResult(s, 'main.r1.m1'));
 
 Overturning a result clears every result downstream of it, so a stage can't hold a winner who never qualified.
 
+## Frequent updates
+
+An update keeps every match it didn't change as the same object. On the web, only the cards whose match changed render again, as long as `renderMatch` keeps its identity: define it outside your component, or wrap it in `useCallback`. A new function on every render still works, but it redraws every card, which you'll feel on brackets with hundreds of matches.
+
+```tsx
+const renderMatch = (match: Match) => <MatchCard match={match} />;
+
+function Tournament() {
+  const [stage, setStage] = useState(() => singleElimination(teams));
+  return <Bracket stage={stage} renderMatch={renderMatch} />;
+}
+```
+
 ## Saving stages
 
 A stage is JSON. Store it, send it, and render it anywhere:
