@@ -40,14 +40,25 @@ export function getMatch(stage: Stage, matchId: Id): Match {
   return match;
 }
 
+/**
+ * Maps every match. Rounds, groups and the stage are copied only where a match
+ * changed, so unchanged parts keep their identity and a renderer can skip them.
+ */
 export function mapMatches(stage: Stage, map: (match: Match) => Match): Stage {
-  return {
-    ...stage,
-    groups: stage.groups.map((group) => ({
-      ...group,
-      rounds: group.rounds.map((round) => ({ ...round, matches: round.matches.map(map) })),
-    })),
-  };
+  const groups = shared(stage.groups, (group) => {
+    const rounds = shared(group.rounds, (round) => {
+      const matches = shared(round.matches, map);
+      return matches === round.matches ? round : { ...round, matches };
+    });
+    return rounds === group.rounds ? group : { ...group, rounds };
+  });
+  return groups === stage.groups ? stage : { ...stage, groups };
+}
+
+/** Like `map`, but returns the same array when every item maps to itself. */
+function shared<T>(items: T[], map: (item: T) => T): T[] {
+  const mapped = items.map(map);
+  return mapped.every((item, index) => item === items[index]) ? items : mapped;
 }
 
 /** `true` once every match is completed or skipped. */
