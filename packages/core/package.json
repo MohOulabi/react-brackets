@@ -1,6 +1,6 @@
 {
   "name": "@react-brackets/core",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "description": "Framework-agnostic tournament model: formats, results and layout.",
   "license": "MIT",
   "author": "Mohammed AlOulabi",

@@ -1,6 +1,6 @@
 {
   "name": "react-brackets",
-  "version": "2.4.1",
+  "version": "2.4.2",
   "description": "Headless, responsive tournament brackets for React.",
   "license": "MIT",
   "author": "Mohammed AlOulabi",
@@ -54,7 +54,7 @@
     "check:package": "publint && attw --pack . --profile node16 && bun ../../scripts/assert-production-jsx.ts dist"
   },
   "dependencies": {
-    "@react-brackets/core": "^2.0.0"
+    "@react-brackets/core": "^2.0.1"
   },
   "peerDependencies": {
     "react": "^18.2.0 || ^19.0.0",
