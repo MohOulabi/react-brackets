@@ -31,7 +31,18 @@ export function resolve(stage: Stage): Stage {
   return mapMatches(stage, (match) => visit(match.id));
 }
 
+/** The match with its slots and status worked out, or the same object when nothing changed. */
 function resolveMatch(match: Match, visit: Visit): Match {
+  const next = settle(match, visit);
+  return next.status === match.status &&
+    next.winner === match.winner &&
+    next.slots[0] === match.slots[0] &&
+    next.slots[1] === match.slots[1]
+    ? match
+    : next;
+}
+
+function settle(match: Match, visit: Visit): Match {
   const slots: [Slot, Slot] = [
     resolveSlot(match.slots[0], visit),
     resolveSlot(match.slots[1], visit),
@@ -85,6 +96,13 @@ function resolveSlot(slot: Slot, visit: Visit): Slot {
   const outcome = outcomeOf(visit(slot.origin.matchId), slot.origin);
   if (!outcome.decided) return slot;
 
+  if (
+    outcome.bye
+      ? slot.bye && slot.participantId === null
+      : !slot.bye && slot.participantId === outcome.participantId
+  ) {
+    return slot;
+  }
   const { bye: _bye, ...rest } = slot;
   return outcome.bye
     ? { ...rest, participantId: null, bye: true }
@@ -100,6 +118,7 @@ function outcomeOf(match: Match, origin: SlotOrigin): Outcome {
 }
 
 function clearScore(slot: Slot): Slot {
+  if (!('score' in slot)) return slot;
   const { score: _score, ...rest } = slot;
   return rest;
 }

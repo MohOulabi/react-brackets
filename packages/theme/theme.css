@@ -7,6 +7,20 @@
  * quick changes, or add `unstyled` to a <Bracket> to opt it out entirely.
  */
 
+/*
+ * Lightning CSS, used by Vite and Tailwind v4 builds, rewrites light-dark() for
+ * older browsers into variables that only exist where the page sets
+ * `color-scheme`. Without one, every colour below would be invalid and the
+ * bracket would lose its lines, borders and text colour. This sets them to
+ * light at the lowest priority, so any `color-scheme` the page sets still wins.
+ */
+@layer base {
+  :where(:root) {
+    --lightningcss-light: initial;
+    --lightningcss-dark: ;
+  }
+}
+
 @layer components {
   :where([data-scope="bracket"][data-part="root"]:not([data-unstyled])) {
     --rb-font: inherit;

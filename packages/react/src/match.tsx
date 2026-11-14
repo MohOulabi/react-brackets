@@ -6,7 +6,7 @@ import type {
   SlotIndex,
 } from '@react-brackets/core';
 import type { ComponentPropsWithoutRef, KeyboardEvent, MouseEvent, ReactNode } from 'react';
-import { type ClassNameProp, flag, useBracketContext, useCell, usePart } from './context';
+import { type ClassNameProp, flag, useCell, usePart, useParts } from './context';
 import { useChangeFlag } from './hooks/use-change-flag';
 
 /** How long `data-updated` and `data-entered` stay on, relative to the motion duration. */
@@ -40,7 +40,7 @@ export interface MatchProps
  * root has `onMatchClick`.
  */
 export function MatchPart({ className, onClick, onKeyDown, ...props }: MatchProps): ReactNode {
-  const { highlighted, onMatchClick, motion } = useBracketContext();
+  const { highlighted, onMatchClick, motion } = useParts();
   const { match } = useCell();
   const isHighlighted =
     highlighted !== null && match.slots.some((slot) => slot.participantId === highlighted);
@@ -130,7 +130,7 @@ export function ParticipantPart({
   onPointerLeave,
   ...props
 }: ParticipantProps): ReactNode {
-  const { participants, labels, highlighted, highlight, classNames, motion } = useBracketContext();
+  const { participants, labels, highlighted, highlight, classNames, motion } = useParts();
   const { match } = useCell();
   const slot = match.slots[index];
   const participant = slot.participantId ? participants.get(slot.participantId) : undefined;

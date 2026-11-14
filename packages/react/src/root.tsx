@@ -4,7 +4,6 @@ import {
   type Id,
   layoutGroup,
   type Match,
-  participantMap,
   type Stage,
 } from '@react-brackets/core';
 import { type ComponentPropsWithoutRef, type ReactNode, useMemo, useRef, useState } from 'react';
@@ -20,10 +19,13 @@ import {
   type Motion,
   type Paging,
   PagingContext,
+  PartsContext,
+  type PartsContextValue,
   type View,
 } from './context';
 import { useElementWidth } from './hooks/use-element-width';
 import { useReducedMotion } from './hooks/use-reduced-motion';
+import { useEvent, useStable } from './hooks/use-stable';
 import { resolveSwipe, resolveZoom, type SwipeOptions, type ZoomOptions } from './options';
 import type { PageHeight } from './page-height';
 import { createZoomStore, ZoomContext } from './zoom';
@@ -230,7 +232,12 @@ export function Root({
     const edges = leavingLayout.edges.filter((edge) => gone.has(edge.from));
     return { ...pagedLayout, edges: [...edges, ...pagedLayout.edges] };
   }, [view, treeLayout, pagedLayout, leavingLayout, leaving, group]);
-  const participants = useMemo(() => participantMap(stage), [stage]);
+  // Kept while the entrants stay the same object, which they do across results.
+  const entrants = stage.participants;
+  const participants = useMemo(
+    () => new Map(entrants.map((participant) => [participant.id, participant])),
+    [entrants],
+  );
 
   const columns = useMemo<Column[]>(() => {
     if (view === 'tree') {
@@ -280,6 +287,39 @@ export function Root({
     [shown],
   );
 
+  const shownHighlight = highlightOnHover || controlledHighlight !== undefined ? highlighted : null;
+  const highlight = useEvent((participantId: Id | null) => {
+    if (!highlightOnHover || participantId === highlighted) return;
+    setOwnHighlight(participantId);
+    onHighlightChange?.(participantId);
+  });
+  const clickMatch = useEvent((match: Match) => onMatchClick?.(match));
+  const clickable = onMatchClick !== undefined;
+  const sharedClassNames = useStable(classNames);
+  const sharedLabels = useStable({ ...defaultLabels, ...labels });
+  const sharedMotion = useStable(animated ? { ...defaultMotion, ...motion } : null);
+  const parts = useMemo<PartsContextValue>(
+    () => ({
+      participants,
+      classNames: sharedClassNames,
+      labels: sharedLabels,
+      motion: sharedMotion,
+      highlighted: shownHighlight,
+      highlight,
+      onMatchClick: clickable ? clickMatch : undefined,
+    }),
+    [
+      participants,
+      sharedClassNames,
+      sharedLabels,
+      sharedMotion,
+      shownHighlight,
+      highlight,
+      clickable,
+      clickMatch,
+    ],
+  );
+
   const value: BracketContextValue = {
     stage,
     group,
@@ -295,7 +335,7 @@ export function Root({
     swipe: resolveSwipe(swipe),
     grid,
     width,
-    motion: animated ? { ...defaultMotion, ...motion } : null,
+    motion: sharedMotion,
     page,
     setPage(next) {
       const clamped = Math.max(0, Math.min(next, group.rounds.length - 1));
@@ -303,14 +343,10 @@ export function Root({
       setOwnPage(clamped);
       onPageChange?.(clamped);
     },
-    classNames,
-    labels: { ...defaultLabels, ...labels },
-    highlighted: highlightOnHover || controlledHighlight !== undefined ? highlighted : null,
-    highlight(participantId) {
-      if (!highlightOnHover || participantId === highlighted) return;
-      setOwnHighlight(participantId);
-      onHighlightChange?.(participantId);
-    },
+    classNames: sharedClassNames,
+    labels: sharedLabels,
+    highlighted: shownHighlight,
+    highlight,
     hideByes,
     onMatchClick,
     cells,
@@ -321,23 +357,25 @@ export function Root({
 
   return (
     <BracketContext.Provider value={value}>
-      <PagingContext.Provider value={paging}>
-        <ZoomContext.Provider value={zoomStore}>
-          <div
-            {...props}
-            ref={ref}
-            data-scope="bracket"
-            data-part="root"
-            data-view={view}
-            data-compact={view === 'paged' ? compact : undefined}
-            data-layout={layout}
-            data-unstyled={unstyled ? '' : undefined}
-            className={cx(classNames.root, ownClassName)}
-          >
-            {children}
-          </div>
-        </ZoomContext.Provider>
-      </PagingContext.Provider>
+      <PartsContext.Provider value={parts}>
+        <PagingContext.Provider value={paging}>
+          <ZoomContext.Provider value={zoomStore}>
+            <div
+              {...props}
+              ref={ref}
+              data-scope="bracket"
+              data-part="root"
+              data-view={view}
+              data-compact={view === 'paged' ? compact : undefined}
+              data-layout={layout}
+              data-unstyled={unstyled ? '' : undefined}
+              className={cx(classNames.root, ownClassName)}
+            >
+              {children}
+            </div>
+          </ZoomContext.Provider>
+        </PagingContext.Provider>
+      </PartsContext.Provider>
     </BracketContext.Provider>
   );
 }

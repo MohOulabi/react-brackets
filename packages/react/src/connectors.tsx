@@ -1,7 +1,15 @@
-import type { Id, LayoutEdge, Match, MatchStatus, SlotIndex } from '@react-brackets/core';
+import type {
+  GroupLayout,
+  Id,
+  LayoutEdge,
+  Match,
+  MatchStatus,
+  SlotIndex,
+} from '@react-brackets/core';
 import {
   type ComponentPropsWithoutRef,
   createContext,
+  memo,
   type ReactNode,
   useContext,
   useMemo,
@@ -96,6 +104,12 @@ export function Connectors({
     return byId;
   }, [columns]);
 
+  // A new result usually leaves every card where it was, so the lines are only measured again when the
+  // layout's shape changes. A card that grows or shrinks is caught by the resize observer below.
+  const shape = useMemo(() => shapeOf(layout), [layout]);
+  const latest = useRef(layout);
+  latest.current = layout;
+
   useIsomorphicLayoutEffect(() => {
     const element = svg.current;
     const content = element?.parentElement;
@@ -104,7 +118,7 @@ export function Connectors({
     // Cards in motion are drawn away from their layout; `flights` says where, and is empty once they land.
     const measure = () => {
       const measured: MeasuredEdge[] = [];
-      for (const edge of layout.edges) {
+      for (const edge of latest.current.edges) {
         const fromCell = cells.get(edge.from);
         const toCell = cells.get(edge.to);
         const from = anchorOf(fromCell);
@@ -135,15 +149,18 @@ export function Connectors({
 
     measure();
     // Mid-flight, a resize would snap the lines to where the cards are going, not where they are.
+    // Synchronous, so a card that changed size is drawn with its lines in the same frame.
     const observer =
-      typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(() => moving || measure());
+      typeof ResizeObserver === 'undefined'
+        ? null
+        : new ResizeObserver(() => moving || flushSync(measure));
     observer?.observe(content);
     for (const cell of cells.values()) observer?.observe(cell);
     return () => {
       element.removeEventListener(FRAME_EVENT, follow);
       observer?.disconnect();
     };
-  }, [grid, layout, cells, radius]);
+  }, [grid, shape, cells, radius]);
 
   if (!grid) return null;
 
@@ -170,34 +187,62 @@ export function Connectors({
         const from = matches.get(edge.from);
         const to = matches.get(edge.to);
         if (!from || !to) return null;
-        const bye = from.slots.some((slot) => slot.bye);
-        if (hideByes && bye) return null;
-
-        const connector: ConnectorState = {
-          d: edge.d,
-          start: edge.start,
-          end: edge.end,
-          from,
-          to,
-          slot: edge.slot,
-          status: from.status,
-          bye,
-          highlighted:
-            highlighted !== null &&
-            from.winner !== null &&
-            from.slots[from.winner].participantId === highlighted &&
-            to.slots[edge.slot].participantId === highlighted,
-        };
+        if (hideByes && from.slots.some((slot) => slot.bye)) return null;
         return (
-          <g key={`${edge.from}-${edge.to}`} opacity={edge.opacity < 1 ? edge.opacity : undefined}>
-            <ConnectorContext.Provider value={connector}>
-              {children(connector)}
-            </ConnectorContext.Provider>
-          </g>
+          <Line
+            key={`${edge.from}-${edge.to}`}
+            edge={edge}
+            from={from}
+            to={to}
+            highlighted={
+              highlighted !== null &&
+              from.winner !== null &&
+              from.slots[from.winner].participantId === highlighted &&
+              to.slots[edge.slot].participantId === highlighted
+            }
+            render={children}
+          />
         );
       })}
     </svg>
   );
+}
+
+interface LineProps {
+  edge: MeasuredEdge;
+  from: Match;
+  to: Match;
+  highlighted: boolean;
+  render: (connector: ConnectorState) => ReactNode;
+}
+
+/** One line. Skipped on a render that changes neither its matches nor where it is drawn. */
+const Line = memo(function Line({ edge, from, to, highlighted, render }: LineProps): ReactNode {
+  const connector: ConnectorState = {
+    d: edge.d,
+    start: edge.start,
+    end: edge.end,
+    from,
+    to,
+    slot: edge.slot,
+    status: from.status,
+    bye: from.slots.some((slot) => slot.bye),
+    highlighted,
+  };
+  return (
+    <g opacity={edge.opacity < 1 ? edge.opacity : undefined}>
+      <ConnectorContext.Provider value={connector}>{render(connector)}</ConnectorContext.Provider>
+    </g>
+  );
+});
+
+/** Which cells sit where, and which lines join them: what the measured lines depend on. */
+function shapeOf(layout: GroupLayout): string {
+  const cells = layout.columns.map((column) =>
+    column.cells.map((cell) => `${cell.match.id}@${cell.row}+${cell.span}`).join(','),
+  );
+  const edges = layout.edges.map((edge) => `${edge.from}>${edge.to}.${edge.slot}`);
+  return `${layout.rows}|${cells.join(';')}|${edges.join(',')}`;
 }
 
 function defaultConnector(): ReactNode {
