@@ -23,6 +23,7 @@ import Animated, {
   withDecay,
   withTiming,
 } from 'react-native-reanimated';
+import { Card } from './card';
 import { LineLayer, type LineLook, lineState, StaticConnector, StaticLine } from './connectors';
 import { useBracket, useRoot, ZoomContext, type ZoomStore } from './context';
 import { type Metrics, mirrorTree, type TreeGeometry, treeGeometry } from './geometry';
@@ -224,7 +225,7 @@ function Drawing({
                 direction: flow,
               }}
             >
-              {renderMatch(match)}
+              <Card match={match} draw={renderMatch} />
             </View>
           )
         );

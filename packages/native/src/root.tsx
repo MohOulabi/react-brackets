@@ -1,12 +1,4 @@
-import {
-  type Group,
-  type GroupKind,
-  type Id,
-  type Match,
-  participantMap,
-  type Round,
-  type Stage,
-} from '@react-brackets/core';
+import type { Group, GroupKind, Id, Match, Round, Stage } from '@react-brackets/core';
 import {
   type ReactNode,
   useCallback,
@@ -41,6 +33,8 @@ import {
   defaultLabels,
   type Labels,
   MatchContext,
+  PartsContext,
+  type PartsContextValue,
   PressContext,
   RootContext,
   type RootContextValue,
@@ -198,7 +192,12 @@ export function Root({
   const [ownHighlight, setOwnHighlight] = useState<Id | null>(null);
   const page = Math.min(controlledPage ?? ownPage, group.rounds.length - 1);
   const highlighted = controlledHighlight === undefined ? ownHighlight : controlledHighlight;
-  const participants = useMemo(() => participantMap(stage), [stage]);
+  // Kept while the entrants stay the same object, which they do across results.
+  const entrants = stage.participants;
+  const participants = useMemo(
+    () => new Map(entrants.map((participant) => [participant.id, participant])),
+    [entrants],
+  );
   const cards = useCardHeights(theme);
   const position = useSharedValue(page);
   const zoomStore = useZoomStore(useSettled(resolveZoom(zoom, duration)), zoom?.onZoomChange);
@@ -224,12 +223,24 @@ export function Root({
     },
     [onPageChange],
   );
-  const highlight = useCallback(
-    (participantId: Id | null) => {
-      setOwnHighlight(participantId);
-      onHighlightChange?.(participantId);
-    },
-    [onHighlightChange],
+  const highlight = useEvent((participantId: Id | null) => {
+    setOwnHighlight(participantId);
+    onHighlightChange?.(participantId);
+  });
+  const pressMatch = useEvent((match: Match) => onMatchPress?.(match));
+  const pressable = onMatchPress !== undefined;
+  const settledTheme = useSettled(theme);
+  const settledLabels = useSettled({ ...defaultLabels, ...labels });
+  const parts = useMemo<PartsContextValue>(
+    () => ({
+      participants,
+      theme: settledTheme,
+      labels: settledLabels,
+      highlighted,
+      highlight,
+      onMatchPress: pressable ? pressMatch : undefined,
+    }),
+    [participants, settledTheme, settledLabels, highlighted, highlight, pressable, pressMatch],
   );
 
   const context = useMemo<BracketContextValue>(
@@ -237,8 +248,8 @@ export function Root({
       stage,
       group,
       participants,
-      theme,
-      labels: { ...defaultLabels, ...labels },
+      theme: settledTheme,
+      labels: settledLabels,
       highlighted,
       highlight,
       onMatchPress,
@@ -249,8 +260,8 @@ export function Root({
       stage,
       group,
       participants,
-      theme,
-      labels,
+      settledTheme,
+      settledLabels,
       highlighted,
       highlight,
       onMatchPress,
@@ -264,8 +275,8 @@ export function Root({
     (match: Match) => (
       <MatchContext.Provider value={match}>
         <View onLayout={(event) => measure(match.id, event)}>
-          {onMatchPress ? (
-            <PressableMatch match={match} onPress={onMatchPress}>
+          {pressable ? (
+            <PressableMatch match={match} onPress={pressMatch}>
               {renderMatch ? renderMatch(match) : <MatchPart />}
             </PressableMatch>
           ) : renderMatch ? (
@@ -276,7 +287,7 @@ export function Root({
         </View>
       </MatchContext.Provider>
     ),
-    [measure, onMatchPress, renderMatch],
+    [measure, pressable, pressMatch, renderMatch],
   );
 
   const swipeOptions = useSettled(resolveSwipe(swipe));
@@ -314,22 +325,24 @@ export function Root({
 
   return (
     <BracketContext.Provider value={context}>
-      <RootContext.Provider value={root}>
-        <ZoomContext.Provider value={zoomStore}>
-          <View
-            style={[{ opacity: cards.measured ? 1 : 0, direction: dir }, style]}
-            onLayout={(event: LayoutChangeEvent) => setWidth(event.nativeEvent.layout.width)}
-          >
-            {children ?? (
-              <>
-                <GroupTitle />
-                <Viewport />
-                <Pagination />
-              </>
-            )}
-          </View>
-        </ZoomContext.Provider>
-      </RootContext.Provider>
+      <PartsContext.Provider value={parts}>
+        <RootContext.Provider value={root}>
+          <ZoomContext.Provider value={zoomStore}>
+            <View
+              style={[{ opacity: cards.measured ? 1 : 0, direction: dir }, style]}
+              onLayout={(event: LayoutChangeEvent) => setWidth(event.nativeEvent.layout.width)}
+            >
+              {children ?? (
+                <>
+                  <GroupTitle />
+                  <Viewport />
+                  <Pagination />
+                </>
+              )}
+            </View>
+          </ZoomContext.Provider>
+        </RootContext.Provider>
+      </PartsContext.Provider>
     </BracketContext.Provider>
   );
 }
@@ -426,6 +439,17 @@ function PressableMatch({
       )}
     </Pressable>
   );
+}
+
+/** A function that never changes identity and always calls the latest `callback`. */
+function useEvent<Args extends unknown[], Result>(
+  callback: (...args: Args) => Result,
+): (...args: Args) => Result {
+  const latest = useRef(callback);
+  useLayoutEffect(() => {
+    latest.current = callback;
+  });
+  return useCallback((...args: Args) => latest.current(...args), []);
 }
 
 /** Options written inline are new objects every render; this keeps the last while nothing in them changed. */

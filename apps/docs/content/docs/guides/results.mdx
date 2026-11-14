@@ -68,7 +68,7 @@ Overturning a result clears every result downstream of it, so a stage can't hold
 
 ## Frequent updates
 
-An update keeps every match it didn't change as the same object. On the web, only the cards whose match changed render again, as long as `renderMatch` keeps its identity: define it outside your component, or wrap it in `useCallback`. A new function on every render still works, but it redraws every card, which you'll feel on brackets with hundreds of matches.
+An update keeps every match it didn't change as the same object, so only the cards whose match changed render again, as long as `renderMatch` keeps its identity: define it outside your component, or wrap it in `useCallback`. A new function on every render still works, but it redraws every card, which you'll feel on brackets with hundreds of matches.
 
 ```tsx
 const renderMatch = (match: Match) => <MatchCard match={match} />;

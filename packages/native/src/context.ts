@@ -64,6 +64,28 @@ export interface BracketContextValue {
   renderConnector?: (connector: ConnectorState) => ReactNode;
 }
 
+/**
+ * What match and participant parts read, kept apart from `BracketContext` and kept the same object
+ * while none of it changes. A new result then redraws only the cards whose match changed. Internal.
+ */
+export interface PartsContextValue {
+  participants: Map<Id, Participant>;
+  theme: BracketTheme;
+  labels: Labels;
+  highlighted: Id | null;
+  highlight: (participantId: Id | null) => void;
+  onMatchPress?: (match: Match) => void;
+}
+
+export const PartsContext: Context<PartsContextValue | null> =
+  createContext<PartsContextValue | null>(null);
+
+export function useParts(): PartsContextValue {
+  const value = useContext(PartsContext);
+  if (!value) throw new Error('Bracket parts must be rendered inside a <Bracket>.');
+  return value;
+}
+
 export const BracketContext: Context<BracketContextValue | null> =
   createContext<BracketContextValue | null>(null);
 
