@@ -1,5 +1,11 @@
 # react-brackets
 
+## 2.4.4
+
+### Patch Changes
+
+- Fix swiping back and forth in the paged view. Swiping one way and back past the first round while holding left the cards stuck mid-move, so the next swipe dropped the round in focus or jumped two rounds at once until the page was resized. Swiping after a move settles works again too, which 2.4.3 broke.
+
 ## 2.4.3
 
 ### Patch Changes
