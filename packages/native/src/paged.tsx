@@ -11,6 +11,7 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 import { scheduleOnRN } from 'react-native-worklets';
+import { Card } from './card';
 import { LineLayer, type LineLook, lineState, MovingConnector, MovingLine } from './connectors';
 import { useBracket } from './context';
 import {
@@ -270,7 +271,7 @@ export function PagedBracket({
                 rtl={rtl}
                 duration={duration}
               >
-                {renderMatch(match)}
+                <Card match={match} draw={renderMatch} />
               </Placed>
             )),
           )}

@@ -9,6 +9,7 @@ import {
   type StyleOf,
   useBracket,
   useMatch,
+  useParts,
 } from './context';
 
 export interface MatchState {
@@ -34,7 +35,7 @@ export interface MatchProps extends Omit<ViewProps, 'style'> {
  */
 export function MatchPart({ style, children, ...props }: MatchProps): ReactNode {
   const match = useMatch();
-  const { theme, highlighted } = useBracket();
+  const { theme, highlighted } = useParts();
   const press = useContext(PressContext);
   const claim = press?.claim;
   // The card shows the press itself, so the pressable around it doesn't fade it as well.
@@ -99,7 +100,7 @@ export function ParticipantPart({
   ...props
 }: ParticipantProps): ReactNode {
   const match = useMatch();
-  const { participants, theme, labels, highlighted, highlight, onMatchPress } = useBracket();
+  const { participants, theme, labels, highlighted, highlight, onMatchPress } = useParts();
   const slot = match.slots[index];
   const participant = slot.participantId ? participants.get(slot.participantId) : undefined;
   const state: ParticipantState = {
