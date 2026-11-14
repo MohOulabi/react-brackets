@@ -126,6 +126,8 @@
 
     & :where([data-part="match"]) {
       width: var(--rb-match-width);
+      /* Never wider than its round's column, so the gap between rounds holds on narrow screens. */
+      max-width: 100%;
       overflow: hidden;
       border: 1px solid var(--rb-border);
       border-radius: var(--rb-radius);
