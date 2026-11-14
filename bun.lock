@@ -328,7 +328,7 @@
     },
     "packages/core": {
       "name": "@react-brackets/core",
-      "version": "2.0.0",
+      "version": "2.0.1",
       "devDependencies": {
         "@arethetypeswrong/cli": "^0.18.5",
         "bunup": "^0.16.32",
@@ -365,9 +365,9 @@
     },
     "packages/react": {
       "name": "react-brackets",
-      "version": "2.4.1",
+      "version": "2.4.2",
       "dependencies": {
-        "@react-brackets/core": "^2.0.0",
+        "@react-brackets/core": "^2.0.1",
       },
       "devDependencies": {
         "@arethetypeswrong/cli": "^0.18.5",
@@ -388,7 +388,7 @@
     },
     "packages/theme": {
       "name": "@react-brackets/theme",
-      "version": "2.1.0",
+      "version": "2.1.1",
       "devDependencies": {
         "publint": "^0.3.25",
       },
