@@ -43,7 +43,7 @@ Every theme rule has zero specificity and lives in the `components` cascade laye
 | `--rb-duration` | `160ms` | Hover and highlight transitions |
 | `--rb-font` | `inherit` | Font family |
 
-Colours use `light-dark()`, so they follow the page's `color-scheme`. For a site with its own tokens, point the variables at them:
+Colours use `light-dark()`, so they follow the page's `color-scheme`, and stay light when the page sets none. For a site with its own tokens, point the variables at them:
 
 ```css
 [data-scope="bracket"][data-part="root"] {
