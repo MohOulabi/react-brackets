@@ -24,6 +24,18 @@ A long or fast swipe crosses several rounds at once, the way a native carousel d
 <Bracket stage={stage} compactBelow={480} />    // switch at a different width
 ```
 
+### Space between rounds
+
+Each round in the paged view gets a column about three quarters of the bracket's width, and `--rb-column-gap` (`1.5rem` here) keeps the next round away from it. The theme keeps every card within its column, so that gap and the connector lines in it hold on the narrowest screen. To change the space, set the variable rather than padding the rounds:
+
+```css
+[data-scope="bracket"][data-part="root"][data-view="paged"] {
+  --rb-column-gap: 2rem;
+}
+```
+
+Without the theme, give your cards `max-width: 100%` and put the gap on the `content` part with `column-gap`.
+
 ### Height between rounds
 
 Rounds have different heights: the first round of eight matches is taller than the semifinals. By default (`pageHeight="contain"`), the bracket stays tall enough for both rounds while they move, and settles to the new round's height once the move lands, so a round is never cut off while it is on screen.

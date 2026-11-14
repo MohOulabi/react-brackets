@@ -241,6 +241,8 @@ const Cell = memo(function Cell({
         grid
           ? {
               gridRow: `${row + 1} / span ${span}`,
+              // Lets a fixed-width paged column hold its cell, so a card can be kept within it.
+              minWidth: 0,
               display: 'flex',
               flexDirection: 'column',
               justifyContent: 'center',

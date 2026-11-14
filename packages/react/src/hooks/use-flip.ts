@@ -79,6 +79,7 @@ export function useFlip(
   const placed = useRef(new Map<string, Placed>());
   const run = useRef<Run | null>(null);
   const stop = useRef<(() => void) | null>(null);
+  const width = useRef<number | null>(null);
   const hooks = useRef({ onSettle, onBegin, onFrame });
   hooks.current = { onSettle, onBegin, onFrame };
 
@@ -87,6 +88,11 @@ export function useFlip(
     if (!root) return;
     // Boxes are kept relative to the content, which is what a leaving round is pinned inside.
     const origin = root.querySelector<HTMLElement>(':scope > [data-part="content"]') ?? root;
+
+    // A resize moves every card, but nothing about the tournament changed: cards go straight to their place.
+    const resized = width.current !== null && width.current !== root.clientWidth;
+    width.current = root.clientWidth;
+    const animate = resized ? null : motion;
 
     const offset = carry?.current ?? 0;
     if (carry) carry.current = 0;
@@ -106,7 +112,7 @@ export function useFlip(
       }
       const box = layoutBox(element, origin);
       now.set(key, box);
-      if (!motion) continue;
+      if (!animate) continue;
 
       const was = before.get(key);
       if (!was) {
@@ -132,7 +138,7 @@ export function useFlip(
 
     // Everything travels the same way sideways; the middle of the moves says how far.
     const shift = median(moves.map((move) => move.x[0]));
-    if (motion) {
+    if (animate) {
       for (const element of newcomers) {
         moves.push({
           element,
@@ -164,9 +170,9 @@ export function useFlip(
     run.current = null;
     interrupted?.();
     const connectors = root.querySelector('[data-part="connectors"]');
-    if (motion && moves.length > 0) {
+    if (animate && moves.length > 0) {
       hooks.current.onBegin?.();
-      const next = start(moves, Math.abs(shift), motion, connectors, (progress) =>
+      const next = start(moves, Math.abs(shift), animate, connectors, (progress) =>
         hooks.current.onFrame?.(progress),
       );
       stop.current = next.stop;
@@ -179,6 +185,25 @@ export function useFlip(
       hooks.current.onFrame?.(1);
       if (leaving.length > 0) hooks.current.onSettle?.();
     }
+  });
+
+  // A card can move without a render, like when its own CSS transition grows it. Keeping every place current
+  // means the next render, whatever causes it, only animates what that render moved.
+  useIsomorphicLayoutEffect(() => {
+    const root = container.current;
+    if (!root || typeof ResizeObserver === 'undefined') return;
+    const origin = root.querySelector<HTMLElement>(':scope > [data-part="content"]') ?? root;
+    const elements = [...root.querySelectorAll<HTMLElement>(MOVING)].filter(
+      (element) => !element.closest(LEAVING),
+    );
+    const observer = new ResizeObserver(() => {
+      const fresh = new Map(placed.current);
+      for (const element of elements) fresh.set(keyOf(element), layoutBox(element, origin));
+      placed.current = fresh;
+    });
+    observer.observe(origin);
+    for (const element of elements) observer.observe(element);
+    return () => observer.disconnect();
   });
 
   useEffect(() => () => stop.current?.(), []);

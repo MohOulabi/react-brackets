@@ -282,7 +282,8 @@ export function Root({
     () => ({
       shown,
       preview: setPreview,
-      settle: () => setLeaving([]),
+      // Only a change re-renders: a re-render that moves nothing should not run the move again.
+      settle: () => setLeaving((rounds) => (rounds.length === 0 ? rounds : [])),
     }),
     [shown],
   );
