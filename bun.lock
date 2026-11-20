@@ -328,7 +328,7 @@
     },
     "packages/core": {
       "name": "@react-brackets/core",
-      "version": "2.0.1",
+      "version": "2.0.2",
       "devDependencies": {
         "@arethetypeswrong/cli": "^0.18.5",
         "bunup": "^0.16.32",
@@ -365,9 +365,9 @@
     },
     "packages/react": {
       "name": "react-brackets",
-      "version": "2.4.4",
+      "version": "2.4.5",
       "dependencies": {
-        "@react-brackets/core": "^2.0.1",
+        "@react-brackets/core": "^2.0.2",
       },
       "devDependencies": {
         "@arethetypeswrong/cli": "^0.18.5",
