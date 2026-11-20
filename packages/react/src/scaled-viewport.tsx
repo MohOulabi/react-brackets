@@ -139,7 +139,12 @@ export function ScaledViewport({
   // Controls anywhere in the bracket read and move the zoom through the store. Actions read the latest state.
   const actions = useRef({ zoomTo, panTo, reset, current, step: options.step });
   actions.current = { zoomTo, panTo, reset, current, step: options.step };
-  const isFitted = !transform || (transform.scale === fitScale && !live.current);
+  const isFitted =
+    !transform ||
+    (transform.scale === fitScale &&
+      !live.current &&
+      Math.abs(transform.x - fitted.x) < 0.5 &&
+      Math.abs(transform.y - fitted.y) < 0.5);
   useIsomorphicLayoutEffect(() => {
     if (!store || !interactive) return;
     const state: ZoomState = {
