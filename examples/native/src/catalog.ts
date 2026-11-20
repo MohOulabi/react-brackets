@@ -11,6 +11,7 @@ import LiveScores from './examples/live-scores';
 import Loading from './examples/loading';
 import Nations from './examples/nations';
 import QuickStart from './examples/quick-start';
+import Radial from './examples/radial';
 import RightToLeft from './examples/right-to-left';
 import RoundTitles from './examples/round-titles';
 import Swiss from './examples/swiss';
@@ -55,6 +56,12 @@ export const examples: Example[] = [
     title: 'Nations',
     summary: 'Your own cards, with flags, seeds and a live match.',
     Screen: Nations,
+  },
+  {
+    slug: 'radial',
+    title: 'Radial bracket',
+    summary: 'Rings around the champion, drawn from the core alone.',
+    Screen: Radial,
   },
   {
     slug: 'round-titles',

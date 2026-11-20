@@ -7,37 +7,171 @@ description: Draw a bracket in any shape, like rings around the champion, from t
   <RadialDemo />
 </Preview>
 
-The library has two layers:
+## Two layers
 
-- **The core** knows the tournament: who plays whom, who won, who moved on, and which match feeds which. It draws nothing.
-- **The parts**, `<Bracket>` and `Bracket.*`, draw the core's data as cards in columns, with lines between them.
+react-brackets is built in two layers, and you can use either one on its own.
 
-The parts can look like anything, but they always lay matches out in columns. For another shape, like the rings above, use the core and draw it yourself, with SVG, a canvas or anything else. Results, live scores and `reportResult` work the same, whatever draws them.
+- **The core** knows the tournament. It builds stages (`singleElimination`, `roundRobin`…), takes results (`reportResult`), works out who moves on, and says which match feeds which. It draws nothing, and it has no React in it.
+- **The parts**, `<Bracket>` and every `Bracket.*`, draw the core's data. They always lay matches out as columns of cards with lines between them, and they add the extras: highlighting, swiping between rounds on a phone, and pan and zoom.
 
-## How the rings work
+The parts can look like anything: see [Match cards](/docs/customize/match-cards), [Connectors](/docs/customize/connectors) and [Building from parts](/docs/customize/building-from-parts). What they can't do is change the shape. For a bracket in rings, a spiral, a map, a canvas or a PDF, use the core and draw it yourself. Results and live scores work the same, because the core doesn't care what draws it.
 
-Every round's slots say who stands where. The outer ring is the first round's slots, each ring further in is the next round's, and the champion is the final's winner:
+This page builds the bracket above in four steps, on the web with SVG and in React Native with [react-native-svg](https://github.com/software-mansion/react-native-svg). The complete code for both is at the [end of the page](#the-complete-code).
 
-```tsx
-// `stage` is any single elimination stage, from singleElimination or your own data.
+## 1. Who stands where
+
+A single elimination stage has one group, and the group has rounds. Each round's matches have two slots, and each slot says who is in it, or `null` while that's still to be decided. That's all the rings need:
+
+- Ring 0, the outer ring, is the first round's slots: all 32 teams.
+- Ring 1 is the second round's slots: the 16 teams that won a match.
+- Each ring further in is the next round, until the finalists.
+- The middle is the final's winner, the champion.
+
+```ts
 const rounds = stage.groups[0].rounds;
 const final = rounds.at(-1).matches[0];
 
-const rings = rounds.map((round) =>
+const occupants = rounds.map((round) =>
   round.matches.flatMap((match) => match.slots.map((slot) => slot.participantId)),
 );
-rings.push([final.winner === null ? null : final.slots[final.winner].participantId]);
+occupants.push([final.winner === null ? null : final.slots[final.winner].participantId]);
 ```
 
-The rest is placing them:
+`occupants[1][4]` is whoever won the third match of the first round, because the winner of match `i` moves into slot `i` of the next round. The core keeps that order, so you never have to look it up.
 
-- The first ring runs down the left side and then down the right, so the two halves meet at the final.
-- Every spot further in sits halfway between the two spots it comes from, so a winner lines up with the match it won.
-- A team that stands on one ring but not on the next one in is out, and is drawn faded.
-- `null` is a spot still to be decided.
+## 2. Placing the rings
 
-Hover a team in the demo to light its path: every spot with the same `participantId`. The whole demo is about 150 lines, in [`radial.tsx`](https://github.com/MohOulabi/react-brackets/blob/main/apps/docs/components/demos/radial.tsx).
+Every spot gets an angle and a distance from the middle:
+
+- **The outer ring** runs down the left side and then down the right, with a small gap at the top and the bottom. The two halves then meet at the final.
+- **Every ring further in** puts each spot halfway between the two spots it comes from, so a winner sits right where its match was.
+- **The rings** are evenly apart, from near the edge in to the finalists, who face each other across the middle.
+
+```ts
+// The outer ring: down the left side, then down the right.
+let angles = occupants[0].map((_, index) => {
+  const along = ((index % half) + 0.5) / half;
+  return index < half ? Math.PI / 2 + GAP + along * sweep : Math.PI / 2 - GAP - along * sweep;
+});
+
+// Every ring in: halfway between the two spots each one comes from.
+angles = ids.map((_, index) => (angles[index * 2] + angles[index * 2 + 1]) / 2);
+
+// A spot on screen.
+const x = center + radius * Math.cos(angle);
+const y = center - radius * Math.sin(angle);
+```
+
+The lines follow the same rule backwards: spot `i` on one ring joins spot `i / 2`, rounded down, on the ring further in. Each line leaves along the team's spoke and curves into the spot it moved to.
+
+All of this lives in one file, `rings.ts`, with no React and no drawing in it, so the web and React Native share it as it is.
+
+## 3. Drawing it
+
+With every spot placed, drawing is a loop: a path for each line, and a circle with the team's initials for each spot. An empty spot, still to be decided, is a dashed circle.
+
+<Tabs groupId="platform" persist items={['React', 'React Native']}>
+<Tab value="React">
+
+```tsx
+<svg viewBox={`0 0 ${SIZE} ${SIZE}`}>
+  {links.map((link) => (
+    <path key={`${link.from.ring}.${link.from.index}`} d={linkPath(link, SIZE)} />
+  ))}
+  {spots.flat().map((spot) => {
+    const team = spot.participantId ? names.get(spot.participantId) : undefined;
+    return team ? (
+      <g key={`${spot.ring}.${spot.index}`}>
+        <circle cx={spot.x} cy={spot.y} r={12} fill={`hsl(${hue(team.id)} 48% 52%)`} />
+        <text x={spot.x} y={spot.y} dy="0.35em">{team.name.slice(0, 2)}</text>
+      </g>
+    ) : (
+      <circle key={`${spot.ring}.${spot.index}`} cx={spot.x} cy={spot.y} r={9} strokeDasharray="3 3" />
+    );
+  })}
+</svg>
+```
+
+</Tab>
+<Tab value="React Native">
+
+```tsx
+import Svg, { Circle, G, Path, Text } from 'react-native-svg';
+
+<Svg viewBox={`0 0 ${SIZE} ${SIZE}`} style={{ width: '100%', aspectRatio: 1 }}>
+  {links.map((link) => (
+    <Path key={`${link.from.ring}.${link.from.index}`} d={linkPath(link, SIZE)} fill="none" stroke="#999" />
+  ))}
+  {spots.flat().map((spot) => {
+    const team = spot.participantId ? names.get(spot.participantId) : undefined;
+    return team ? (
+      <G key={`${spot.ring}.${spot.index}`}>
+        <Circle cx={spot.x} cy={spot.y} r={12} fill={`hsl(${hue(team.id)} 48% 52%)`} />
+        <Text x={spot.x} y={spot.y + 4} textAnchor="middle" fill="white">
+          {team.name.slice(0, 2)}
+        </Text>
+      </G>
+    ) : (
+      <Circle key={`${spot.ring}.${spot.index}`} cx={spot.x} cy={spot.y} r={9} stroke="#999" strokeDasharray="3 3" />
+    );
+  })}
+</Svg>
+```
+
+</Tab>
+</Tabs>
+
+The spots grow towards the middle, the champion is the biggest, and a trophy sits above it once there is one. The sizes and colours are yours: swap the circles for flags or logos, or the initials for full names.
+
+## 4. Out, highlighted and live
+
+**Who's out.** A team is out once someone else stands in the spot it was playing for. Its circle fades, so the teams still in it stand out:
+
+```ts
+function isOut(spot, { spots }) {
+  const next = spots[spot.ring + 1]?.[Math.floor(spot.index / 2)];
+  return spot.participantId !== null && next?.participantId != null && next.participantId !== spot.participantId;
+}
+```
+
+**A team's path.** Every spot where a team stands has the same `participantId`. Keep the team you're following in state, set it on hover, focus or tap, and draw its spots and the lines between them brighter.
+
+**Live results.** The rings are worked out from the stage on every render, so a new result moves the winner one ring in, and fades the loser:
+
+```ts
+setStage(reportResult(stage, matchId, { scores: [2, 1] }));
+```
 
 ## What you build yourself
 
-Drawing your own shape means the parts' extras are yours to add when you want them: highlighting on hover, clicks, swiping between rounds and pan-zoom. Each is a few lines on top of the core's data. If your shape is still columns, restyle the parts instead: see [Match cards](/docs/customize/match-cards), [Connectors](/docs/customize/connectors) and [Building from parts](/docs/customize/building-from-parts).
+Drawing your own shape leaves the parts' extras to you, when you want them. Each is a little code on top of the core's data:
+
+| Extra | How |
+| --- | --- |
+| Highlighting a path | Keep the followed team in state and compare `participantId`, as above. |
+| Clicks or taps on a match | Find the match from the ring and index: spot `i` on ring `r` plays match `i / 2` of round `r`. |
+| Zoom | Scale the SVG with CSS, a pinch handler, or a library like react-zoom-pan-pinch. |
+| Swiping between rounds | Usually not needed: rings fit a whole tournament on one screen. |
+
+## The complete code
+
+Every file of the example, ready to copy. `rings.ts` is the same on both platforms.
+
+<Tabs groupId="platform" persist items={['React', 'React Native']}>
+<Tab value="React">
+
+The example app in [`examples/radial`](https://github.com/MohOulabi/react-brackets/tree/main/examples/radial), also in the [examples gallery](/examples#radial).
+
+<Source folder="radial" />
+
+</Tab>
+<Tab value="React Native">
+
+<Recording slug="radial" label="The radial bracket, recorded on an iPhone" />
+
+The screen in the [Expo example app](https://github.com/MohOulabi/react-brackets/tree/main/examples/native/src/examples/radial), also in the [native examples gallery](/examples/native#radial).
+
+<NativeSource slug="radial" />
+
+</Tab>
+</Tabs>

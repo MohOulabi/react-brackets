@@ -58,6 +58,7 @@ const native = path.join(examples, 'native');
 /** Libraries a native example needs beyond the bracket and its peers, by the example. */
 const nativeExtras: Record<string, string[]> = {
   tailwind: ['uniwind', 'tailwindcss'],
+  radial: ['react-native-svg'],
   unistyles: ['react-native-unistyles', 'react-native-nitro-modules', 'react-native-edge-to-edge'],
 };
 

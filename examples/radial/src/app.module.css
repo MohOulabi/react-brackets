@@ -1,0 +1,107 @@
+.app {
+  display: grid;
+  justify-items: center;
+  gap: 1rem;
+}
+
+.header {
+  text-align: center;
+}
+
+.title {
+  margin: 0;
+  font-size: 1.375rem;
+  font-weight: 700;
+}
+
+.meta {
+  margin: 0.25rem 0 0;
+  font-size: 0.875rem;
+  color: color-mix(in oklab, currentColor 60%, transparent);
+}
+
+.rings {
+  width: 100%;
+  max-width: 36rem;
+  user-select: none;
+}
+
+.link {
+  fill: none;
+  stroke: color-mix(in oklab, currentColor 30%, transparent);
+  stroke-width: 1;
+  transition:
+    stroke 200ms,
+    stroke-width 200ms;
+}
+
+.link[data-lit] {
+  stroke: #e7a425;
+  stroke-width: 2.5;
+}
+
+.empty {
+  fill: color-mix(in oklab, currentColor 5%, transparent);
+  stroke: color-mix(in oklab, currentColor 40%, transparent);
+  stroke-dasharray: 3 3;
+}
+
+.team {
+  cursor: default;
+  outline: none;
+  transition: opacity 200ms;
+}
+
+.team[data-out] {
+  opacity: 0.35;
+}
+
+.team text {
+  fill: white;
+  font-weight: 600;
+  text-anchor: middle;
+  pointer-events: none;
+}
+
+.team circle[data-champion],
+.team[data-lit] circle {
+  stroke: white;
+  stroke-width: 2;
+}
+
+.team:focus-visible circle {
+  stroke: #e7a425;
+  stroke-width: 3;
+}
+
+.trophy {
+  font-size: 22px;
+  text-anchor: middle;
+}
+
+.actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.button {
+  height: 2.25rem;
+  padding: 0 1.125rem;
+  border: 1px solid color-mix(in oklab, currentColor 20%, transparent);
+  border-radius: 999px;
+  background: color-mix(in oklab, currentColor 6%, transparent);
+  color: inherit;
+  font: inherit;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.button:hover:not(:disabled) {
+  background: color-mix(in oklab, currentColor 12%, transparent);
+}
+
+.button:disabled {
+  opacity: 0.45;
+  cursor: default;
+}

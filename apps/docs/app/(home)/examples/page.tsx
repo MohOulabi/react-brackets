@@ -10,6 +10,7 @@ import {
   LiveScores,
   Loading,
   MatchCentre,
+  Radial,
   RoundRobin,
   Rtl,
   Swiss,
@@ -144,6 +145,13 @@ const groups: { title: string; examples: Example[] }[] = [
         summary:
           'The same cup in Arabic, right to left, or in English. Round names and labels are yours to translate.',
         demo: <Rtl />,
+      },
+      {
+        folder: 'radial',
+        title: 'Radial bracket',
+        summary:
+          'A 32-team bracket drawn as rings around its champion, in plain SVG from the core alone. Hover or focus a team to follow its path, and play the last results live.',
+        demo: <Radial />,
       },
     ],
   },

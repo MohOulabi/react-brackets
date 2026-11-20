@@ -107,6 +107,12 @@ export const nativeExamples: { title: string; examples: NativeExample[] }[] = [
         summary:
           'An Arabic cup that starts on the right and swipes the other way. Round names and labels are yours to translate.',
       },
+      {
+        slug: 'radial',
+        title: 'Radial bracket',
+        summary:
+          'A 32-team bracket drawn as rings around its champion with react-native-svg, from the core alone. Tap a team to follow its path, and play the last results live.',
+      },
     ],
   },
   {
