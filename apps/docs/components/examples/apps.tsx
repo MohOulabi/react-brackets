@@ -10,6 +10,7 @@ export { App as GroupsToPlayoffs } from '@examples/groups-to-playoffs/src/app';
 export { App as LiveScores } from '@examples/live-scores/src/app';
 export { App as Loading } from '@examples/loading/src/app';
 export { App as MatchCentre } from '@examples/match-centre/src/app';
+export { App as Radial } from '@examples/radial/src/app';
 export { App as RoundRobin } from '@examples/round-robin/src/app';
 export { App as Rtl } from '@examples/rtl/src/app';
 export { App as Swiss } from '@examples/swiss/src/app';
