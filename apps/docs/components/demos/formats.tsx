@@ -12,6 +12,7 @@ import {
   reportResult,
   roundRobin,
   type Stage,
+  type Standing,
   singleElimination,
   standings,
   swiss,
@@ -35,7 +36,15 @@ export function MirroredDemo() {
   );
 }
 
-export function StandingsTable({ stage, groupId }: { stage: Stage; groupId?: string }) {
+export function StandingsTable({
+  stage,
+  groupId,
+  carryOver,
+}: {
+  stage: Stage;
+  groupId?: string;
+  carryOver?: Standing[];
+}) {
   const names = participantMap(stage);
   return (
     <div className="overflow-x-auto rounded-lg border">
@@ -52,7 +61,7 @@ export function StandingsTable({ stage, groupId }: { stage: Stage; groupId?: str
           </tr>
         </thead>
         <tbody>
-          {standings(stage, groupId).map((row, index) => (
+          {standings(stage, groupId, { carryOver }).map((row, index) => (
             <tr
               key={row.participantId}
               className="border-t [&>td]:px-3 [&>td]:py-2 [&>td]:text-end"
@@ -134,6 +143,39 @@ export function GroupsToPlayoffsDemo() {
         ))}
       </div>
       <Bracket stage={playoffs} connectorRadius={8} />
+    </div>
+  );
+}
+
+/** A league that plays twice, then splits into a championship and a relegation group, points carried over. */
+export function LeagueSplitDemo() {
+  const field = teams(6);
+  const league = play(roundRobin(field, { legs: 2 }), 1);
+  const table = standings(league);
+  const half = (rows: Standing[]) => rows.map((row) => row.participantId);
+  let split = roundRobin(field, {
+    id: 'split',
+    groups: [half(table.slice(0, 3)), half(table.slice(3))],
+    groupName: (index) => (index === 0 ? 'Championship group' : 'Relegation group'),
+  });
+  // The first round after the split is played in both groups.
+  for (const group of split.groups) {
+    for (const match of group.rounds[0]?.matches ?? []) {
+      split = reportResult(split, match.id, { scores: scoresFor(match.id) });
+    }
+  }
+
+  return (
+    <div className="flex flex-col gap-6">
+      <div className="grid gap-4 md:grid-cols-2">
+        {split.groups.map((group) => (
+          <div key={group.id} className="flex flex-col gap-2">
+            <h4 className="font-medium">{group.name}</h4>
+            <StandingsTable stage={split} groupId={group.id} carryOver={table} />
+          </div>
+        ))}
+      </div>
+      <Bracket stage={split} compact="list" />
     </div>
   );
 }

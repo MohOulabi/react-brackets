@@ -1,0 +1,74 @@
+---
+title: League with a split
+description: A league that plays its rounds, then splits into a championship group and a relegation group, with points carried over.
+---
+
+<Preview>
+  <LeagueSplitDemo />
+</Preview>
+
+Some leagues split partway through the season. After everyone has played everyone, the top half moves into a championship group and the bottom half into a relegation group. Each group plays one more round among itself, and the points from before the split carry over. The Scottish Premiership plays three times before its split, and leagues in Denmark and Austria work in a similar way.
+
+You build it in two steps: the league, then the split.
+
+<Tabs groupId="platform" persist items={['React', 'React Native']}>
+<Tab value="React">
+
+```tsx
+import { roundRobin, standings } from 'react-brackets';
+
+// Everyone plays everyone three times.
+const league = roundRobin(teams, { legs: 3 });
+
+// …play the league…
+
+// Split the table in half, and play once more inside each half.
+const table = standings(league);
+const ids = (rows) => rows.map((row) => row.participantId);
+const split = roundRobin(teams, {
+  id: 'split',
+  groups: [ids(table.slice(0, 6)), ids(table.slice(6))],
+  groupName: (index) => (index === 0 ? 'Championship group' : 'Relegation group'),
+});
+
+// Each group's table, with the points from before the split.
+const [championship, relegation] = split.groups.map((group) =>
+  standings(split, group.id, { carryOver: table }),
+);
+```
+
+</Tab>
+<Tab value="React Native">
+
+```tsx
+import { roundRobin, standings } from '@react-brackets/native';
+
+// Everyone plays everyone three times.
+const league = roundRobin(teams, { legs: 3 });
+
+// …play the league…
+
+// Split the table in half, and play once more inside each half.
+const table = standings(league);
+const ids = (rows) => rows.map((row) => row.participantId);
+const split = roundRobin(teams, {
+  id: 'split',
+  groups: [ids(table.slice(0, 6)), ids(table.slice(6))],
+  groupName: (index) => (index === 0 ? 'Championship group' : 'Relegation group'),
+});
+
+// Each group's table, with the points from before the split.
+const [championship, relegation] = split.groups.map((group) =>
+  standings(split, group.id, { carryOver: table }),
+);
+```
+
+</Tab>
+</Tabs>
+
+- `legs` sets how many times every pairing plays. Sides swap each leg.
+- `groups` takes the groups you want as lists of participant ids. Everyone has to be in exactly one group.
+- `carryOver` adds an earlier table to this one: games played, wins, goals and points.
+- Each group is ranked on its own, so a team in the relegation group stays below the championship group, even with more points. To show one full table, put the two together: `[...championship, ...relegation]`.
+
+Give the split its own `id`, so its match ids don't clash with the league's. See [`roundRobin`](/docs/api/formats#roundrobin) and [`standings`](/docs/api/results-and-standings#standings) in the API reference.

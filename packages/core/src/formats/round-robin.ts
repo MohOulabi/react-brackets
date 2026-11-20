@@ -9,15 +9,17 @@ export interface RoundRobinOptions {
    */
   id?: Id;
   /**
-   * Splits participants into this many groups, snake seeded so the top seeds spread out.
+   * How participants are grouped. A number splits them into that many groups, snake seeded so the top seeds
+   * spread out. Lists of participant ids set the groups yourself, for example the top and bottom halves of a
+   * table before a split. Every participant goes in exactly one group.
    * @defaultValue 1
    */
-  groups?: number;
+  groups?: number | Id[][];
   /**
-   * `2` plays every pairing twice, with sides swapped in the second leg.
+   * How many times every pairing plays. Sides swap from one leg to the next.
    * @defaultValue 1
    */
-  legs?: 1 | 2;
+  legs?: number;
   /**
    * Names each group from its index, counting from 0.
    * @defaultValue `Group A`, `Group B`…
@@ -37,10 +39,15 @@ const letterName = (index: number) => `Group ${String.fromCharCode(65 + index)}`
  * const stage = roundRobin(teams, { groups: 2 });
  */
 export function roundRobin(participants: Participant[], options: RoundRobinOptions = {}): Stage {
-  const { id = 'main', groups: count = 1, legs = 1, groupName = letterName } = options;
-  assertEntrants(participants, 2 * count);
+  const { id = 'main', groups: grouping = 1, legs = 1, groupName = letterName } = options;
+  if (!Number.isInteger(legs) || legs < 1)
+    throw new RangeError('`legs` must be a whole number, 1 or more.');
+  const grouped =
+    typeof grouping === 'number'
+      ? snakeGroups(participants, grouping)
+      : chosenGroups(participants, grouping);
 
-  const groups: Group[] = snake(participants, count).map((members, index) => {
+  const groups: Group[] = grouped.map((members, index) => {
     const groupId = `${id}.g${index + 1}`;
     return {
       id: groupId,
@@ -51,6 +58,33 @@ export function roundRobin(participants: Participant[], options: RoundRobinOptio
   });
 
   return resolve({ id, format: 'round-robin', participants, groups });
+}
+
+function snakeGroups(participants: Participant[], count: number): Participant[][] {
+  assertEntrants(participants, 2 * count);
+  return snake(participants, count);
+}
+
+/** The groups as listed, checked so nobody is left out or placed twice. */
+function chosenGroups(participants: Participant[], groups: Id[][]): Participant[][] {
+  assertEntrants(participants, 2 * groups.length);
+  const byId = new Map(participants.map((participant) => [participant.id, participant]));
+  const placed = new Set<Id>();
+  const members = groups.map((ids) => {
+    if (ids.length < 2) throw new RangeError('Every group needs at least two participants.');
+    return ids.map((participantId) => {
+      const participant = byId.get(participantId);
+      if (!participant) throw new Error(`Participant "${participantId}" is not in this stage.`);
+      if (placed.has(participantId)) {
+        throw new Error(`Participant "${participantId}" is in more than one group.`);
+      }
+      placed.add(participantId);
+      return participant;
+    });
+  });
+  const missing = participants.find((participant) => !placed.has(participant.id));
+  if (missing) throw new Error(`Participant "${missing.id}" is not in any group.`);
+  return members;
 }
 
 function snake<T>(items: T[], count: number): T[][] {
@@ -67,7 +101,7 @@ function snake<T>(items: T[], count: number): T[][] {
  * The circle method: one seat stays fixed while the rest rotate, so every pair
  * meets exactly once per leg. An odd group gets an empty seat, which means a rest round.
  */
-function circleRounds(groupId: Id, members: Participant[], legs: 1 | 2): Round[] {
+function circleRounds(groupId: Id, members: Participant[], legs: number): Round[] {
   let seats: (Id | null)[] = members.map((member) => member.id);
   if (seats.length % 2 === 1) seats.push(null);
   const schedule: [Id, Id][][] = [];
@@ -84,9 +118,9 @@ function circleRounds(groupId: Id, members: Participant[], legs: 1 | 2): Round[]
     seats = [seats[0] ?? null, seats.at(-1) ?? null, ...seats.slice(1, -1)];
   }
 
-  const rematches =
-    legs === 2 ? schedule.map((pairs) => pairs.map(([home, away]): [Id, Id] => [away, home])) : [];
-  return [...schedule, ...rematches].map((pairs, index) => roundOf(groupId, index, pairs));
+  const swapped = schedule.map((pairs) => pairs.map(([home, away]): [Id, Id] => [away, home]));
+  const all = Array.from({ length: legs }, (_, leg) => (leg % 2 === 0 ? schedule : swapped)).flat();
+  return all.map((pairs, index) => roundOf(groupId, index, pairs));
 }
 
 function roundOf(groupId: Id, index: number, pairs: [Id, Id][]): Round {

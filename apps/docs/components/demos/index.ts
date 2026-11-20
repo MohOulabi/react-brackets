@@ -19,6 +19,7 @@ export {
 export {
   DoubleEliminationDemo,
   GroupsToPlayoffsDemo,
+  LeagueSplitDemo,
   MirroredDemo,
   RoundRobinDemo,
   SwissDemo,

@@ -26,6 +26,11 @@ export interface StandingsOptions {
    * @defaultValue { win: 3, draw: 1, loss: 0 }
    */
   points?: { win: number; draw: number; loss: number };
+  /**
+   * A table from an earlier phase whose totals this one adds to, such as the league table before it splits into
+   * championship and relegation groups. Rows for participants outside the ranked groups are left out.
+   */
+  carryOver?: Standing[];
 }
 
 const defaultPoints = { win: 3, draw: 1, loss: 0 };
@@ -81,6 +86,18 @@ export function standings(stage: Stage, groupId?: Id, options: StandingsOptions 
         entry.points += points.loss;
       }
     });
+  }
+
+  for (const earlier of options.carryOver ?? []) {
+    const entry = rows.get(earlier.participantId);
+    if (!entry) continue;
+    entry.played += earlier.played;
+    entry.wins += earlier.wins;
+    entry.draws += earlier.draws;
+    entry.losses += earlier.losses;
+    entry.scored += earlier.scored;
+    entry.conceded += earlier.conceded;
+    entry.points += earlier.points;
   }
 
   const seed = seedLookup(stage.participants);
