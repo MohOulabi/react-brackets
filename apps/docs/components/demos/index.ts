@@ -27,5 +27,6 @@ export {
 export { ClickDemo, ControlledPageDemo, FollowTeamDemo } from './interactions';
 export { SkeletonDemo } from './loading';
 export { LiveDemo, MotionDemo, PerItemDemo } from './motion';
+export { RadialDemo } from './radial';
 export { FullTreeDemo, PagedBracketDemo } from './screens';
 export { CustomMatchDemo, RtlDemo, TailwindDemo, ThemeDemo } from './styling';

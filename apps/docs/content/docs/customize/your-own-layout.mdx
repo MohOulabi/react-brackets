@@ -1,0 +1,43 @@
+---
+title: Your own layout
+description: Draw a bracket in any shape, like rings around the champion, from the core alone.
+---
+
+<Preview>
+  <RadialDemo />
+</Preview>
+
+The library has two layers:
+
+- **The core** knows the tournament: who plays whom, who won, who moved on, and which match feeds which. It draws nothing.
+- **The parts**, `<Bracket>` and `Bracket.*`, draw the core's data as cards in columns, with lines between them.
+
+The parts can look like anything, but they always lay matches out in columns. For another shape, like the rings above, use the core and draw it yourself, with SVG, a canvas or anything else. Results, live scores and `reportResult` work the same, whatever draws them.
+
+## How the rings work
+
+Every round's slots say who stands where. The outer ring is the first round's slots, each ring further in is the next round's, and the champion is the final's winner:
+
+```tsx
+// `stage` is any single elimination stage, from singleElimination or your own data.
+const rounds = stage.groups[0].rounds;
+const final = rounds.at(-1).matches[0];
+
+const rings = rounds.map((round) =>
+  round.matches.flatMap((match) => match.slots.map((slot) => slot.participantId)),
+);
+rings.push([final.winner === null ? null : final.slots[final.winner].participantId]);
+```
+
+The rest is placing them:
+
+- The first ring runs down the left side and then down the right, so the two halves meet at the final.
+- Every spot further in sits halfway between the two spots it comes from, so a winner lines up with the match it won.
+- A team that stands on one ring but not on the next one in is out, and is drawn faded.
+- `null` is a spot still to be decided.
+
+Hover a team in the demo to light its path: every spot with the same `participantId`. The whole demo is about 150 lines, in [`radial.tsx`](https://github.com/MohOulabi/react-brackets/blob/main/apps/docs/components/demos/radial.tsx).
+
+## What you build yourself
+
+Drawing your own shape means the parts' extras are yours to add when you want them: highlighting on hover, clicks, swiping between rounds and pan-zoom. Each is a few lines on top of the core's data. If your shape is still columns, restyle the parts instead: see [Match cards](/docs/customize/match-cards), [Connectors](/docs/customize/connectors) and [Building from parts](/docs/customize/building-from-parts).
