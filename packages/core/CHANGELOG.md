@@ -1,5 +1,11 @@
 # @react-brackets/core
 
+## 2.0.2
+
+### Patch Changes
+
+- 89bb879: `fromRounds` with `kind: 'pool'` no longer links rounds of the same size, so a result on one matchday stops replacing teams already scheduled for the next. Thanks to @YiheHuang for the fix in #84.
+
 ## 2.0.1
 
 ### Patch Changes

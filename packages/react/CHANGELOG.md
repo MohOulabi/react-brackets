@@ -1,5 +1,13 @@
 # react-brackets
 
+## 2.4.5
+
+### Patch Changes
+
+- 89bb879: The fit button turns on again after panning a tall bracket at fit scale, so you can always get back to the top. Thanks to @YiheHuang for the fix in #83.
+- Updated dependencies [89bb879]
+  - @react-brackets/core@2.0.2
+
 ## 2.4.4
 
 ### Patch Changes
