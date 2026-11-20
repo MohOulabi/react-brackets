@@ -80,7 +80,8 @@ export function fromRounds(rounds: RoundInput[], options: FromRoundsOptions = {}
     const roundId = `${id}.r${index + 1}`;
     const previous = built[index - 1]?.matches ?? [];
     const matches = input.matches.map((match, position) => {
-      const origins = linkedOrigins(previous, input.matches.length, position);
+      const origins =
+        kind === 'pool' ? undefined : linkedOrigins(previous, input.matches.length, position);
       const slots: [Slot, Slot] = [
         toSlot(match.participants[0], origins?.[0], participants),
         toSlot(match.participants[1], origins?.[1], participants),
