@@ -48,7 +48,7 @@ const stage = fromRounds([
 </Tab>
 </Tabs>
 
-- Rounds that halve in size are linked as a knockout tree, and equal-sized rounds one to one (like a losers bracket). The connector lines follow.
+- Rounds that halve in size are linked as a knockout tree, and equal-sized rounds one to one (like a losers bracket). The connector lines follow. With `kind: 'pool'` nothing is linked, so a result never moves a team out of a later round.
 - Participants are matched by `id`, or by `name` when there's no id.
 - Anything extra goes in `meta`, on participants and matches, and you can read it in a [custom match](/docs/customize/match-cards).
 - The result is a normal stage, so [`reportResult`](/docs/guides/results) works on it too.

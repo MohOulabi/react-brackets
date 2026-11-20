@@ -34,6 +34,29 @@ test('keeps participants you provide even without results', () => {
   expect(getMatch(stage, 'main.r2.m1')).toMatchObject({ status: 'ready' });
 });
 
+test('leaves pool rounds unlinked, so a result never moves anyone', () => {
+  const pool = fromRounds(
+    [
+      semifinals,
+      {
+        name: 'Matchday 2',
+        matches: [
+          { participants: [{ name: 'Falcons' }, { name: 'Wolves' }] },
+          { participants: [{ name: 'Eagles' }, { name: 'Bears' }] },
+        ],
+      },
+    ],
+    { kind: 'pool' },
+  );
+  const stage = reportResult(pool, 'main.r1.m1', { scores: [0, 2] });
+
+  expect(getMatch(stage, 'main.r2.m1').slots.map((slot) => slot.participantId)).toEqual([
+    'Falcons',
+    'Wolves',
+  ]);
+  expect(getMatch(stage, 'main.r2.m1').slots.some((slot) => slot.origin)).toBe(false);
+});
+
 test('propagates results like any generated stage', () => {
   const stage = reportResult(fromRounds(rounds), 'main.r1.m2', { scores: [0, 1] });
   expect(getMatch(stage, 'main.r2.m1').slots[1].participantId).toBe('Bears');
