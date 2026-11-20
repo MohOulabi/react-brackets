@@ -100,7 +100,7 @@ function swissRoundsLeft(stage: Stage): number
 function fromRounds(rounds: RoundInput[], options?: FromRoundsOptions): Stage
 ```
 
-Builds a stage from data you already have. Rounds that halve in size are linked as a knockout tree and equal-sized rounds one to one. See [Your own data](/docs/formats/your-own-data).
+Builds a stage from data you already have. Rounds that halve in size are linked as a knockout tree and equal-sized rounds one to one, except in a `pool`, where nothing is linked. See [Your own data](/docs/formats/your-own-data).
 
 ### RoundInput
 

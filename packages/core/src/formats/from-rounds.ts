@@ -63,7 +63,7 @@ export interface FromRoundsOptions {
  * Builds a stage from rounds you already have, for example from an API or a CMS.
  * Rounds that halve in size are linked as a knockout tree and equal-sized rounds
  * one to one, so connector lines and result propagation work as with generated
- * stages. Participants you provide are kept, even without results.
+ * stages. A `pool` is never linked. Participants you provide are kept, even without results.
  *
  * @example
  * const stage = fromRounds([
