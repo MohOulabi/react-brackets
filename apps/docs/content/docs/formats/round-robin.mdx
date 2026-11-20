@@ -32,8 +32,8 @@ const table = standings(stage, stage.groups[0].id);
 
 | Option | Default | Description |
 | --- | --- | --- |
-| `groups` | `1` | Splits participants into groups, snake seeded so the top seeds spread out. |
-| `legs` | `1` | `2` plays every pairing twice with sides swapped. |
+| `groups` | `1` | A number splits participants into groups, snake seeded so the top seeds spread out. Lists of ids set the groups yourself. |
+| `legs` | `1` | How many times every pairing plays. Sides swap each leg. |
 | `groupName` | `Group A, B…` | `(index) => string` |
 
 Every round is a column of matches. An odd group gets a rest round, so nobody plays twice in one round.
@@ -45,6 +45,8 @@ Every round is a column of matches. An odd group gets a rest round, so nobody pl
 ```ts
 standings(stage, undefined, { points: { win: 2, draw: 1, loss: 0 } });
 ```
+
+To add a table from an earlier phase, pass it as `carryOver`. That's how a [league with a split](/docs/formats/league-with-a-split) keeps its points.
 
 Each row has `participantId`, `played`, `wins`, `draws`, `losses`, `scored`, `conceded` and `points`. The table is yours to render, with shadcn/ui, a data grid, or plain HTML.
 

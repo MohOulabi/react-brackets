@@ -50,7 +50,7 @@ const stage = roundRobin(teams.map((name) => ({ id: name, name })), { groups: 2 
 <Bracket stage={stage} compact="list" />;
 ```
 
-A pool has no lines to draw, so each match day reads best as a list. `standings(stage)` gives each group's table, which you draw however you like: the [Groups to playoffs example](/examples/native#groups-to-playoffs) draws it as a league table. See [Round robin](/docs/formats/round-robin) and [standings](/docs/native/results#standings-for-round-robin-and-swiss).
+A pool has no lines to draw, so each match day reads best as a list. `standings(stage)` gives each group's table, which you draw however you like: the [Groups to playoffs example](/examples/native#groups-to-playoffs) draws it as a league table. See [Round robin](/docs/formats/round-robin) and [standings](/docs/native/results#standings-for-round-robin-and-swiss). A league that splits into championship and relegation groups is covered in [League with a split](/docs/formats/league-with-a-split).
 
 ## Swiss
 

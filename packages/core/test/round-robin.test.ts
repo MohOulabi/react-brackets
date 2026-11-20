@@ -100,3 +100,114 @@ describe('standings', () => {
     ]);
   });
 });
+
+describe('leagues that split', () => {
+  const membersOf = (stage: Stage) =>
+    stage.groups.map((group) => [
+      ...new Set(
+        group.rounds.flatMap((round) =>
+          round.matches.flatMap((match) => match.slots.map((slot) => slot.participantId)),
+        ),
+      ),
+    ]);
+
+  /** Every match won by the higher seed, so the table follows the seeds. */
+  const playAll = (start: Stage) => {
+    let stage = start;
+    for (const match of allMatches(stage)) {
+      const [home, away] = match.slots.map((slot) => Number(slot.participantId?.slice(1)));
+      stage = reportResult(stage, match.id, {
+        scores: (home ?? 0) < (away ?? 0) ? [2, 0] : [0, 2],
+      });
+    }
+    return stage;
+  };
+
+  test('plays every pairing as many times as there are legs, swapping sides each leg', () => {
+    const stage = roundRobin(players(4), { legs: 3 });
+    const rounds = stage.groups[0]?.rounds ?? [];
+    const sides = (index: number) =>
+      rounds[index]?.matches[0]?.slots.map((slot) => slot.participantId);
+
+    expect(rounds).toHaveLength(9);
+    expect(pairings(stage).filter((pair) => pair === 'p1-p2')).toHaveLength(3);
+    expect(sides(3)).toEqual(sides(0)?.slice().reverse());
+    expect(sides(6)).toEqual(sides(0));
+  });
+
+  test('rejects a number of legs that is not a whole number', () => {
+    expect(() => roundRobin(players(4), { legs: 0 })).toThrow(RangeError);
+    expect(() => roundRobin(players(4), { legs: 1.5 })).toThrow(RangeError);
+  });
+
+  test('keeps the groups you list, in your order', () => {
+    const stage = roundRobin(players(6), {
+      groups: [
+        ['p1', 'p2', 'p3'],
+        ['p4', 'p5', 'p6'],
+      ],
+      groupName: (index) => ['Championship group', 'Relegation group'][index] ?? '',
+    });
+
+    expect(stage.groups.map((group) => group.name)).toEqual([
+      'Championship group',
+      'Relegation group',
+    ]);
+    expect(membersOf(stage).map((ids) => ids.sort())).toEqual([
+      ['p1', 'p2', 'p3'],
+      ['p4', 'p5', 'p6'],
+    ]);
+  });
+
+  test('refuses groups that leave someone out, list someone twice, or name a stranger', () => {
+    const six = players(6);
+    expect(() =>
+      roundRobin(six, {
+        groups: [
+          ['p1', 'p2', 'p3'],
+          ['p4', 'p5'],
+        ],
+      }),
+    ).toThrow('not in any group');
+    expect(() =>
+      roundRobin(six, {
+        groups: [
+          ['p1', 'p2', 'p3'],
+          ['p3', 'p4', 'p5', 'p6'],
+        ],
+      }),
+    ).toThrow('more than one group');
+    expect(() =>
+      roundRobin(six, {
+        groups: [
+          ['p1', 'p2', 'p3', 'x'],
+          ['p4', 'p5', 'p6'],
+        ],
+      }),
+    ).toThrow('not in this stage');
+    expect(() => roundRobin(six, { groups: [['p1'], ['p2', 'p3', 'p4', 'p5', 'p6']] })).toThrow(
+      RangeError,
+    );
+  });
+
+  test('carries the table over into the split, and ranks each half on its own', () => {
+    const teams = players(6);
+    const league = playAll(roundRobin(teams, { legs: 2 }));
+    const before = standings(league);
+    const [top, bottom] = [before.slice(0, 3), before.slice(3)].map((rows) =>
+      rows.map((row) => row.participantId),
+    );
+    const split = playAll(roundRobin(teams, { id: 'split', groups: [top ?? [], bottom ?? []] }));
+    const [championship, relegation] = split.groups.map((group) =>
+      standings(split, group.id, { carryOver: before }),
+    );
+
+    expect(top).toEqual(['p1', 'p2', 'p3']);
+    expect(championship?.map((row) => row.participantId)).toEqual(['p1', 'p2', 'p3']);
+    expect(relegation?.map((row) => row.participantId)).toEqual(['p4', 'p5', 'p6']);
+    // p1 won all 10 league games and both championship games.
+    expect(championship?.[0]).toMatchObject({ played: 12, wins: 12, points: 36, scored: 24 });
+    // p4 keeps its 12 league points and adds 6 from beating p5 and p6.
+    expect(relegation?.[0]).toMatchObject({ played: 12, points: 18 });
+  });
+});
