@@ -328,7 +328,7 @@
     },
     "packages/core": {
       "name": "@react-brackets/core",
-      "version": "2.0.2",
+      "version": "2.1.0",
       "devDependencies": {
         "@arethetypeswrong/cli": "^0.18.5",
         "bunup": "^0.16.32",
@@ -337,9 +337,9 @@
     },
     "packages/native": {
       "name": "@react-brackets/native",
-      "version": "0.3.2",
+      "version": "0.3.3",
       "dependencies": {
-        "@react-brackets/core": "^2.0.0",
+        "@react-brackets/core": "^2.1.0",
       },
       "devDependencies": {
         "@happy-dom/global-registrator": "^21.0.4",
@@ -365,9 +365,9 @@
     },
     "packages/react": {
       "name": "react-brackets",
-      "version": "2.4.5",
+      "version": "2.5.0",
       "dependencies": {
-        "@react-brackets/core": "^2.0.2",
+        "@react-brackets/core": "^2.1.0",
       },
       "devDependencies": {
         "@arethetypeswrong/cli": "^0.18.5",

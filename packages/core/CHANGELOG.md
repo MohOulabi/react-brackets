@@ -1,5 +1,11 @@
 # @react-brackets/core
 
+## 2.1.0
+
+### Minor Changes
+
+- 5591d4f: Leagues that split into a championship group and a relegation group, like the Scottish Premiership. `roundRobin` takes any number of `legs`, and `groups` can be the groups themselves as lists of participant ids. `standings` takes a `carryOver` table from an earlier phase, so points from before the split count. See the new "League with a split" page.
+
 ## 2.0.2
 
 ### Patch Changes
